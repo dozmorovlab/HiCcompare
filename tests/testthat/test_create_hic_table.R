@@ -1,6 +1,6 @@
 test_that('create.hic.table produces same result for sparse matrix and BEDPE inputs', {
   library(testthat)
-  library(HiCdiff)
+  library(HiCcompare)
   # test default settings
   data("HMEC.chr22")
   data("NHEK.chr22")
@@ -37,7 +37,7 @@ test_that('create.hic.table produces same result for sparse matrix and BEDPE inp
 
 
 test_that('subsetting works', {
-  library(HiCdiff)
+  library(HiCcompare)
   q = matrix(1:100, 10, 10)
   colnames(q) = 1:10
   w = full2sparse(q)
@@ -58,7 +58,7 @@ test_that('subsetting works', {
 
 
 test_that('Input errors are correct', {
-  library(HiCdiff)
+  library(HiCcompare)
   data("HMEC.chr22")
   data("nhek.IS")
   expect_error(create.hic.table(HMEC.chr22, nhek.IS, chr = 'chr22'), "Make sure the classes of the sparse matrices match")

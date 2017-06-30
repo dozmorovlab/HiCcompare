@@ -1,6 +1,6 @@
 
 test_that('matrix transformations work', {
-  library(HiCdiff)
+  library(HiCcompare)
   data('HMEC.chr22')
   original = as.data.table(HMEC.chr22)
   full = sparse2full(HMEC.chr22)

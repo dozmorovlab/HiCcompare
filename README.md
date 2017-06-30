@@ -1,10 +1,10 @@
-# HiCdiff
+# HiCcompare
 
 ## Overview 
 
-`HiCdiff` provides functions for joint normalization and difference detection in multiple Hi-C datasets. `HiCdiff` operates on processed Hi-C data in the form of chromosome-specific chromatin interaction matrices. `HiCdiff` is available as an R package, the major releases can be found on Bioconductor (here)[insert URL]. 
+`HiCcompare` provides functions for joint normalization and difference detection in multiple Hi-C datasets. `HiCcompare` operates on processed Hi-C data in the form of chromosome-specific chromatin interaction matrices. `HiCcompare` is available as an R package, the major releases can be found on Bioconductor (here)[insert URL]. 
 
-`HiCdiff` accepts three-column tab-separated text files storing chromatin interaction matrices in a sparse matrix format which are available from several sources such as the [http://aidenlab.org/data.html](http://aidenlab.org/data.html) and [http://cooler.readthedocs.io/en/latest/index.html](http://cooler.readthedocs.io/en/latest/index.html). HiCdiff is designed to give the user the ability to perform a comparative analysis on the 3-Dimensional structure of the genomes of cells in different biological states. `HiCdiff` first can jointly normalize two Hi-C datasets to remove biases between them. Then it can detect signficant differences between the datsets using a genomic distance based permutation test. The novel concept of the MD plot, based on the commonly used MA plot or Bland-Altman plot is the basis for these methods. The log **M**inus is plotted on the y axis while the genomic **D**istance is plotted on the x axis. The MD plot allows for visualization of the differences between the Hi-C datasets. 
+`HiCcompare` accepts three-column tab-separated text files storing chromatin interaction matrices in a sparse matrix format which are available from several sources such as the [http://aidenlab.org/data.html](http://aidenlab.org/data.html) and [http://cooler.readthedocs.io/en/latest/index.html](http://cooler.readthedocs.io/en/latest/index.html). HiCcompare is designed to give the user the ability to perform a comparative analysis on the 3-Dimensional structure of the genomes of cells in different biological states. `HiCcompare` first can jointly normalize two Hi-C datasets to remove biases between them. Then it can detect signficant differences between the datsets using a genomic distance based permutation test. The novel concept of the MD plot, based on the commonly used MA plot or Bland-Altman plot is the basis for these methods. The log **M**inus is plotted on the y axis while the genomic **D**istance is plotted on the x axis. The MD plot allows for visualization of the differences between the Hi-C datasets. 
 
 The main functions are:
 + `hic_loess()` which performs joint `loess` normalization on the Hi-C datasets
@@ -24,35 +24,35 @@ source("https://bioconductor.org/biocLite.R")
 biocLite("InteractionSet")				   
 ```
 
-To install `HiCdiff` from bioconductor open R and enter the following commands.
+To install `HiCcompare` from bioconductor open R and enter the following commands.
 
 ```
 # Currently in submission process; for now use github version
 ## try http:// if https:// URLs are not supported
 # source("https://bioconductor.org/biocLite.R")
-# biocLite("HiCdiff")
-# library(HiCdiff)
+# biocLite("HiCcompare")
+# library(HiCcompare)
 ```
 
 
-Or to install `HiCdiff` directly from the github release open R and enter the following commands.
+Or to install `HiCcompare` directly from the github release open R and enter the following commands.
 
 ```
 library(devtools)
-install_github('dozmorovlab/HiCdiff', build_vignettes = TRUE)
-library(HiCdiff)
+install_github('dozmorovlab/HiCcompare', build_vignettes = TRUE)
+library(HiCcompare)
 ```
 
 
 ## Usage
 
-First you will need to obtain some Hi-C data. Data is available from the sources listed in the overview along with many others. You will need to extract the data and read it into R as either a 3 column sparse upper triangular matrix or a 7 column BEDPE file. For more details on data extraction see the vignette included with `HiCdiff`.
+First you will need to obtain some Hi-C data. Data is available from the sources listed in the overview along with many others. You will need to extract the data and read it into R as either a 3 column sparse upper triangular matrix or a 7 column BEDPE file. For more details on data extraction see the vignette included with `HiCcompare`.
 
-Below is an example analysis using `HiCdiff`. The data in 3 column sparse upper triangular matrix format is loaded and the first step is to create a `hic.table` object using the `create.hic.table()` function. Next, the two Hi-C matrices are jointly normalized using the `hic_loess()` function. Finally, difference detection can be performed using the `hic_diff()` function. The `hic_loess()` and `hic_diff()` functions will also produce an MD plot for visualizing the differences between the datasets. 
+Below is an example analysis using `HiCcompare`. The data in 3 column sparse upper triangular matrix format is loaded and the first step is to create a `hic.table` object using the `create.hic.table()` function. Next, the two Hi-C matrices are jointly normalized using the `hic_loess()` function. Finally, difference detection can be performed using the `hic_diff()` function. The `hic_loess()` and `hic_diff()` functions will also produce an MD plot for visualizing the differences between the datasets. 
 
 ```
 # load data
-library(HiCdiff)
+library(HiCcompare)
 data("HMEC.chr22")
 data("NHEK.chr22")
 
@@ -69,16 +69,16 @@ hic.table = hic_diff(hic.table, Plot = TRUE)
 head(hic.table)
 ```
 
-Refer to the `HiCdiff` vignette for full usage instructions. For a full explanation of the methods used in `HiCdiff` see the manuscript [here](https://doi.org/10.1101/147850).
+Refer to the `HiCcompare` vignette for full usage instructions. For a full explanation of the methods used in `HiCcompare` see the manuscript [here](https://doi.org/10.1101/147850).
 
 To view the usage vignette:
 
-`browseVignettes("HiCdiff")`
+`browseVignettes("HiCcompare")`
 
 
 ## Additional Vignettes
 
-The `HiCdiff` paper included several supplemental files that showcase some of the usage and reasoning behind the methods. Below are the titles and brief descriptions of each of these vignettes along with links to the compiled `.pdf` and the source `.Rmd` files. 
+The `HiCcompare` paper included several supplemental files that showcase some of the usage and reasoning behind the methods. Below are the titles and brief descriptions of each of these vignettes along with links to the compiled `.pdf` and the source `.Rmd` files. 
 
 **Normalization method comparison.** 
 
@@ -141,7 +141,7 @@ Visualization of the `loess` loint normalization over varying resolutions. This 
 
 ## Citation
 
-Please cite `HiCdiff` if you use it in your analysis.
+Please cite `HiCcompare` if you use it in your analysis.
 
 HiCdiff: A method for joint normalization of Hi-C datasets and differential chromatin interaction detection
 John Stansfield, Mikhail G. Dozmorov
@@ -149,7 +149,7 @@ bioRxiv 147850; doi: https://doi.org/10.1101/147850
 
 ## Contributions & Support
 
-Suggestions for new features and bug reports are welcome. Please create a new [issue](https://github.com/dozmorovlab/HiCdiff/issues) for any of these or contact the author directly: [@jstansfield0](https://github.com/jstansfield0) (stansfieldjc@vcu.edu)
+Suggestions for new features and bug reports are welcome. Please create a new [issue](https://github.com/dozmorovlab/HiCcompare/issues) for any of these or contact the author directly: [@jstansfield0](https://github.com/jstansfield0) (stansfieldjc@vcu.edu)
 
 ## Contributors
 

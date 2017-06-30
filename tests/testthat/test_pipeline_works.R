@@ -1,7 +1,7 @@
 
 
 test_that('Same output when seed set and input the same', {
-  library(HiCdiff)
+  library(HiCcompare)
   data('HMEC.chr22')
   data('NHEK.chr22')
   tab = create.hic.table(HMEC.chr22, NHEK.chr22, chr = 'chr22')
@@ -14,7 +14,7 @@ test_that('Same output when seed set and input the same', {
 
 
 test_that('Pipeline works', {
-  library(HiCdiff)
+  library(HiCcompare)
   data('HMEC.chr22')
   data('NHEK.chr22')
   tab = create.hic.table(HMEC.chr22, NHEK.chr22, chr = 'chr22')

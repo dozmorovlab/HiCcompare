@@ -1,5 +1,5 @@
 test_that('hic_loess errors work', {
-  library(HiCdiff)
+  library(HiCcompare)
   data('HMEC.chr22')
   data('NHEK.chr22')
   tab = create.hic.table(HMEC.chr22, NHEK.chr22, chr = 'chr22')
@@ -12,7 +12,7 @@ test_that('hic_loess errors work', {
 
 
 test_that('hic_diff errors work', {
-  library(HiCdiff)
+  library(HiCcompare)
   data('HMEC.chr22')
   data('NHEK.chr22')
   tab = create.hic.table(HMEC.chr22, NHEK.chr22, chr = 'chr22')
