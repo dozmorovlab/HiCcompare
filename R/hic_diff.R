@@ -86,11 +86,11 @@ hic_diff <- function(hic.table, diff.thresh = "auto", iterations = 10000,
   if (parallel) {
     if (length(diff.thresh) == 1) {
       hic.table <- BiocParallel::bplapply(hic.table, .calc.pval, Plot = Plot, diff.thresh = diff.thresh,
-                            iterations = iterations, BPPARAM = BP_param)
+                                          iterations = iterations, BPPARAM = BP_param)
     } else {
       hic.table <- BiocParallel::bpmapply(.calc.pval, hic.table, diff.thresh,
-                            MoreArgs = list(Plot = Plot,
-                                            iterations = iterations), SIMPLIFY = FALSE, BPPARAM = BP_param)
+                                          MoreArgs = list(Plot = Plot,
+                                                          iterations = iterations), SIMPLIFY = FALSE, BPPARAM = BP_param)
     }
   } else {
     if (length(diff.thresh) == 1) {
@@ -144,33 +144,36 @@ hic_diff <- function(hic.table, diff.thresh = "auto", iterations = 10000,
 # hic_loess or hic_diff functions uses perm.test function
 .calc.pval <- function(hic.table, diff.thresh = NA, p.adj.method = "fdr",
                        Plot = TRUE, iterations = 10000) {
-  temp <- vector("list", ceiling(0.85 * max(hic.table$D)) + 2)
-  for (dist in 0:ceiling(0.85 * max(hic.table$D))) {
-    temp[[dist + 1]] <- subset(hic.table, D == dist)
-    p.temp <- .perm.test(temp[[dist + 1]]$adj.M, iterations = iterations)
-    temp[[dist + 1]][, `:=`(p.value, p.temp)]
-    temp[[dist + 1]][, `:=`(p.adj, p.adjust(p.temp, method = p.adj.method))]
+  # set up vector of included distances
+  all_dist <- sort(unique(hic.table$D))
+  dist_85 <- ceiling(0.85 * length(all_dist))
+  temp <- vector("list", dist_85 + 1)
+  for (dist_idx in seq_len(dist_85)) {
+    temp[[dist_idx]] <- subset(hic.table, D == all_dist[dist_idx])
+    p.temp <- .perm.test(temp[[dist_idx]]$adj.M, iterations = iterations)
+    temp[[dist_idx]][, `:=`(p.value, p.temp)]
+    temp[[dist_idx]][, `:=`(p.adj, p.adjust(p.temp, method = p.adj.method))]
     # method to check for significant calls when the actual difference
     # between the two values is very small
     if (!is.na(diff.thresh)) {
       # M specifies the log2 fold change between IF1 and IF2. Want to call
       # differences less than user set diff.thresh fold change not clinically
       # significant
-      temp[[dist + 1]][, `:=`(p.value, ifelse(p.value < 0.05 & abs(adj.M) <
+      temp[[dist_idx]][, `:=`(p.value, ifelse(p.value < 0.05 & abs(adj.M) <
                                                 diff.thresh, 0.5, p.value))]
     }
   }
   # for permutation to work need to combine top distances together into
   # one group
-  temp[[dist + 2]] <- subset(hic.table, D > dist)
-  p.temp <- .perm.test(temp[[dist + 2]]$adj.M, iterations = iterations)
-  temp[[dist + 2]][, `:=`(p.value, p.temp)]
-  temp[[dist + 2]][, `:=`(p.adj, p.adjust(p.temp, method = p.adj.method))]
+  temp[[dist_idx + 1]] <- subset(hic.table, D > all_dist[dist_idx])
+  p.temp <- .perm.test(temp[[dist_idx + 1]]$adj.M, iterations = iterations)
+  temp[[dist_idx + 1]][, `:=`(p.value, p.temp)]
+  temp[[dist_idx + 1]][, `:=`(p.adj, p.adjust(p.temp, method = p.adj.method))]
   # method to check for significant calls when the actual difference
   # between the two values is very small
   if (!is.na(diff.thresh)) {
-    temp[[dist + 2]][, `:=`(p.value, ifelse(p.value < 0.05 & abs(adj.M) <
-                                              diff.thresh, 0.5, p.value))]
+    temp[[dist_idx + 1]][, `:=`(p.value, ifelse(p.value < 0.05 & abs(adj.M) <
+                                                  diff.thresh, 0.5, p.value))]
   }
   hic.table <- rbindlist(temp)
   ## Dont need p.adj so remove it from hic.table before returning
