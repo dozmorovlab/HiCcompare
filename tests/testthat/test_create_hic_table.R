@@ -38,6 +38,7 @@ test_that('create.hic.table produces same result for sparse matrix and BEDPE inp
 
 test_that('subsetting works', {
   library(HiCcompare)
+  library(testthat)
   q = matrix(1:100, 10, 10)
   colnames(q) = 1:10
   w = HiCcompare::full2sparse(q)
@@ -48,7 +49,7 @@ test_that('subsetting works', {
   expect_equal(max(s.dist$D), 5)
   s.index = HiCcompare::create.hic.table(w, w, chr = 'test', subset.index = c(1,5, 1,5))
   e = HiCcompare::sparse2full(s.index[, c(2,5,7), with=F])
-  r = q %>% HiCcompare::full2sparse %>% HiCcompare::sparse2full
+  r = q %>% HiCcompare::full2sparse(.) %>% HiCcompare::sparse2full(.)
   expect_identical(e, r[1:5, 1:5])
 
   s.index2 = HiCcompare::create.hic.table(w, w, chr='test', subset.index = c(5, 9, 5, 9))
@@ -59,6 +60,7 @@ test_that('subsetting works', {
 
 test_that('Input errors are correct', {
   library(HiCcompare)
+  library(testthat)
   data("HMEC.chr22")
   data("nhek.IS")
   expect_error(HiCcompare::create.hic.table(HMEC.chr22, nhek.IS, chr = 'chr22'), "Make sure the classes of the sparse matrices match")

@@ -1,4 +1,4 @@
 library(testthat)
-library(HiCdiff)
+library(HiCcompare)
 
-test_check("HiCdiff")
+test_check("HiCcompare")
