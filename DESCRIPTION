@@ -1,0 +1,36 @@
+Package: HiCcompare
+Title: HiCcompare: Joint normalization and comparative analysis of
+        multiple Hi-C datasets
+Version: 0.99.13
+Authors@R: c(person("John", "Stansfield", email =
+        "stansfieldjc@vcu.edu", role = c("aut", "cre")),
+        person("Mikhail", "Dozmorov", email =
+        "mikhail.dozmorov@vcuhealth.org", role = c("aut")))
+Description: HiCcompare provides functions for joint normalization and
+        difference detection in multiple Hi-C datasets. HiCcompare
+        operates on processed Hi-C data in the form of
+        chromosome-specific chromatin interaction matrices. It accepts
+        three-column tab-separated text files storing chromatin
+        interaction matrices in a sparse matrix format which are
+        available from several sources. HiCcompare is designed to give
+        the user the ability to perform a comparative analysis on the
+        3-Dimensional structure of the genomes of cells in different
+        biological states.`HiCcompare` differs from other packages that
+        attempt to compare Hi-C data in that it works on processed data
+        in chromatin interaction matrix format instead of pre-processed
+        sequencing data. In addition, `HiCcompare` provides a
+        non-parametric method for the joint normalization and removal
+        of biases between two Hi-C datasets for the purpose of
+        comparative analysis. `HiCcompare` also provides a simple yet
+        robust permutation method for detecting differences between
+        Hi-C datasets.
+Depends: R (>= 3.4.0), dplyr
+Imports: data.table, ggplot2, gridExtra, mgcv, stats, InteractionSet,
+        GenomicRanges, IRanges, S4Vectors, BiocParallel
+biocViews: Software, HiC, Sequencing, Normalization
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.0.1
+Suggests: knitr, rmarkdown, pheatmap, testthat
+VignetteBuilder: knitr
