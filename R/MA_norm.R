@@ -22,33 +22,6 @@ MA_norm <- function(hic.table, degree = 2, Plot = FALSE, span = NA,
                     loess.criterion = "gcv") {
   A <- 0.5 * log2(hic.table$IF1 * hic.table$IF2)
   # perform loess on data
-  # if (is.na(span)) {
-  #   l <- .loess.as(x = hic.table$D, y = hic.table$M, degree = degree,
-  #                  criterion = loess.criterion,
-  #                  control = loess.control(surface = "interpolate",
-  #                                          statistics = "approximate", trace.hat = "approximate"))
-  #   # calculate gcv and AIC
-  #   traceL <- l$trace.hat
-  #   sigma2 <- sum(l$residuals^2)/(l$n - 1)
-  #   aicc <- log(sigma2) + 1 + 2 * (2 * (traceL + 1))/(l$n - traceL -
-  #                                                       2)
-  #   gcv <- l$n * sigma2/(l$n - traceL)^2
-  # } else {
-  #   l <- loess(hic.table$M ~ A, degree = degree, span = span,
-  #              control = loess.control(surface = "interpolate", statistics = "approximate",
-  #                                      trace.hat = "approximate"))
-  #   # calculate gcv and AIC
-  #   traceL <- l$trace.hat
-  #   sigma2 <- sum(l$residuals^2)/(l$n - 1)
-  #   aicc <- log(sigma2) + 1 + 2 * (2 * (traceL + 1))/(l$n - traceL -
-  #                                                       2)
-  #   gcv <- l$n * sigma2/(l$n - traceL)^2
-  # }
-  # # print the span picked by gcv
-  # message(paste("Span for loess: ", l$pars$span, sep = ""))
-  # message(paste("GCV for loess: ", gcv, sep = ""))
-  # message(paste("AIC for loess: ", aicc, sep = ""))
-
   l <- loess(hic.table$M ~ A)
   # get the correction factor
   mc <- predict(l, A)

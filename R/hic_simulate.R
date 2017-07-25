@@ -47,29 +47,6 @@
   idx2 <- idx[, c(2,1)]
   cell1[idx2] <- cell1[idx]
   cell2[idx2] <- cell2[idx]
-  # for (i in 1:dim(cell1)[1]) {
-  #   for (j in col_num:dim(cell1)[2]) {
-  #     distance <- j - i + 1
-  #     Bmean <- .powerlaw(distance, medianIF, powerlaw.alpha)
-  #     noise.sd <- .powerlaw(distance, sdIF, sd.alpha)
-  #     cell1[i, j] <- round(Bmean) + round(rnorm(1, 0, noise.sd))
-  #     cell1[j, i] <- cell1[i, j]
-  #     cell2[i, j] <- round(Bmean) + round(rnorm(1, 0, noise.sd))
-  #     cell2[j, i] <- cell2[i, j]
-  #     # add in proportion of 0's
-  #     prob.zero <- .prop.zero.linear(distance, prop.zero.slope)
-  #     u <- runif(2)
-  #     if (u[1] < prob.zero) {
-  #       cell1[i, j] <- 0
-  #       cell1[j, i] <- 0
-  #     }
-  #     if (u[2] < prob.zero) {
-  #       cell2[i, j] <- 0
-  #       cell2[j, i] <- 0
-  #     }
-  #   }
-  #   col_num <- col_num + 1
-  # }
   # check for negative values
   cell1[cell1 < 0] <- 0
   cell2[cell2 < 0] <- 0

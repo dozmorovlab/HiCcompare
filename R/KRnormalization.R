@@ -86,9 +86,6 @@ KRnorm = function(A) {
   result = diag(c(x)) %*% A %*% diag(c(x))
   # reintroduce NAs in final matrix
   if(nrow(NAlist) > 0) {
-    # for(i in 1:nrow(NAlist)) {
-    #   result[NAlist[i,1], NAlist[i,2]] = NA
-    # }
     idx <- as.matrix(NAlist[, 1:2])
     result[idx] <- NA
   }

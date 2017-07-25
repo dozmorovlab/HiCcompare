@@ -66,12 +66,6 @@ sparse2full <- function(sparse.mat, hic.table = FALSE, column.name = NA) {
     }
     # reconstruct matrix using by converting bin names to matrix cell
     # locations
-    # for (count in 1:dim(sparse.mat)[1]) {
-    #   row_num <- which(as.numeric(sparse.mat[count, 2]) == cols)
-    #   col_num <- which(as.numeric(sparse.mat[count, 5]) == cols)
-    #   mat[row_num, col_num] <- as.numeric(sparse.mat[count, column.name])
-    #   mat[col_num, row_num] <- as.numeric(sparse.mat[count, column.name])
-    # }
     col.val <- which(colnames(sparse.mat) == column.name)
     sparse.mat <- sparse.mat[, c(2, 5, col.val)]
     sparse.mat <- apply(sparse.mat, 2, as.numeric)
@@ -87,12 +81,7 @@ sparse2full <- function(sparse.mat, hic.table = FALSE, column.name = NA) {
   } else {
     # reconstruct matrix using by converting bin names to matrix cell
     # locations
-    # for (count in 1:dim(sparse.mat)[1]) {
-    #   row_num <- which(sparse.mat[count, 1] == cols)
-    #   col_num <- which(sparse.mat[count, 2] == cols)
-    #   mat[row_num, col_num] <- sparse.mat[count, 3]
-    #   mat[col_num, row_num] <- sparse.mat[count, 3]
-    # }
+  
     # match bin names to column/row number
     sparse.mat[,1] <- match(sparse.mat[,1], cols)
     sparse.mat[,2] <- match(sparse.mat[,2], cols)
