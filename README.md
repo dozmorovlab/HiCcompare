@@ -95,50 +95,50 @@ Comparison of several Hi-C normalization techniques to display the persistence o
 
 Estimation of the power-law depencence between the $log_{10}-log_{10}$ interaction frequencies and distance between interacting regions. This vignette displays the reasoning behind using a power-law function for the simulation of the signal portion of Hi-C matrices.
 
-[Compiled](https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_vignettes/S2_File.pdf)
+[Compiled](https://github.com/dozmorovlab/HiCcompare/raw/supplemental/supplemental_files/S2_File.pdf)
 
-[Source](https://github.com/dozmorovlab/HiCdiff/blob/supplemental/Supplemental_vignettes/S2_File.Rmd)
+[Source](https://github.com/dozmorovlab/HiCcompare/raw/supplemental/supplemental_files/S2_File.Rmd)
 
 **S3 File. Estimation of the SD power-law dependence.** 
 
 Estimation of the power-law depencence between the $log_{10}-log_{10}$ SD of interaction frequencies and distance between interacting regions. This vignette displays the reasoning behind using a power-law function for the simulation of the noise component of Hi-C matrices.
 
-[Compiled](https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_vignettes/S3_File.pdf)
+[Compiled](https://github.com/dozmorovlab/HiCcompare/raw/supplemental/supplemental_files/S3_File.pdf)
 
-[Source](https://github.com/dozmorovlab/HiCdiff/blob/supplemental/Supplemental_vignettes/S3_File.Rmd)
+[Source](https://github.com/dozmorovlab/HiCcompare/raw/supplemental/supplemental_files/S3_File.Rmd)
 
 **S4 File. Estimation of proportion of zeros.** 
 
 Estimation of the depencence between the proportion of zeros and distance between interacting regions. This vignette shows distribution of zeros in real Hi-C data. The results were used for modeling the proportion of zeros in simulated Hi-C matrices with a linear function.
 
-[Compiled](https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_vignettes/S4_File.pdf)
+[Compiled](https://github.com/dozmorovlab/HiCcompare/raw/supplemental/supplemental_files/S4_File.pdf)
 
-[Source](https://github.com/dozmorovlab/HiCdiff/blob/supplemental/Supplemental_vignettes/S4_File.Rmd)
+[Source](https://github.com/dozmorovlab/HiCcompare/raw/supplemental/supplemental_files/S4_File.Rmd)
 
 
 **S5 File. Evaluation of difference detection in simulated data.** 
 
 Extended evaluation of differential chromatin interaction detection analysis using simulated Hi-C data. Many different classifier performance measures are presented. Note: if trying to compile the source `.Rmd` this will take a long time to knit. 
 
-[Compiled](https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_vignettes/S5_File.pdf)
+[Compiled](https://github.com/dozmorovlab/HiCcompare/raw/supplemental/supplemental_files/S5_File.pdf)
 
-[Source](https://github.com/dozmorovlab/HiCdiff/blob/supplemental/Supplemental_vignettes/S5_file.Rmd)
+[Source](https://github.com/dozmorovlab/HiCcompare/raw/supplemental/supplemental_files/S5_File.Rmd)
 
 **S6 File. Evaluation of difference detection in real data.** 
 
 Extended evaluation of differential chromatin interaction detection analysis using real Hi-C data. Many different classifier performance measures are presented. Note: if trying to compile the source `.Rmd` this will take a long time to knit. 
 
-[Compiled](https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_vignettes/S6_File.pdf)
+[Compiled](https://github.com/dozmorovlab/HiCcompare/raw/supplemental/supplemental_files/S6_File.pdf)
 
-[Source](https://github.com/dozmorovlab/HiCdiff/blob/supplemental/Supplemental_vignettes/S6_File.Rmd)
+[Source](https://github.com/dozmorovlab/HiCcompare/raw/supplemental/supplemental_files/S6_File.Rmd)
 
 **S7 File. `loess` at varying resolution.** 
 
 Visualization of the `loess` loint normalization over varying resolutions. This vignette shows that increasing sparsity of Hi-C matrices with increasing resolution causes loess to become less useful for normalization at high resolutions. 
 
-[Compiled](https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_vignettes/S7_File.pdf)
+[Compiled](https://github.com/dozmorovlab/HiCcompare/raw/supplemental/supplemental_files/S7_File.pdf)
 
-[Source](https://github.com/dozmorovlab/HiCdiff/blob/supplemental/Supplemental_vignettes/S7_File.Rmd)
+[Source](https://github.com/dozmorovlab/HiCcompare/raw/supplemental/supplemental_files/S7_File.Rmd)
 
 
 
