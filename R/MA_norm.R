@@ -20,8 +20,13 @@
 
 MA_norm <- function(hic.table, degree = 2, Plot = FALSE, span = NA,
                     loess.criterion = "gcv") {
-  A <- 0.5 * log2(hic.table$IF1 * hic.table$IF2)
+  if (sum(hic.table$IF1 == 0) > 0 | sum(hic.table$IF2 == 0) > 0) {
+    A <- 0.5 * log2((hic.table$IF1 + 1) * (hic.table$IF2 + 1))
+  } else {
+    A <- 0.5 * log2(hic.table$IF1 * hic.table$IF2)
+  }
   # perform loess on data
+
   l <- loess(hic.table$M ~ A)
   # get the correction factor
   mc <- predict(l, A)

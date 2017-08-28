@@ -5,7 +5,8 @@
 \title{Detect differences between two jointly normalized Hi-C datasets.}
 \usage{
 hic_diff(hic.table, diff.thresh = "auto", iterations = 10000,
-  Plot = FALSE, parallel = FALSE, BP_param = bpparam())
+  Plot = FALSE, Plot.smooth = TRUE, parallel = FALSE,
+  BP_param = bpparam())
 }
 \arguments{
 \item{hic.table}{A hic.table or list of hic.tables output from the
@@ -26,6 +27,10 @@ the p-value will be set to 0.5.}
 
 \item{Plot}{Logical, should the MD plot showing before/after loess normalization
 be output?}
+
+\item{Plot.smooth}{Logical, defaults to TRUE indicating the MD plot
+will be a smooth scatter plot. Set to FALSE for a scatter plot
+with discrete points.}
 
 \item{parallel}{Logical, set to TRUE to utilize the \code{parallel} package's
 parallelized computing. Only works on unix operating systems. Only useful if

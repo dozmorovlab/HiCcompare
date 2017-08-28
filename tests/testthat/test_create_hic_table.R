@@ -1,6 +1,7 @@
 test_that('create.hic.table produces same result for sparse matrix and BEDPE inputs', {
   library(testthat)
   library(HiCcompare)
+  library(data.table)
   # test default settings
   data("HMEC.chr22")
   data("NHEK.chr22")

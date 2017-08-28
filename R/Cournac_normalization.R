@@ -33,6 +33,7 @@ SCN = function(a, max.iter = 5) {
     # Euclidean normalization of matrix
     a.col.norms <- apply(a,2, function(x) sqrt(sum(x^2)) )
     a.new <- t(t(a) / a.col.norms)
+
     a.row.norms <- apply(a.new, 1, function(x) sqrt(sum(x^2)) )
     a <- t(t(a.new) / a.row.norms)
 

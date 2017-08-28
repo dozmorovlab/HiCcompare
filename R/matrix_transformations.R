@@ -81,7 +81,6 @@ sparse2full <- function(sparse.mat, hic.table = FALSE, column.name = NA) {
   } else {
     # reconstruct matrix using by converting bin names to matrix cell
     # locations
-  
     # match bin names to column/row number
     sparse.mat[,1] <- match(sparse.mat[,1], cols)
     sparse.mat[,2] <- match(sparse.mat[,2], cols)

@@ -2,7 +2,9 @@
 title: "`HiCcompare` Vignette"
 author: "John Stansfield, Mikhail Dozmorov"
 date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
+output: 
+  rmarkdown::html_vignette:
+    toc: true
 vignette: >
   %\VignetteIndexEntry{HiCcompare Usage Vignette}
   %\VignetteEngine{knitr::rmarkdown}
@@ -73,6 +75,30 @@ The `cooler` software, [http://cooler.readthedocs.io/en/latest/index.html](http:
   `sparse <- cooler2sparse(hesc1000kb) `
   6. Repeat the steps for another Hi-C dataset that you wish to compare to the first dataset then proceed to [Creating the `hic.table` object](#hic_table).
   
+
+## Detecting Copy Number Variations and Excluding regions
+
+Before you start a `HiCcompare` analysis, you may want to detect CNV and exclude these regions along with any other regions known to exhibit changes or undesirable sequencing characteristics which could cause false positives. `HiCcompare` provides a function to perform a CNV detection analysis utilizing the `QDNAseq` R package. You will need to have your Hi-C data in `.bam` files. This can be accomplished by downloading the raw sequencing results and aligning them using one of the many Hi-C processing pipelines. Once you have `.bam` files place them in a specified folder and you can then run `get_CNV`. Make sure to specify the bin size you will be using in kilobase pairs. The bin size should be the same as the resolution of the Hi-C data that will be used in the `HiCcompare` analysis. The `CNV.level` option will allow you to choose which level of CNV you would like to exclude. The CNV calls are defined as -2 = deletion, -1 = loss, 0 = normal, 1 = gain, 2 = amplification. In order to exclude amplifications and deletions set `CNV.level = 2`. To exclude any amount of CNV set `CNV.level = 1`.
+
+```{r, eval = FALSE}
+cnv <- get_CNV(path2bam = 'path/to/bamfiles', out.file = 'path/to/bamfiles/outfile', 
+               bin.size = 1000, genome = 'hg19', CNV.level = 2)
+```
+
+This function will run the CNV detection steps provided in `QDNAseq` and export a `.txt` file containing the copy number calls and a `.bed` file containing the regions detected at or above the chosen CNV level. It will also return a data.frame containing the regions at or above the chosen CNV level.  It is recommended to exclude regions with scores of -2 or 2, however this decision is left up to the user. 
+
+You may want to exclude the regions with CNV along with blacklisted regions from any further analysis. `HiCcompare` has the ENCODE blacklists for hg19 and hg38 included (available using `data("hg19_blacklist")` or `data("hg38_blacklist")`). We can now create a data.frame (or `GenomicRanges` object) containing all of the regions we want to exclude from any further analysis.
+
+```{r, eval = FALSE}
+data('hg19_blacklist')
+
+# combine cnv excluded regions with blacklist regions
+exclude <- cbind(cnv, hg19_blacklist)
+```
+
+Now that we have a data.frame containing the regions to be excluded we just simply set the `exclude.regions` options in the `create.hic.table` function to the `exclude` data.frame.
+
+
 ## Creating the `hic.table` object {#hic_table}
 
 ### Sparse upper triangular format
@@ -96,6 +122,14 @@ Now that we have 2 sparse upper triangular matrices we can create the `hic.table
 chr22.table <- create.hic.table(HMEC.chr22, NHEK.chr22, chr = 'chr22')
 head(chr22.table)
 ```
+
+By default, all regions for the data entered are used as is. It may be desiriable to exclude certain regions from any further analysis because they contain CNV or are overlapping blacklisted regions with known sequencing issues. To exclude the CNV and blacklisted regions we defined above, create the `hic.table` object as follows. 
+
+```{r, eval = FALSE}
+chr22.table <- create.hic.table(HMEC.chr22, NHEK.chr22, chr = 'chr22', exclude.regions = exclude, exclude.overlap = 0.2)
+```
+
+The `exclude.overlap` option controls the percentage overlap required with the regions listed in your data in order to be exclude. CNV regions should in the same resolution and bins as your data so they will overlap any of your regions by 100%. Blacklisted regions tend to be small and may only overlap your regions by a few basepairs. If you want any amount of overlap to result in exclusion set `exclude.overlap = 0`. To require 100% overlap before exclusion set `exclude.overlap = 1`. By default this option will exclude regions with 20% or more overlap.
 
 We can also list multiple `hic.tables` in order to utilize parallel computing. First we create another `hic.table` as was done above. Then we combine these two `hic.tables` into a list.
 
@@ -142,6 +176,16 @@ IS.hic.tab <- create.hic.table(hmec.IS, nhek.IS)
 
 To shorten computational time, or if one is only interested in a subsection of a Hi-C matrix, one may wish to use a subset of the `hic.table` object. Use the `subset.dist` or `subset.index` options, see help for the `create.hic.table` function.
 
+## Total Sum Scaling
+
+If you are performing your `HiCcompare` analysis on the entire genome you can perform total sum scaling on the data before performing loess normalization. This requires the use of a list of `hic.table` objects, one for each chromosome. Additionally, when you create these `hic.table` objects you must set `scale = FALSE`. Once you have your list of `hic.table` objects you can then perform total sum scaling.
+
+```{r, eval = FALSE}
+hic.list <- total_sum(hic.list)
+```
+
+It is reccommended to use total sum scaling when performing a `HiCcompare` analysis on the entire genome. If you are only using data for a single chromosome then total sum scaling should be equivalent to the `scale` option in the `create.hic.table` function.
+
 ## Joint Normalization
 
 Now that you have created a `hic.table` object you can jointly normalize your two Hi-C matrices. The `hic_loess` function has many options and can accept a single `hic.table` or a list of hic.tables. If for example you wish to perform joint normalization for every chromosome on two cell lines while utilizing parallel computing you can create a list containing the hic.tables for each chromosome. 
@@ -156,7 +200,7 @@ If you wish to detect differences between the two Hi-C datasets immediately foll
 
 ```{r, fig.width=7, fig.height=4}
 # Jointly normalize data for a single chromosome
-hic.table <- hic_loess(chr22.table, Plot = TRUE)
+hic.table <- hic_loess(chr22.table, Plot = TRUE, Plot.smooth = FALSE)
 head(hic.table)
 ```
 
@@ -169,15 +213,15 @@ The `hic_loess` joint normalization function extends the `hic.table` with the ad
 
 ## Difference Detection
 
-Difference detection also makes use of the MD plot. The jointly normalized datasets are once again plotted on the MD plot. Difference detection takes place on a per-unit-distance basis using a permutation test. Permutations are broken into blocks for each unit distance. See methods section of _INSERT PAPER HERE_ for more details. Difference detection can be performed at the same time as joint normalization if the `check.differences` option in `hic_loess` is set to TRUE. Otherwise a `hic.table` object output from the `hic_loess` function can be input into the `hic_diff` function for difference detection. 
+Difference detection also makes use of the MD plot. The jointly normalized datasets are once again plotted on the MD plot. Difference detection takes place on a per-unit-distance basis using a permutation test. Permutations are broken into blocks for each unit distance. See methods section of the manuscript [here](http://www.biorxiv.org/content/early/2017/06/08/147850) for more details. Difference detection can be performed at the same time as joint normalization if the `check.differences` option in `hic_loess` is set to TRUE. Otherwise a `hic.table` object output from the `hic_loess` function can be input into the `hic_diff` function for difference detection. 
 
 `hic_diff` accepts a `hic.table` object or a list of hic.table objects output from `hic_loess`. `hic_diff` can also utilize the `BiocParallel` package the same way as the `hic_loess` loess function. The same limits and uses apply as stated above. If the `Plot` option is set to TRUE, an MD plot will be displayed showing the normalized MD plot along with coloring based on the significance of each difference. The dotted lines on this MD plot represent the `diff.thresh` threshold. This threshold is automatically calculated as 2 standard deviations of M from 0 on the MD plot by default but can be set by the user or turned off. This option helps to deal with false positives by restricting the regions that can be labelled as significant when they fall inside the threshold. The threshold can be thought of as a range in which differences do not exceed the level of the expected noise in the Hi-C data. The function will return a hic.table or a list of hic.tables with an additional column containing the p-value for the significance of the difference between the IFs in each cell of the two Hi-C matrices. 
 
 If you wish to visualize the p-values in the form of a Hi-C contact map you can use the `sparse2full` function to transform the results to a contact matrix with the p-values inserted instead of IFs as illustrated in the example below.
 
-```{r, fig.width=7, fig.height=6, warning=FALSE}
+```{r, fig.width=7, fig.height=6, warning=FALSE, message = FALSE}
 # input hic.table object into hic_diff
-hic.table <- hic_diff(hic.table, Plot = TRUE)
+hic.table <- hic_diff(hic.table, Plot = TRUE, Plot.smooth = FALSE)
 
 # input a list of hic.tables
 hic.list <- hic_diff(hic.list)
@@ -225,20 +269,20 @@ TPR is the true positive rate, SPC is the specificity, pvals is a vector of the 
 
 `HiCcompare` contains some additional functions that may be useful. 
 
-If you do not choose to show the MD plots when you initially run `hic_loess` or `hic_diff` you can use the `MD.plot1` or `MD.plot2` functions. `MD.plot1` will create a side by side MD plot showing before and after loess normalization. Enter your original M and D vectors along with the M correction factor, `mc`, calculated by `hic_loess`. 
+If you do not choose to show the MD plots when you initially run `hic_loess` or `hic_diff` you can use the `MD.plot1` or `MD.plot2` functions. `MD.plot1` will create a side by side MD plot showing before and after loess normalization. Enter your original M and D vectors along with the M correction factor, `mc`, calculated by `hic_loess`. The `smooth` option controls if the plot is splotted using `smoothScatter` or as a `ggplot2` scatter plot.
 
 ```{r, fig.height=4, fig.width=7}
-MD.plot1(M = hic.table$M, D = hic.table$D, mc = hic.table$mc)
+MD.plot1(M = hic.table$M, D = hic.table$D, mc = hic.table$mc, smooth = TRUE)
 ```
 
 `MD.plot2` will create a standard MD plot with optional colouring based on p-value. Just enter an M and D vector and a p-value vector if desired.
 
 ```{r, fig.height=4, fig.width=7}
 # no p-value coloring
-MD.plot2(M = hic.table$adj.M, D = hic.table$D)
+MD.plot2(M = hic.table$adj.M, D = hic.table$D, smooth = FALSE)
 
 # p-value coloring
-MD.plot2(M = hic.table$adj.M, D = hic.table$D, hic.table$p.value)
+MD.plot2(M = hic.table$adj.M, D = hic.table$D, hic.table$p.value, smooth = FALSE)
 ```
 
 There are two matrix transformation functions included. `sparse2full` will transform a sparse upper triangular matrix to a full Hi-C matrix. `full2sparse` will transform a full Hi-C matrix to sparse upper triangular format.

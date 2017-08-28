@@ -16,6 +16,9 @@
 #' @param iterations Number of iterations for the permuation test.
 #' @param Plot Logical, should the MD plot showing before/after loess normalization
 #'     be output?
+#' @param Plot.smooth Logical, defaults to TRUE indicating the MD plot
+#'     will be a smooth scatter plot. Set to FALSE for a scatter plot
+#'     with discrete points.
 #' @param parallel Logical, set to TRUE to utilize the \code{parallel} package's
 #'     parallelized computing. Only works on unix operating systems. Only useful if
 #'     entering a list of hic.tables.
@@ -50,7 +53,8 @@
 #' diff.result <- hic_diff(result, diff.thresh = 'auto', Plot = TRUE)
 #'
 hic_diff <- function(hic.table, diff.thresh = "auto", iterations = 10000,
-                     Plot = FALSE, parallel = FALSE, BP_param = bpparam()) {
+                     Plot = FALSE, Plot.smooth = TRUE,
+                     parallel = FALSE, BP_param = bpparam()) {
   # check for correct input
   if (is(hic.table, "list")) {
     if ( sapply(hic.table, ncol) %>% min() < 13) {
@@ -85,21 +89,22 @@ hic_diff <- function(hic.table, diff.thresh = "auto", iterations = 10000,
   # run difference detection for parallel / non-parallel
   if (parallel) {
     if (length(diff.thresh) == 1) {
-      hic.table <- BiocParallel::bplapply(hic.table, .calc.pval, Plot = Plot, diff.thresh = diff.thresh,
-                                          iterations = iterations, BPPARAM = BP_param)
+      hic.table <- BiocParallel::bplapply(hic.table, .calc.pval, Plot = Plot, Plot.smooth = Plot.smooth,
+                                          diff.thresh = diff.thresh,
+                            iterations = iterations, BPPARAM = BP_param)
     } else {
       hic.table <- BiocParallel::bpmapply(.calc.pval, hic.table, diff.thresh,
-                                          MoreArgs = list(Plot = Plot,
-                                                          iterations = iterations), SIMPLIFY = FALSE, BPPARAM = BP_param)
+                            MoreArgs = list(Plot = Plot, Plot.smooth = Plot.smooth,
+                                            iterations = iterations), SIMPLIFY = FALSE, BPPARAM = BP_param)
     }
   } else {
     if (length(diff.thresh) == 1) {
-      hic.table <- lapply(hic.table, .calc.pval, Plot = Plot,
+      hic.table <- lapply(hic.table, .calc.pval, Plot = Plot, Plot.smooth = Plot.smooth,
                           diff.thresh = diff.thresh,
                           iterations = iterations)
     } else {
       hic.table <- mapply(.calc.pval, hic.table, diff.thresh,
-                          MoreArgs = list(Plot = Plot,
+                          MoreArgs = list(Plot = Plot, Plot.smooth = Plot.smooth,
                                           iterations = iterations), SIMPLIFY = FALSE)
     }
   }
@@ -143,7 +148,7 @@ hic_diff <- function(hic.table, diff.thresh = "auto", iterations = 10000,
 # Fucntion to calculate p-values based on distance Called from within
 # hic_loess or hic_diff functions uses perm.test function
 .calc.pval <- function(hic.table, diff.thresh = NA, p.adj.method = "fdr",
-                       Plot = TRUE, iterations = 10000) {
+                       Plot = TRUE, Plot.smooth = TRUE, iterations = 10000) {
   # set up vector of included distances
   all_dist <- sort(unique(hic.table$D))
   dist_85 <- ceiling(0.85 * length(all_dist))
@@ -173,20 +178,23 @@ hic_diff <- function(hic.table, diff.thresh = "auto", iterations = 10000,
   # between the two values is very small
   if (!is.na(diff.thresh)) {
     temp[[dist_idx + 1]][, `:=`(p.value, ifelse(p.value < 0.05 & abs(adj.M) <
-                                                  diff.thresh, 0.5, p.value))]
+                                              diff.thresh, 0.5, p.value))]
   }
   hic.table <- rbindlist(temp)
   ## Dont need p.adj so remove it from hic.table before returning
   hic.table[, `:=`(p.adj, NULL)]
   # add fold change column
   hic.table[, `:=`(fold.change, adj.IF2/adj.IF1)]
+
   if (Plot) {
     mdplot <- MD.plot2(M = hic.table$adj.M, D = hic.table$D, p.val = hic.table$p.value,
-                       diff.thresh = diff.thresh)
-    print(mdplot)
+                       diff.thresh = diff.thresh, smooth = Plot.smooth)
+    if (!is.null(mdplot)) print(mdplot)
     return(hic.table)
   } else {
     return(hic.table)
   }
 }
+
+
 

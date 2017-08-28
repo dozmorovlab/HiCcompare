@@ -5,8 +5,9 @@
 \title{Perform joint loess normalization on two Hi-C datasets}
 \usage{
 hic_loess(hic.table, degree = 1, span = NA, loess.criterion = "gcv",
-  Plot = FALSE, parallel = FALSE, BP_param = bpparam(),
-  check.differences = FALSE, diff.thresh = "auto", iterations = 10000)
+  Plot = FALSE, Plot.smooth = TRUE, parallel = FALSE,
+  BP_param = bpparam(), check.differences = FALSE, diff.thresh = "auto",
+  iterations = 10000)
 }
 \arguments{
 \item{hic.table}{hic.table or a list of hic.tables generated from
@@ -33,6 +34,10 @@ automatic span selection is performed.}
 
 \item{Plot}{Logical, should the MD plot showing before/after loess
 normalization be output? Defaults to FALSE.}
+
+\item{Plot.smooth}{Logical, defaults to TRUE indicating the MD plot
+will be a smooth scatter plot. Set to FALSE for a scatter plot
+with discrete points.}
 
 \item{parallel}{Logical, set to TRUE to utilize the \code{parallel} package's
 parallelized computing. Only works on unix operating systems. Only useful if

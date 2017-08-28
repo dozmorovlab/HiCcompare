@@ -4,7 +4,7 @@
 \alias{MD.plot1}
 \title{Visualize the MD plot before and after loess normalization}
 \usage{
-MD.plot1(M, D, mc)
+MD.plot1(M, D, mc, smooth = TRUE)
 }
 \arguments{
 \item{M}{The M component of the MD plot. Available from the
@@ -15,6 +15,11 @@ the interaction. Available from the hic.table object.}
 
 \item{mc}{The correction factor. Calculated by \code{hic_loess}.
 Available from the hic.table object after running \code{hic_loess}.}
+
+\item{smooth}{Should smooth scatter plots be used? If set to FALSE
+ggplot scatter plots will be used. When option is TRUE, plots
+generate quicker. It is recommend to use the smooth scatter
+plots.}
 }
 \value{
 An MD plot.

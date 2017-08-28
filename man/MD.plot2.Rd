@@ -4,7 +4,7 @@
 \alias{MD.plot2}
 \title{Visualize the MD plot.}
 \usage{
-MD.plot2(M, D, p.val = NA, diff.thresh = NA)
+MD.plot2(M, D, p.val = NA, diff.thresh = NA, smooth = TRUE)
 }
 \arguments{
 \item{M}{The M component of the MD plot. Available from the
@@ -20,6 +20,11 @@ based on the significance of the differences between the IFs.}
 If set to a value will add dotted horizontal lines to the plot to
 display the threshold cutoffs. See `hic_loess` or `hic_diff`
 functions help for more information on this parameter.}
+
+\item{smooth}{Should smooth scatter plots be used? If set to FALSE
+ggplot scatter plots will be used. When option is TRUE, plots
+generate quicker. It is recommend to use the smooth scatter
+plots.}
 }
 \value{
 An MD plot.

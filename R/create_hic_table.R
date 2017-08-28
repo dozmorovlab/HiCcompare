@@ -40,6 +40,15 @@
 #'     of interest. The indices used here correspond to the indices of the full
 #'     Hi-C contact matrix. The `sparse2full` function can be used to view the full
 #'     contact matrix and make a decision about subsetting based on index.
+#' @param exclude.regions A data.frame or genomic ranges object in the form of
+#'     chr start end. Regions contained in the object will be removed from
+#'     the hic.table object. Could be useful for excluding regions with a
+#'     known CNV, blacklist regions, or some other a priori known difference.
+#' @param exclude.overlap The proportion of overlap required to exclude a region.
+#'     Defaults to 0.2, indicating 20% or more overlap will be enough for
+#'     exclusion. To exclude any amount of overlap set to 0.
+#'     If set to 1, only a 100% overlap with an excluded regions will
+#'     result in exclusion.
 #'
 #'@details This function is used to transform two sparse upper triangular Hi-C matrices
 #'    into an object usable in the \code{hic_loess} function.
@@ -68,7 +77,8 @@
 
 
 create.hic.table <- function(sparse.mat1, sparse.mat2, chr = NA, scale = TRUE,
-                             include.zeros = FALSE, subset.dist = NA, subset.index = NA) {
+                             include.zeros = FALSE, subset.dist = NA, subset.index = NA,
+                             exclude.regions = NA, exclude.overlap = 0.2) {
   if (!is.na(subset.dist) & !is.na(subset.index[1])) {
     stop("Enter a value for only one of the subsetting options")
   }
@@ -84,6 +94,20 @@ create.hic.table <- function(sparse.mat1, sparse.mat2, chr = NA, scale = TRUE,
     sparse.mat1 <- sparse.mat1[, c(2, 7, 11), with = FALSE]
     sparse.mat2 <- sparse.mat2[, c(2, 7, 11), with = FALSE]
   }
+  if (!is(exclude.regions, "logical")) {
+    if (!is(exclude.regions, "data.frame") & !is(exclude.regions, "GenomicRanges")) {
+      stop('Enter a data.frame or GenomicRanges object for exclude.regions')
+    }
+    if (is(exclude.regions, "data.frame")) {
+      if ( ncol(exclude.regions) != 3) {
+        stop('Enter a data.frame with 3 columns, chr start end.')
+      }
+    }
+  }
+  if (exclude.overlap < 0 | exclude.overlap > 1) {
+    stop('Enter a value between 0 and 1 for exclude.overlap')
+  }
+
   # check if sparse matrices are 3 column sparse upper triangular format
   # or 7 column BEDPE format
   if (ncol(sparse.mat1) == 7 & ncol(sparse.mat2) == 7) {
@@ -158,6 +182,69 @@ create.hic.table <- function(sparse.mat1, sparse.mat2, chr = NA, scale = TRUE,
   } else {
     stop("Enter both sparse matrices in the same format; either 7 column BEDPE or 3 column sparse upper triangular matrix")
   }
+  # remove excluded regions if they are specified
+  if (is(exclude.regions, "data.frame") | is(exclude.regions, "GenomicRanges")) {
+    # if in data.frame format convert to GRanges
+    if (is(exclude.regions, "data.frame")) {
+      exclude.regions <- GenomicRanges::GRanges(seqnames = exclude.regions[,1],
+                                                ranges = IRanges::IRanges(start = exclude.regions[,2],
+                                                                          end = exclude.regions[,3]))
+    }
+
+    # remove overlaps with excluded regions
+    iset <- make_InteractionSet(new.hic.table)
+    # reduce regions so that overlapping regions don't get counted twice
+    exclude.regions <- GenomicRanges::reduce(exclude.regions)
+
+    # # old method
+    # if (is.numeric(exclude.overlap)) {
+    #   # remove based on percent overlap
+    #   # set the exclude overlap percent
+    #   exclude_min_olap <- bin.size * exclude.overlap
+    #   to_remove <- InteractionSet::findOverlaps(exclude.regions, iset, minoverlap = exclude_min_olap)
+    # } else {
+    #   # remove if regions fully contained
+    #   # get the regions which overlap completely - either entire exclude region contained within an interacting region or entire interacting region contained within
+    #   # an excluded region
+    #   olaps <- GenomicRanges::findOverlaps(exclude.regions, iset@regions)
+    #   olap_length <- width(ranges(olaps, ranges(exclude.regions), ranges(iset@regions)))
+    #   excl_fully_contained <- ifelse(width(exclude.regions[olaps@from]) == olap_length | olap_length == width(iset@regions[olaps@to]), TRUE, FALSE)
+    #   new_exclude <- exclude.regions[olaps@from]
+    #   new_exclude <- new_exclude[excl_fully_contained,]
+    #   to_remove <- InteractionSet::findOverlaps(new_exclude, iset)
+    # }
+
+    # new method
+    # first split iset into list containing each region as an individual GRanges
+    target_regions <- S4Vectors::split(iset@regions, as.factor(iset@regions))
+    # get widths for each target region
+    target_widths <- IRanges::width(iset@regions)
+    # get number of basepairs overlapping with excluded regions
+    target_overlap <- sapply(target_regions, function(x) {
+      suppressWarnings(sum(IRanges::width(GenomicRanges::pintersect(exclude.regions, x))))
+    })
+    # get percentage of overlap
+    percent_olap <- target_overlap / target_widths
+    # get which regions to remove
+    regions_to_remove <- which(percent_olap >= exclude.overlap)
+    to_remove <- NULL
+    if (length(regions_to_remove) > 0) {
+      new_exclude <- iset@regions[regions_to_remove,]
+      to_remove <- InteractionSet::findOverlaps(new_exclude, iset)
+    }
+
+
+    # remove the regions
+    if (length(to_remove) > 0) {
+      message(length(unique(to_remove@to)), " interactions excluded")
+      new.hic.table <- new.hic.table[-unique(to_remove@to),]
+    } else {
+      message('No overlap between data and regions in exclude.regions')
+    }
+
+
+  }
+
   return(new.hic.table)
 }
 

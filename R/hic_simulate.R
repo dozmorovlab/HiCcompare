@@ -99,6 +99,20 @@
 }
 
 
+# add CNV
+.add.CNV <- function(mat, CNV.location, CNV.proportion, CNV.multiplier) {
+  loc <- CNV.location[1]:CNV.location[2]
+  idx <- expand.grid(loc, loc)
+  n.idx <- nrow(idx)
+  new.idx <- sample(1:n.idx, size = round(CNV.proportion * n.idx), replace = FALSE)
+  new.idx <- idx[new.idx,]
+  new.idx <- as.matrix(new.idx)
+  mat[new.idx] <- mat[new.idx] * CNV.multiplier
+  # force symmetry
+  mat[lower.tri(mat)] <- t(mat)[lower.tri(mat)]
+  return(mat)
+}
+
 # wrapper function for simulation studies will generate the matrices
 # and perform HiCdiff analysis on them
 
@@ -123,6 +137,24 @@
 #'     Defaults to 1.9.
 #' @param prop.zero.slope The slope to be used for a linear function of
 #'     the probability of zero in matrix = slope * distance
+#' @param centromere.location The location for a centromere to be
+#'     simulated. Should be entered as a vector of 2 numbers; the
+#'     start column number and end column number. i.e. to put a centromere
+#'     in a 100x100 matrix starting at column 47 and ending at column 50
+#'     enter centromere.location = c(47, 50). Defaults NA indicating no
+#'     simulated centromere will be added to the matrix.
+#' @param CNV.location The location for a copy number variance (CNV).
+#'     Should be entered as a vector of 2 numbers; the
+#'     start column number and end column number. i.e. to put a CNV
+#'     in a 100x100 matrix starting at column 1 and ending at column 50
+#'     enter CNV.location = c(1, 50). Defaults NA indicating no
+#'     simulated CNV will be added to the matrices. If a value is
+#'     entered one of the matrices will have a CNV applied to it.
+#' @param CNV.proportion The proportion of 0's to be applied to the
+#'    CNV location specified. Defaults to 0.8.
+#' @param CNV.multiplier A multiplyer to be applied as the CNV. To
+#'     approximate deletion set to 0, to increase copy numbers set to
+#'     a value > 1. Defaults to 0.
 #' @param biasFunc A function used for adding bias to one of the simulated
 #'     matrices. Should take an input of unit distance and generally have
 #'     the form of 1 + Probability Density Function with unit distance as the
@@ -148,6 +180,8 @@
 #'     difference be defined. Defaults to 0.05.
 #' @param diff.thresh Parameter for hic_diff procedure. See ?hic_diff for more
 #'     help. Defaults to NA.
+#' @param include.zeros Should partial zero interactions be included? Defaults
+#'     to FALSE.
 #'
 #' @return A list containing the true positive rate (TPR), the specificity (SPC),
 #'     the p-values, the hic.table object, true differences - a data.table
@@ -181,10 +215,15 @@
 hic_simulate <- function(nrow = 100, medianIF = 50000, sdIF = 14000,
                          powerlaw.alpha = 1.8,
                          sd.alpha = 1.9, prop.zero.slope = 0.001,
+                         centromere.location = NA,
+                         CNV.location = NA,
+                         CNV.proportion = 0.8,
+                         CNV.multiplier = 0,
                          biasFunc = .normal.bias, fold.change = NA,
                          i.range = NA, j.range = NA, Plot = TRUE,
                          scale = TRUE, alpha = 0.05,
-                         diff.thresh = NA) {
+                         diff.thresh = NA,
+                         include.zeros = FALSE) {
 
   if (is.na(fold.change) & (is.na(i.range[1]) | is.na(j.range[1]))) {
     i.range <- 1
@@ -193,6 +232,26 @@ hic_simulate <- function(nrow = 100, medianIF = 50000, sdIF = 14000,
   if (!is.na(fold.change) & (is.na(i.range[1]) | is.na(j.range[1]))) {
     stop("Error: Please enter values for i.range and j.range if
          you wish to produce a fold change in the simulated matrix")
+  }
+  if (!is.na(centromere.location[1])) {
+    if (length(centromere.location) != 2 | !is.numeric(centromere.location)) {
+      stop('Centromere location should be a vector of 2 numbers')
+    }
+    if (centromere.location[1] < 0 | centromere.location[1] > nrow | centromere.location[2] > nrow) {
+      stop('centromere.location is outside the bounds of the matrix')
+    }
+    if (sum(i.range %in% centromere.location[1]:centromere.location[2] +
+        j.range %in% centromere.location[1]:centromere.location[2] == 2)) {
+      stop('enter i.range and j.range that does not include changes within the centromere')
+    }
+  }
+  if (!is.na(CNV.location[1])) {
+    if (length(CNV.location) != 2 | !is.numeric(CNV.location)) {
+      stop('CNV.location should be a vector of 2 numbers')
+    }
+    if (centromere.location[1] < 0 | centromere.location[1] > nrow | centromere.location[2] > nrow) {
+      stop('CNV.location is outside the bounds of the matrix')
+    }
   }
   ncol <- nrow
   # simulate matrices
@@ -213,15 +272,31 @@ hic_simulate <- function(nrow = 100, medianIF = 50000, sdIF = 14000,
   # add in sample specific bias to one matrix
   sims[[1]] <- .add.bias(sims[[1]], bias.slope, medianIF, powerlaw.alpha,
                          biasFunc = biasFunc)
+
+  # add centromere to matrix
+  if (!is.na(centromere.location[1])) {
+    cent <- centromere.location[1]:centromere.location[2]
+    sims[[1]][cent,] <- 0
+    sims[[1]][, cent] <- 0
+    sims[[2]][, cent] <- 0
+    sims[[2]][cent,] <- 0
+  }
+
+  # add CNV to matrix
+  if (!is.na(CNV.location[1])) {
+    sims[[1]] <- .add.CNV(sims[[1]], CNV.location, CNV.proportion, CNV.multiplier)
+    #sims[[2]] <- .add.CNV(sims[[2]], CNV.location, CNV.proportion, CNV.multiplier)
+  }
   # perform HiCloess on simulated data convert matrix to sparse format
   colnames(sims[[1]]) <- 1:nrow
   colnames(sims[[2]]) <- 1:nrow
   sims[[1]] <- full2sparse(sims[[1]])
   sims[[2]] <- full2sparse(sims[[2]])
   backup.sim.table <- create.hic.table(sims[[1]], sims[[2]], chr = "ChrSim",
-                                       scale = FALSE)
+                                       scale = FALSE,
+                                       include.zeros = include.zeros)
   sims <- create.hic.table(sims[[1]], sims[[2]], chr = "ChrSim",
-                           scale = scale)
+                           scale = scale, include.zeros = include.zeros)
   normed <- hic_loess(sims, Plot = Plot, diff.thresh = diff.thresh,
                       check.differences = TRUE)
   pvals <- normed$p.value

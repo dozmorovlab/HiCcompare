@@ -5,7 +5,8 @@
 \title{Create hic.table object from a sparse upper triangular Hi-C matrix}
 \usage{
 create.hic.table(sparse.mat1, sparse.mat2, chr = NA, scale = TRUE,
-  include.zeros = FALSE, subset.dist = NA, subset.index = NA)
+  include.zeros = FALSE, subset.dist = NA, subset.index = NA,
+  exclude.regions = NA, exclude.overlap = 0.2)
 }
 \arguments{
 \item{sparse.mat1}{Required, sparse upper triangular Hi-C matrix, 7 column
@@ -53,6 +54,17 @@ This can be used to speed up computation time if only a subset of the matrix is
 of interest. The indices used here correspond to the indices of the full
 Hi-C contact matrix. The `sparse2full` function can be used to view the full
 contact matrix and make a decision about subsetting based on index.}
+
+\item{exclude.regions}{A data.frame or genomic ranges object in the form of
+chr start end. Regions contained in the object will be removed from
+the hic.table object. Could be useful for excluding regions with a
+known CNV, blacklist regions, or some other a priori known difference.}
+
+\item{exclude.overlap}{The proportion of overlap required to exclude a region.
+Defaults to 0.2, indicating 20% or more overlap will be enough for
+exclusion. To exclude any amount of overlap set to 0.
+If set to 1, only a 100% overlap with an excluded regions will
+result in exclusion.}
 }
 \value{
 A hic.table object.

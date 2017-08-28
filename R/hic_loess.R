@@ -21,6 +21,9 @@
 #'      function from the \code{fANCOVA} package. Defaults to 'gcv'.
 #' @param Plot Logical, should the MD plot showing before/after loess
 #'     normalization be output? Defaults to FALSE.
+#' @param Plot.smooth Logical, defaults to TRUE indicating the MD plot
+#'     will be a smooth scatter plot. Set to FALSE for a scatter plot
+#'     with discrete points.
 #' @param parallel Logical, set to TRUE to utilize the \code{parallel} package's
 #'     parallelized computing. Only works on unix operating systems. Only useful if
 #'     entering a list of hic.tables. Defauts to FALSE.
@@ -78,7 +81,8 @@
 #' result
 #'
 hic_loess = function(hic.table, degree = 1, span = NA, loess.criterion = 'gcv',
-                     Plot = FALSE, parallel = FALSE, BP_param = bpparam(),
+                     Plot = FALSE, Plot.smooth = TRUE,
+                     parallel = FALSE, BP_param = bpparam(),
                      check.differences = FALSE, diff.thresh = 'auto',  iterations = 10000) {
   # check for correct inputs
   if (iterations < 100) {
@@ -100,9 +104,11 @@ hic_loess = function(hic.table, degree = 1, span = NA, loess.criterion = 'gcv',
   if (is.data.table(hic.table)) hic.table = list(hic.table)
   # apply loess.matrix to the list of matrices
   if (parallel) hic.table = BiocParallel::bplapply(hic.table, .loess.matrix,
-                                     Plot = Plot, degree = degree, span = span,
+                                     Plot = Plot, Plot.smooth = Plot.smooth,
+                                     degree = degree, span = span,
                                      loess.criterion = loess.criterion, BPPARAM = BP_param)
-  else hic.table = lapply(hic.table, .loess.matrix, Plot = Plot, degree = degree,
+  else hic.table = lapply(hic.table, .loess.matrix, Plot = Plot, Plot.smooth = Plot.smooth,
+                          degree = degree,
                           span = span, loess.criterion = loess.criterion)
 
   # calculate p-value matrices if option is TRUE
@@ -115,22 +121,22 @@ hic_loess = function(hic.table, degree = 1, span = NA, loess.criterion = 'gcv',
     if (parallel) {
       if (length(diff.thresh) == 1) {
         hic.table = BiocParallel::bplapply(hic.table, .calc.pval, Plot = Plot,
-                             diff.thresh = diff.thresh,
+                             Plot.smooth = Plot.smooth, diff.thresh = diff.thresh,
                              iterations = iterations, BPPARAM = BP_param)
       } else {
         hic.table = BiocParallel::bpmapply(.calc.pval, hic.table, diff.thresh,
-                             MoreArgs = list(Plot = Plot,
+                             MoreArgs = list(Plot = Plot, Plot.smooth = Plot.smooth,
                                              iterations = iterations), SIMPLIFY = FALSE,
                              BPPARAM = BP_param)
       }
     } else {
       if (length(diff.thresh) == 1) {
-        hic.table = lapply(hic.table, .calc.pval, Plot = Plot,
+        hic.table = lapply(hic.table, .calc.pval, Plot = Plot, Plot.smooth = Plot.smooth,
                            diff.thresh = diff.thresh,
                            iterations = iterations)
       } else {
         hic.table = mapply(.calc.pval, hic.table, diff.thresh,
-                           MoreArgs = list(Plot = Plot,
+                           MoreArgs = list(Plot = Plot, Plot.smooth = Plot.smooth,
                                            iterations = iterations), SIMPLIFY = FALSE)
       }
     }
@@ -241,7 +247,8 @@ hic_loess = function(hic.table, degree = 1, span = NA, loess.criterion = 'gcv',
 
 # function to perform loess normalization on a hic.table called from
 # within hic_loess main function
-.loess.matrix <- function(hic.table, degree = 1, Plot = FALSE, span = NA,
+.loess.matrix <- function(hic.table, degree = 1, Plot = FALSE, 
+                          Plot.smooth = TRUE, span = NA,
                           loess.criterion = "gcv") {
   # perform loess on data
   if (is.na(span)) {
@@ -273,7 +280,7 @@ hic_loess = function(hic.table, degree = 1, span = NA, loess.criterion = 'gcv',
   # get the correction factor
   mc <- predict(l, hic.table$D)
   if (Plot) {
-    MD.plot1(hic.table$M, hic.table$D, mc)
+    MD.plot1(hic.table$M, hic.table$D, mc, smooth = Plot.smooth)
   }
   # create mhat matrix using mc/2 which will be subtracted/added to the
   # original matrices to produce the loess normalized matrices
@@ -299,4 +306,3 @@ hic_loess = function(hic.table, degree = 1, span = NA, loess.criterion = 'gcv',
   }
   return(hic.table)
 }
-

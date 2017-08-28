@@ -6,8 +6,10 @@
 \usage{
 hic_simulate(nrow = 100, medianIF = 50000, sdIF = 14000,
   powerlaw.alpha = 1.8, sd.alpha = 1.9, prop.zero.slope = 0.001,
-  biasFunc = .normal.bias, fold.change = NA, i.range = NA, j.range = NA,
-  Plot = TRUE, scale = TRUE, alpha = 0.05, diff.thresh = NA)
+  centromere.location = NA, CNV.location = NA, CNV.proportion = 0.8,
+  CNV.multiplier = 0, biasFunc = .normal.bias, fold.change = NA,
+  i.range = NA, j.range = NA, Plot = TRUE, scale = TRUE, alpha = 0.05,
+  diff.thresh = NA, include.zeros = FALSE)
 }
 \arguments{
 \item{nrow}{Number of rows and columns of the full matrix}
@@ -33,6 +35,28 @@ Defaults to 1.9.}
 
 \item{prop.zero.slope}{The slope to be used for a linear function of
 the probability of zero in matrix = slope * distance}
+
+\item{centromere.location}{The location for a centromere to be
+simulated. Should be entered as a vector of 2 numbers; the
+start column number and end column number. i.e. to put a centromere
+in a 100x100 matrix starting at column 47 and ending at column 50
+enter centromere.location = c(47, 50). Defaults NA indicating no
+simulated centromere will be added to the matrix.}
+
+\item{CNV.location}{The location for a copy number variance (CNV).
+Should be entered as a vector of 2 numbers; the
+start column number and end column number. i.e. to put a CNV
+in a 100x100 matrix starting at column 1 and ending at column 50
+enter CNV.location = c(1, 50). Defaults NA indicating no
+simulated CNV will be added to the matrices. If a value is
+entered one of the matrices will have a CNV applied to it.}
+
+\item{CNV.proportion}{The proportion of 0's to be applied to the
+CNV location specified. Defaults to 0.8.}
+
+\item{CNV.multiplier}{A multiplyer to be applied as the CNV. To
+approximate deletion set to 0, to increase copy numbers set to
+a value > 1. Defaults to 0.}
 
 \item{biasFunc}{A function used for adding bias to one of the simulated
 matrices. Should take an input of unit distance and generally have
@@ -66,6 +90,9 @@ difference be defined. Defaults to 0.05.}
 
 \item{diff.thresh}{Parameter for hic_diff procedure. See ?hic_diff for more
 help. Defaults to NA.}
+
+\item{include.zeros}{Should partial zero interactions be included? Defaults
+to FALSE.}
 }
 \value{
 A list containing the true positive rate (TPR), the specificity (SPC),
