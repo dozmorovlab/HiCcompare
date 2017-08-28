@@ -86,9 +86,10 @@ The `HiCcompare` paper included several supplemental files that showcase some of
 
 Comparison of several Hi-C normalization techniques to display the persistence of bias in individually normalized chromatin interaction matrices, and its effect on the detection of differential chromatin interactions.
 
-[Compiled](https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_vignettes/S1_File.pdf)
+[Compiled](https://github.com/dozmorovlab/HiCcompare/raw/supplemental/supplemental_files/S1_File.pdf)
 
-[Source](https://github.com/dozmorovlab/HiCdiff/blob/supplemental/Supplemental_vignettes/S1_File.Rmd)
+
+[Source](https://github.com/dozmorovlab/HiCcompare/raw/supplemental/supplemental_files/S1_File.Rmd)
 
 **S2 File. Estimation of the IF power-law depencence.** 
 
