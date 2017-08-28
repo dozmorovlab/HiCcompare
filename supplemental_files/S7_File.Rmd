@@ -1,0 +1,102 @@
+---
+title: "Visualization of the `loess` loint normalization over varying resolutions"
+author: "John Stansfield, Mikhail Dozmorov"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE}
+# Set up the environment
+library(knitr)
+opts_chunk$set(cache.path='cache/', fig.path='img/', cache=F, tidy=T, fig.keep='high', echo=F, dpi=100, warnings=F, message=F, comment=NA, warning=F, results='as.is', fig.width = 10, fig.height = 4, out.width=700)
+library(pander)
+panderOptions('table.split.table', Inf)
+set.seed(100)
+library(dplyr)
+options(stringsAsFactors = FALSE)
+```
+
+```{r libraries}
+library(HiCcompare)
+library(data.table)
+```
+
+```{r}
+regenerate_figures <- TRUE # If the plots have been created, do not regenerate them
+```
+
+# Introduction
+
+Real Hi-C data from Gm12878 cell line were used. The data used were from chromosome 1 cut either using the DpnII enzyme or MboI enzyme at varying resolutions of 1MB, 500KB, 100KB, 50KB, and 5KB. The increased resolution (smaller length of genomic region) is accompanied by the increased proportion of zero interaction frequencies and the overall smaller dynamic range of IFs. The goal of this vignette is to observe the effect of resolution on the performance of joint `loess` normalization.
+
+```{r}
+githubURL <- "https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_data/S7_File_data.RData"
+load(url(githubURL))
+```
+
+# Perform joint loess normalization at varying resolutions
+
+Here the `hic_loess` procedure is performed for the comparison of MboI and DpnII in GM12878 for chromosome 1 at varying resolutions.
+
+## 1MB
+
+```{r results='hide'}
+if (regenerate_figures) {
+  dir.create("img")
+  tab.1mb   = create.hic.table(S7.dpnii.1mb,   S7.mbol.1mb,   chr='chr1')
+  tiff(paste0("img/", "S7_File_fig1.tif"), width = 2500, height = 1500, units = 'px', res = 300)
+  hic_loess(tab.1mb, Plot=T)
+  dev.off()
+}
+```
+
+![](img/S7_File_fig1.tif)
+
+## 500KB
+
+```{r results='hide'}
+if (regenerate_figures) {
+  tab.500kb = create.hic.table(S7.dpnii.500kb, S7.mbol.500kb, chr='chr1')
+  tiff(paste0("img/", "S7_File_fig2.tif"), width = 2500, height = 1500, units = 'px', res = 300)
+  hic_loess(tab.500kb, Plot=T)
+  dev.off()
+}
+```
+
+![](img/S7_File_fig2.tif)
+
+\pagebreak
+
+## 100KB
+
+```{r results='hide'}
+if (regenerate_figures) {
+  tab.100kb = create.hic.table(S7.dpnii.100kb, S7.mbol.100kb, chr='chr1')
+  tiff(paste0("img/", "S7_File_fig3.tif"), width = 2500, height = 1500, units = 'px', res = 300)
+  hic_loess(tab.100kb, Plot=T)
+  dev.off()
+}
+```
+
+![](img/S7_File_fig3.tif)
+
+\pagebreak
+
+## 50KB
+
+```{r results='hide'}
+if (regenerate_figures) {
+  tab.50kb  = create.hic.table(S7.dpnii.50kb,  S7.mbol.50kb,  chr='chr1')
+  tiff(paste0("img/", "S7_File_fig4.tif"), width = 2500, height = 1500, units = 'px', res = 300)
+  hic_loess(tab.50kb, Plot=T)
+  dev.off()
+}
+```
+
+![](img/S7_File_fig4.tif)
+
+# Summary
+
+`loess` works well for removing biases at resolutions between 1MB and 100KB. Once the resolution is higher than 100KB, the procedure begins to fail due to the sparsity of the data. At high resolutions Hi-C data becomes very sparse with most values in the matrix being 0 or a small number. Thus when plotted on the MD plot the sparsity begins to show as the straight horizontal lines of points representing very small differences existing between the two datasets due to the sparsity of the sequencing coverage.  

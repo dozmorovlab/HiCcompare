@@ -1,0 +1,278 @@
+---
+title: Estimation of the power-law dependence between the $log_{10}-log_{10}$ interaction
+  frequencies and distance between interacting regions
+author: "John Stansfield, Mikhail Dozmorov"
+output:
+  pdf_document:
+    toc: yes
+  html_document:
+    toc: yes
+bibliography: ../3D_DNA-references.bib
+---
+
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE}
+# Set up the environment
+library(knitr)
+opts_chunk$set(cache.path='cache/', fig.path='img/', cache=F, tidy=T, fig.keep='high', echo=F, dpi=100, warnings=F, message=F, comment=NA, warning=F, results='as.is', fig.width = 5.5, fig.height = 3) #out.width=700, 
+library(pander)
+panderOptions('table.split.table', Inf)
+set.seed(1)
+library(dplyr)
+options(stringsAsFactors = FALSE)
+```
+
+```{r libraries}
+library(HiCcompare)
+library(igraph)
+library(ggplot2)
+library(gridExtra)
+```
+
+# Introduction
+
+To estimate the parameters for simulating individual Hi-C matrices, Hi-C data from Gm12878 cell line [@Rao:2014aa] were used (Supplementary Table 1, [GSE63525](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE63525)). The first dataset was obtained with the DpnII restriction enzyme, while the second dataset was obtained with the MboI enzyme. Data from chromosome 1 was used at resolutions of 1Mb, 500kb, 100kb, and 50kb. The data were converted in a sparse upper triangular matrix format (see `HiCcompare-vignette.Rmd` for details). Additional Gm12878 Hi-C data from chrs 1, 18, and 19 at 1Mb resolution, cut using the DpnII and MboI enzymes were also included. 
+
+```{r}
+# load data
+githubURL <- "https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_data/S2_File_data.RData"
+load(url(githubURL))
+
+
+
+# Pairwise matrices as `hic.table` objects
+table.1mb   = create.hic.table(S2.dpnii.chr1, S2.mbol.chr1, 'chr1', scale = F, include.zeros = T)
+table.500kb = create.hic.table(S2.dpnii.500kb, S2.p.500kb,  'chr1', scale = F, include.zeros = T)
+table.100kb = create.hic.table(S2.dpnii.100kb, S2.p.100kb,  'chr1', scale = F, include.zeros = T)
+table.50kb  = create.hic.table(S2.dpnii.50kb, S2.p.50kb,    'chr1', scale = F, include.zeros = T)
+
+
+chr1.tab  = create.hic.table(S2.dpnii.chr1,  S2.mbol.chr1,  chr = 'chr1')
+chr18.tab = create.hic.table(S2.dpnii.chr18, S2.mbol.chr18, chr = 'chr18')
+chr19.tab = create.hic.table(S2.dpnii.chr19, S2.mbol.chr19, chr = 'chr19')
+```
+
+# Median IF vs. distance dependence
+
+First, we estimate the power-law approximation of the dependence between interaction frequencies (IFs) and distance [@Lieberman-Aiden:2009aa; @Sanborn:2015aa; @Ay:2015aa; @Fudenberg:2016aa; @Nagano:2015aa] by fitting the power-law estimate and assessing the fit using Kolmogorov-Smirnov test. Because IFs at larger distances do not fit the power-law well (Supplementary Figure 1) the outlier values are iteratively removed, starting from the largest distances, until the Kolmogorov-Smirnov test results indicate the power-law fit is adequate. The $\alpha$ power-law parameter can then be used to approximate the decay of median IF with distance.
+
+The power-law approximation can be affected by multiple factors, e.g., the resolution of the data, the enzymes used to obtain the data, the chromosomal differences (e.g., chromosome length (chromosome 1 being the longest), gene density (gene-poor chromosome 18 and gene-dense chromosome 19)). 
+
+## Effect of Resolution
+
+Here the fit to the power-law of median IF at each distance is tested for chromosome 1 from GM12878 cell line using cutting enzymes DpnII and MboI at 1MB, 500KB, 100KB, 50KB resolution, respectively.
+
+The table shows the output of `fitdistplus::power.law.fit` function. Key variables to note are `alpha` - the power of the $C*x^{-alpha}$ power-law formula, and `KS.p` - p-value of the Kolmogorov-Smirnov test, larger p-value means that the power-law fit is adequate. The plots represents the log10(median IF) and log10(Distance), one plot for each cutting enzyme.
+
+```{r}
+kb1000 = aggregate(table.1mb$IF1,   by = list(table.1mb$D),   FUN = median)
+kb500  = aggregate(table.500kb$IF1, by = list(table.500kb$D), FUN = median)
+kb100  = aggregate(table.100kb$IF1, by = list(table.100kb$D), FUN = median)
+kb50   = aggregate(table.50kb$IF1,  by = list(table.50kb$D),  FUN = median)
+```
+
+```{r}
+mkb1000 = aggregate(table.1mb$IF2,   by = list(table.1mb$D),   FUN = median)
+mkb500  = aggregate(table.500kb$IF2, by = list(table.500kb$D), FUN = median)
+mkb100  = aggregate(table.100kb$IF2, by = list(table.100kb$D), FUN = median)
+mkb50   = aggregate(table.50kb$IF2,  by = list(table.50kb$D),  FUN = median)
+```
+
+```{r}
+chr1  = aggregate(chr1.tab$IF1,  by = list(chr1.tab$D),  FUN = median)
+chr18  = aggregate(chr18.tab$IF1,  by = list(chr18.tab$D),  FUN = median)
+chr19 = aggregate(chr19.tab$IF1, by = list(chr19.tab$D), FUN = median)
+# chr15 = aggregate(chr15.tab$IF1, by = list(chr15.tab$D), FUN = median)
+# chr22 = aggregate(chr22.tab$IF1, by = list(chr22.tab$D), FUN = median)
+
+mchr1  = aggregate(chr1.tab$IF2,  by = list(chr1.tab$D),  FUN = median)
+mchr18  = aggregate(chr18.tab$IF2,  by = list(chr18.tab$D),  FUN = median)
+mchr19 = aggregate(chr19.tab$IF2, by = list(chr19.tab$D), FUN = median)
+# mchr15 = aggregate(chr15.tab$IF2, by = list(chr15.tab$D), FUN = median)
+# mchr22 = aggregate(chr22.tab$IF2, by = list(chr22.tab$D), FUN = median)
+```
+
+
+```{r}
+# function to iteratively remove the observations at the largest distance until the power law is met
+fit_powerlaw = function(tab) {
+  tab = na.omit(tab) # remove any NAs
+  fit = power.law.fit(tab$x) # get initial fit
+  pval = fit$KS.p
+  # loop until fit is good
+  while(pval <= 0.05) {
+    tab = tab[-nrow(tab),]
+    fit = power.law.fit(tab$x)
+    pval = fit$KS.p
+  }
+  return(tab)
+}
+```
+
+```{r}
+kb1000 = fit_powerlaw(kb1000)
+kb500  = fit_powerlaw(kb500)
+kb100  = fit_powerlaw(kb100)
+kb50   = fit_powerlaw(kb50) 
+
+mkb1000 = fit_powerlaw(mkb1000) 
+mkb500  = fit_powerlaw(mkb500)  
+mkb100  = fit_powerlaw(mkb100)  
+mkb50   = fit_powerlaw(mkb50)  
+
+chr1  = fit_powerlaw(chr1)
+chr18  = fit_powerlaw(chr18)
+chr19 = fit_powerlaw(chr19)
+
+
+mchr1  = fit_powerlaw(mchr1)
+mchr18  = fit_powerlaw(mchr18)
+mchr19 = fit_powerlaw(mchr19)
+```
+
+```{r}
+# fucntion for making ggplots 
+
+sdplot = function(D, IF, title = 'Median IF vs D plot', linfit = FALSE) {
+  dat = data.frame(D = D, IF = IF)
+  p = ggplot(dat, aes(x = D, y = IF)) + geom_point() + ggtitle(title) 
+  if (linfit) {
+    p = p + geom_smooth(method='lm', se = FALSE) # add the linear fit for the powerlaw
+  } else {
+    p = p + scale_x_continuous(limits = c(0, 50))
+  }
+  return(p)
+}
+```
+
+### 1 MB
+
+```{r}
+t1 = power.law.fit(kb1000$x) 
+t2 = power.law.fit(mkb1000$x) 
+t3 = rbind(t1, t2)
+t3 = cbind(Enzyme = c('DpnII', 'MboI'), t3)
+rownames(t3) = NULL
+t3  %>% as.data.frame() %>% pander()
+```
+
+```{r}
+p1 = sdplot(log10(kb1000$Group.1),  log10(kb1000$x),  title = 'DpnII log10(IF) vs log10(D)', linfit = T)
+p2 = sdplot(log10(mkb1000$Group.1), log10(mkb1000$x), title = 'MboI log10(IF) vs log10(D)',  linfit = T)
+grid.arrange(p1, p2, ncol=2)
+```
+
+### 500KB
+```{r}
+t1 = power.law.fit(kb500$x)   
+t2 = power.law.fit(mkb500$x) 
+t3 = rbind(t1, t2)
+t3 = cbind(Enzyme = c('DpnII', 'MboI'), t3)
+rownames(t3) = NULL
+t3  %>% as.data.frame() %>% pander()
+```
+
+```{r}
+p1 = sdplot(log10(kb500$Group.1),  log10(kb500$x),  title = 'DpnII log10(IF) vs log10(D)', linfit = T)
+p2 = sdplot(log10(mkb500$Group.1), log10(mkb500$x), title = 'MboI log10(IF) vs log10(D)',  linfit = T)
+grid.arrange(p1, p2, ncol=2)
+```
+
+### 100KB
+```{r}
+t1 = power.law.fit(kb100$x)  
+t2 = power.law.fit(mkb100$x) 
+t3 = rbind(t1, t2)
+t3 = cbind(Enzyme = c('DpnII', 'MboI'), t3)
+rownames(t3) = NULL
+t3  %>% as.data.frame() %>% pander()
+```
+
+```{r}
+p1 = sdplot(log10(kb100$Group.1),  log10(kb100$x),  title = 'DpnII log10(IF) vs log10(D)', linfit = T)
+p2 = sdplot(log10(mkb100$Group.1), log10(mkb100$x), title = 'MboI log10(IF) vs log10(D)',  linfit = T)
+grid.arrange(p1, p2, ncol=2)
+```
+
+### 50KB
+```{r}
+t1 = power.law.fit(kb50$x) 
+t2 = power.law.fit(mkb50$x) 
+t3 = rbind(t1, t2)
+t3 = cbind(Enzyme = c('DpnII', 'MboI'), t3)
+rownames(t3) = NULL
+t3  %>% as.data.frame() %>% pander()
+```
+
+```{r}
+p1 = sdplot(log10(kb50$Group.1),  log10(kb50$x),  title = 'DpnII log10(IF) vs log10(D)', linfit = T)
+p2 = sdplot(log10(mkb50$Group.1), log10(mkb50$x), title = 'MboI log10(IF) vs log10(D)',  linfit = T)
+grid.arrange(p1, p2, ncol=2)
+```
+
+### Summary
+
+The power-law seems to fit the data fairly well over the varying resolutions once the outliers at the furthest distances are removed. The estimates of $\alpha$ range from 1.73 to 2.07. 
+
+
+## Effect of Chromosome
+
+Here the fit to the power-law of median IF at each distance is tested for chromosome 1, 18, 19 from GM12878 cell line using cutting enzymes DpnII and MboI at 1MB resolution. 
+
+As above, the table shows the output of `fitdistplus::power.law.fit` function. Key variables to note are `alpha` - the power of the $C*x^{-alpha}$ power-law formula, and `KS.p` - p-value of the Kolmogorov-Smirnov test, larger p-value means that the power-law fit is adequate. The plots represents the log10(median IF) and log10(Distance), one plot for each cutting enzyme.
+
+### Chr 1
+
+```{r}
+t1 = power.law.fit(chr1$x)  
+t2 = power.law.fit(mchr1$x)
+t3 = rbind(t1, t2)
+t3 = cbind(Enzyme = c('DpnII', 'MboI'), t3)
+rownames(t3) = NULL
+t3  %>% as.data.frame() %>% pander()
+```
+
+```{r}
+p1= sdplot(log10(chr1$Group.1),  log10(chr1$x),  title = 'DpnII log10(IF) vs log10(D)', linfit = T)
+p2 = sdplot(log10(mchr1$Group.1), log10(mchr1$x), title = 'MboI log10(IF) vs log10(D)', linfit = T)
+grid.arrange(p1, p2, ncol=2)
+```
+
+### Chr 18
+
+```{r}
+t1 = power.law.fit(chr18$x)  
+t2 = power.law.fit(mchr18$x) 
+t3 = rbind(t1, t2)
+t3 = cbind(Enzyme = c('DpnII', 'MboI'), t3)
+rownames(t3) = NULL
+t3  %>% as.data.frame() %>% pander()
+```
+
+```{r}
+p1 = sdplot(log10(chr18$Group.1),  log10(chr18$x),  title = 'DpnII log10(IF) vs log10(D)', linfit = T)
+p2 = sdplot(log10(mchr18$Group.1), log10(mchr18$x), title = 'MboI log10(IF) vs log10(D)',  linfit = T)
+grid.arrange(p1, p2, ncol=2)
+```
+
+### Chr 19
+
+```{r}
+t1 = power.law.fit(chr19$x)  
+t2 = power.law.fit(mchr19$x) 
+t3 = rbind(t1, t2)
+t3 = cbind(Enzyme = c('DpnII', 'MboI'), t3)
+rownames(t3) = NULL
+t3  %>% as.data.frame() %>% pander()
+```
+
+```{r}
+p1 = sdplot(log10(chr19$Group.1),  log10(chr19$x),  title = 'DpnII log10(IF) vs log10(D)', linfit = T)
+p2 = sdplot(log10(mchr19$Group.1), log10(mchr19$x), title = 'MboI log10(IF) vs log10(D)',  linfit = T)
+grid.arrange(p1, p2, ncol=2)
+```
+
+### Summary
+
+The power-law fits the data over varying chromosomes fairly well after the outliers are removed. $\alpha$ ranges from 1.7 to 2.05. For the simulation methods it seems that choosing an $\alpha$ between 1.7 and 2.05 should be adequate. 
+
+# References

@@ -1,0 +1,179 @@
+---
+title: Estimation of the dependence between the proportion of zeros and distance between
+  interacting regions
+author: "John Stansfield, Mikhail Dozmorov"
+output:
+  pdf_document:
+    toc: yes
+  html_document:
+    toc: yes
+---
+
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE}
+# Set up the environment
+library(knitr)
+opts_chunk$set(cache.path='cache/', fig.path='img/', cache=F, tidy=T, fig.keep='high', echo=F, dpi=100, warnings=F, message=F, comment=NA, warning=F, results='as.is', fig.width = 10, fig.height = 4) #out.width=700, 
+library(pander)
+panderOptions('table.split.table', Inf)
+set.seed(1)
+library(dplyr)
+options(stringsAsFactors = FALSE)
+```
+
+```{r libraries}
+library(HiCcompare)
+library(igraph)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+```
+
+
+```{r}
+# load data
+githubURL <- "https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_data/S4_File_data.RData"
+load(url(githubURL))
+```
+
+
+# Introduction
+
+To estimate the distribution of the proportion of zeros vs. distance, real Hi-C data from Gm12878 cell line were used (Supplementary Table 1). The first dataset was obtained with the MboI restriction enzyme, while the second dataset was obtained with the DpnII enzyme. Data from chromosomes 1, 18, and 19 at 100kb resolution were used. The matrices were used in a sparse upper triangular matrix format (see `HiCcompare-vignette.Rmd` for details). 
+
+
+```{r}
+# Function to calculate proportions of zeros
+proportion_zero = function(mat1, mat2) {
+  # remove the centromere from the matrices so they do not skew the proportion of 0s
+  mat1.cent <- remove_centromere(mat1)[[1]]
+  mat2.cent <- remove_centromere(mat2)[[1]]
+  if (length(mat1.cent) > 0 & length(mat2.cent) > 0) {
+    cent = intersect(mat1.cent, mat2.cent)
+    mat1 = mat1[-cent, -cent]
+    mat2 = mat2[-cent, -cent]
+  }
+  size <- ncol(mat1)
+  delta <- row(mat1) - col(mat1)
+  prop_zeros1 <- list()
+  prop_zeros2 <- list()
+  prop_partial_zero <- vector()
+  prop_complete_zero <- vector()
+  # loop through each off diagonal of the matrices to calculate proportions
+  for (high in 1:(size - 1)) {
+    off_diagonal1 <- mat1[ delta >= high & delta <= high  ]
+    off_diagonal2 <- mat2[ delta >= high & delta <= high  ]
+    total        <- length( off_diagonal1 ) # total number of cells in off diagonoal
+    zeros1        <- sum(off_diagonal1 == 0, na.rm = TRUE) # sum number of 0s
+    zeros2        <- sum(off_diagonal2 == 0, na.rm = TRUE)
+    prop_zeros1   <- c(prop_zeros1, list(zeros1 / total)) # calculate proportions
+    prop_zeros2   <- c(prop_zeros2, list(zeros2 / total))
+    # calculate complete and partial pairwise 0s
+    prop_partial_zero[high] <- sum(ifelse(off_diagonal1 != off_diagonal2 & (off_diagonal1 == 0 | off_diagonal2 == 0), 1, 0), na.rm=T) / total
+    prop_complete_zero[high] <- sum(ifelse(off_diagonal1 == off_diagonal2 & off_diagonal1 == 0, 1, 0), na.rm=T) / total
+  }
+  prop_zeros1 <- unlist(prop_zeros1)
+  prop_zeros2 <- unlist(prop_zeros2)
+  result = data.frame(D = 1:(size-1), prop_zero_mat1 = prop_zeros1, prop_zero_mat2 = prop_zeros2, partial_zero = prop_partial_zero, complete_zero = prop_complete_zero)
+  return(result)
+}
+```
+
+
+```{r}
+# plot code in ggplot
+zplot = function(prop.zero) {
+  dat = data.frame(Distance = 1:length(prop.zero), Proportion_zero = prop.zero)
+  ggplot(dat, aes(x = Distance, y = Proportion_zero)) + geom_point()
+}
+```
+
+
+# Proportion of zeros in individual matrices
+
+Here the proportion of zeros in each matrix are plotted for chromosomes 1, 18, and 19.
+
+```{r}
+
+dpnii = sparse2full(S4.dpnii.100kb)
+mbol  = sparse2full(S4.p.100kb)
+dpnii.chr18 = sparse2full(S4.dpnii.chr18)
+mbol.chr18 = sparse2full(S4.mbol.chr18)
+dpnii.chr19 = sparse2full(S4.dpnii.chr19)
+mbol.chr19 = sparse2full(S4.mbol.chr19)
+```
+
+## Chr 1
+
+```{r}
+prop.zero = proportion_zero(dpnii, mbol)
+p1 = ggplot(prop.zero, aes(x=D, y=prop_zero_mat1)) + geom_line() + labs(x = 'Distance', y = 'Proportion') + 
+    theme(axis.text = element_text(size=14, face='bold'), axis.title=element_text(size=15, face='bold')) + ggtitle('Proportion 0 in DpnII Matrix')
+p2 = ggplot(prop.zero, aes(x=D, y=prop_zero_mat2)) + geom_line() + labs(x = 'Distance', y = 'Proportion') + 
+    theme(axis.text = element_text(size=14, face='bold'), axis.title=element_text(size=15, face='bold')) + ggtitle('Proportion 0 in MboI Matrix')
+grid.arrange(p1, p2, ncol=2)
+```
+
+## Chr 18
+
+```{r}
+prop.zero.chr18 = proportion_zero(dpnii.chr18, mbol.chr18)
+p1 = ggplot(prop.zero.chr18, aes(x=D, y=prop_zero_mat1)) + geom_line() + labs(x = 'Distance', y = 'Proportion') + 
+    theme(axis.text = element_text(size=14, face='bold'), axis.title=element_text(size=15, face='bold')) + ggtitle('Proportion 0 in DpnII Matrix')
+p2 = ggplot(prop.zero.chr18, aes(x=D, y=prop_zero_mat2)) + geom_line() + labs(x = 'Distance', y = 'Proportion') + 
+    theme(axis.text = element_text(size=14, face='bold'), axis.title=element_text(size=15, face='bold')) + ggtitle('Proportion 0 in MboI Matrix')
+grid.arrange(p1, p2, ncol=2)
+```
+
+## Chr 19
+
+```{r}
+prop.zero.chr19 = proportion_zero(dpnii.chr19, mbol.chr19)
+p1 = ggplot(prop.zero.chr19, aes(x=D, y=prop_zero_mat1)) + geom_line() + labs(x = 'Distance', y = 'Proportion') + 
+    theme(axis.text = element_text(size=14, face='bold'), axis.title=element_text(size=15, face='bold')) + ggtitle('Proportion 0 in DpnII Matrix')
+p2 = ggplot(prop.zero.chr19, aes(x=D, y=prop_zero_mat2)) + geom_line() + labs(x = 'Distance', y = 'Proportion') + 
+    theme(axis.text = element_text(size=14, face='bold'), axis.title=element_text(size=15, face='bold')) + ggtitle('Proportion 0 in MboI Matrix')
+grid.arrange(p1, p2, ncol=2)
+```
+
+## Summary
+
+The proportion of zeros in the individual matrices increases with distance. This increase does not seem to follow a consistent trend across chromosomes or restriction enzymes. The proportion of zeros for one unit distance compared to the next unit distance can vary considerably. 
+
+# Proportion of zeros between matrices
+
+When representing matrices on an MD plot, some pairs of interaction frequencies may be completely zero ("complete zero pairs"), while some may have one zero ("partial pairwise zeros"). Distribution of such pairs across distances follows approximately the same pattern of zeros as in individual matrices. The data used here is the same as the above section, but now the pairwise zeros are being compared between the DpnII and MboI matrices.
+
+## Chr 1
+
+```{r}
+p3 = ggplot(prop.zero, aes(x=D, y=partial_zero)) + geom_line() + labs(x = 'Distance', y = 'Proportion') + 
+    theme(axis.text = element_text(size=14, face='bold'), axis.title=element_text(size=15, face='bold')) + ggtitle('Proportion partial pairwise 0')
+p4 = ggplot(prop.zero, aes(x=D, y=complete_zero)) + geom_line() + labs(x = 'Distance', y = 'Proportion') + 
+    theme(axis.text = element_text(size=14, face='bold'), axis.title=element_text(size=15, face='bold')) + ggtitle('Proportion complete pairwise 0')
+grid.arrange(p3, p4, ncol=2)
+```
+
+## Chr 18
+
+```{r}
+p3 = ggplot(prop.zero.chr18, aes(x=D, y=partial_zero)) + geom_line() + labs(x = 'Distance', y = 'Proportion') + 
+    theme(axis.text = element_text(size=14, face='bold'), axis.title=element_text(size=15, face='bold')) + ggtitle('Proportion partial pairwise 0')
+p4 = ggplot(prop.zero.chr18, aes(x=D, y=complete_zero)) + geom_line() + labs(x = 'Distance', y = 'Proportion') + 
+    theme(axis.text = element_text(size=14, face='bold'), axis.title=element_text(size=15, face='bold')) + ggtitle('Proportion complete pairwise 0')
+grid.arrange(p3, p4, ncol=2)
+```
+
+## Chr 19
+
+```{r}
+p3 = ggplot(prop.zero.chr19, aes(x=D, y=partial_zero)) + geom_line() + labs(x = 'Distance', y = 'Proportion') + 
+    theme(axis.text = element_text(size=14, face='bold'), axis.title=element_text(size=15, face='bold')) + ggtitle('Proportion partial pairwise 0')
+p4 = ggplot(prop.zero.chr19, aes(x=D, y=complete_zero)) + geom_line() + labs(x = 'Distance', y = 'Proportion') + 
+    theme(axis.text = element_text(size=14, face='bold'), axis.title=element_text(size=15, face='bold')) + ggtitle('Proportion complete pairwise 0')
+grid.arrange(p3, p4, ncol=2)
+```
+
+
+## Summary
+
+The proportion of partial pairwise zeros also tends to increases with distance until the furthest points of the matrices are reached at which point the proportion begins to drop. The partial pairwise zeros do not follow a consistent pattern of increase and decrease over the different chromosomes tested and there is a large amount of variance between unit distances. The proportion of complete pairwise zeros also tends to increase with distance and spike up towards the very furthest distances. This trend is again not very consistent in its pattern over the different chromosomes tested.  
