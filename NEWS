@@ -1,4 +1,10 @@
 NEWS for HiCcompare
 ----------------
 
-* Preparing for release.
+* Preparing for official release.
+* New features added
+  - get_CNV function to check for copy number variations
+  - smooht MD plot as an option
+  - option to exclude regions in create.hic.table()
+  - blacklisted locations added to data
+  
