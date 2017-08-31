@@ -196,24 +196,6 @@ create.hic.table <- function(sparse.mat1, sparse.mat2, chr = NA, scale = TRUE,
     # reduce regions so that overlapping regions don't get counted twice
     exclude.regions <- GenomicRanges::reduce(exclude.regions)
 
-    # # old method
-    # if (is.numeric(exclude.overlap)) {
-    #   # remove based on percent overlap
-    #   # set the exclude overlap percent
-    #   exclude_min_olap <- bin.size * exclude.overlap
-    #   to_remove <- InteractionSet::findOverlaps(exclude.regions, iset, minoverlap = exclude_min_olap)
-    # } else {
-    #   # remove if regions fully contained
-    #   # get the regions which overlap completely - either entire exclude region contained within an interacting region or entire interacting region contained within
-    #   # an excluded region
-    #   olaps <- GenomicRanges::findOverlaps(exclude.regions, iset@regions)
-    #   olap_length <- width(ranges(olaps, ranges(exclude.regions), ranges(iset@regions)))
-    #   excl_fully_contained <- ifelse(width(exclude.regions[olaps@from]) == olap_length | olap_length == width(iset@regions[olaps@to]), TRUE, FALSE)
-    #   new_exclude <- exclude.regions[olaps@from]
-    #   new_exclude <- new_exclude[excl_fully_contained,]
-    #   to_remove <- InteractionSet::findOverlaps(new_exclude, iset)
-    # }
-
     # new method
     # first split iset into list containing each region as an individual GRanges
     target_regions <- S4Vectors::split(iset@regions, as.factor(iset@regions))
