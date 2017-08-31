@@ -1,6 +1,6 @@
 Package: HiCcompare
 Title: HiCcompare: Joint normalization and comparative analysis of multiple Hi-C datasets
-Version: 0.99.14
+Version: 0.99.15
 Authors@R: c(person("John", "Stansfield", email = "stansfieldjc@vcu.edu", role = c("aut", "cre")), 
     person("Mikhail", "Dozmorov", email = "mikhail.dozmorov@vcuhealth.org", role = c("aut")))
 Description: HiCcompare provides functions for joint normalization and difference detection in multiple Hi-C datasets. 
