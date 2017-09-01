@@ -33,7 +33,7 @@ To estimate the parameters for simulating individual Hi-C matrices, Hi-C data fr
 
 
 ```{r}
-githubURL <- "https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_data/S2_File_data.RData"
+githubURL <- "https://github.com/dozmorovlab/HiCcompare/raw/supplemental/Supplemental_data/S2_File_data.RData"
 load(url(githubURL))
 
 # Pairwise matrices as `hic.table` objects

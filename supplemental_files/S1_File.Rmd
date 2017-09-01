@@ -38,7 +38,7 @@ library(data.table)
 
 ```{r}
 # load data
-githubURL <- "https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_data/S1_File_data.RData"
+githubURL <- "https://github.com/dozmorovlab/HiCcompare/raw/supplemental/Supplemental_data/S1_File_data.RData"
 load(url(githubURL))
 ```
 

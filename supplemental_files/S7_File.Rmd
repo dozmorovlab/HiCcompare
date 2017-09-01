@@ -32,7 +32,7 @@ regenerate_figures <- TRUE # If the plots have been created, do not regenerate t
 Real Hi-C data from Gm12878 cell line were used. The data used were from chromosome 1 cut either using the DpnII enzyme or MboI enzyme at varying resolutions of 1MB, 500KB, 100KB, 50KB, and 5KB. The increased resolution (smaller length of genomic region) is accompanied by the increased proportion of zero interaction frequencies and the overall smaller dynamic range of IFs. The goal of this vignette is to observe the effect of resolution on the performance of joint `loess` normalization.
 
 ```{r}
-githubURL <- "https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_data/S7_File_data.RData"
+githubURL <- "https://github.com/dozmorovlab/HiCcompare/raw/supplemental/Supplemental_data/S7_File_data.RData"
 load(url(githubURL))
 ```
 

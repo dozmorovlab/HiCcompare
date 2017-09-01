@@ -37,7 +37,7 @@ library(data.table)
 
 
 ```{r}
-githubURL <- "https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_data/S6_File_data.RData"
+githubURL <- "https://github.com/dozmorovlab/HiCcompare/raw/supplemental/Supplemental_data/S6_File_data.RData"
 load(url(githubURL))
 
 chr1.tab  = create.hic.table(S6.dpnii.chr1,  S6.mbol.chr1,  chr = 'chr1',  scale = FALSE)

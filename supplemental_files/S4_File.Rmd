@@ -31,7 +31,7 @@ library(gridExtra)
 
 ```{r}
 # load data
-githubURL <- "https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_data/S4_File_data.RData"
+githubURL <- "https://github.com/dozmorovlab/HiCcompare/raw/supplemental/Supplemental_data/S4_File_data.RData"
 load(url(githubURL))
 ```
 
