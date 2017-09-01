@@ -42,4 +42,5 @@ importFrom("utils", "read.table", "write.table")
 import(QDNAseq)
 import(KernSmooth)
 importFrom("pheatmap", "pheatmap")
+importFrom("gtools", "mixedorder")
 

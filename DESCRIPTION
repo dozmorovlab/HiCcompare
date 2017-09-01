@@ -29,7 +29,8 @@ Imports: data.table,
     methods,
     utils,
     graphics,
-    pheatmap
+    pheatmap,
+    gtools
 biocViews: Software,
     HiC, Sequencing, Normalization
 License: MIT + file LICENSE

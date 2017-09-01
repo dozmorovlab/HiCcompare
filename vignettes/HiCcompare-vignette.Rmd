@@ -74,7 +74,11 @@ The `cooler` software, [http://cooler.readthedocs.io/en/latest/index.html](http:
   5. Convert to a sparse upper triangular matrix using the `HiCcompare::cooler2sparse` function.  
   `sparse <- cooler2sparse(hesc1000kb) `
   6. Repeat the steps for another Hi-C dataset that you wish to compare to the first dataset then proceed to [Creating the `hic.table` object](#hic_table).
-  
+
+
+### Using data from HiC-Pro
+
+HiC-Pro is another tool for processing raw Hi-C data into useable matrix files. HiC-Pro will produce a `.matrix` file and a `.bed` file for the data. These `.matrix` files are in sparse upper triangular format similar to the results of Juicer and the dumped contents of a `.hic` file, however instead of using the genomic start coordinates for the first two columns of the sparse matrix they use an ID number. The `.bed` file contains the mappings for each of these IDs to their genomic coordinates. `HiCcompare` includes a function to convert the results of HiC-Pro into a useable format for analysis in `HiCcompare`. See the help using `?hicpro2bedpe` for more details.
 
 ## Detecting Copy Number Variations and Excluding regions
 
