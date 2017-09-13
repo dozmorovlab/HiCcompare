@@ -50,6 +50,7 @@ sparse2full <- function(sparse.mat, hic.table = FALSE, column.name = NA) {
     bins <- unique(c(sparse.mat[, 2], sparse.mat[, 5]))
     bins <- as.numeric(bins)
     bins <- bins[order(bins)]
+    bins <- unique(bins)
     bin.size <- min(diff(bins))
     min.bin <- min(bins)
     max.bin <- max(bins)

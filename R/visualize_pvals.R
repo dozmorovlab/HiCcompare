@@ -45,4 +45,35 @@ visualize_pvals <- function(hic.table) {
   fc <- sparse2full(hic.table, hic.table = TRUE, column.name = 'adj.M')
   # plot heatmap
   pheatmap::pheatmap(-log10(m) * sign(fc), cluster_rows = FALSE, cluster_cols = FALSE)
+  # # get TADs
+  # m2 <- sparse2full(hic.table, hic.table = TRUE, column.name = 'IF1') 
+  # tads <- HiCseg::HiCseg_linkC_R(size_mat = nrow(m2), nb_change_max = round(nrow(m2) / 5) + 1, distrib = "B", mat_data = m2, model = "Dplus")
+  # image(1:nrow(m2), 1:nrow(m2), -log10(m)*sign(fc), xlab="", ylab="")
+  # t_hat=c(1,tads$t_hat[tads$t_hat!=0]+1)
+  # for (i in 1:(length(t_hat)-1)) {
+  #   lines(c(t_hat[i],t_hat[i]),c(t_hat[i],(t_hat[(i+1)]-1)))
+  #   lines(c(t_hat[(i+1)]-1,t_hat[(i+1)]-1),c(t_hat[i],t_hat[(i+1)]-1))
+  #   lines(c(t_hat[i],t_hat[(i+1)]-1),c(t_hat[i],t_hat[i]))
+  #   lines(c(t_hat[i],t_hat[(i+1)]-1),c(t_hat[(i+1)]-1,t_hat[(i+1)]-1))
+  # }
+  # 
+  # library(ComplexHeatmap)
+  # mat <- -log10(m) * sign(fc)
+  # Heatmap(mat, name = "pval", cluster_rows = FALSE, cluster_columns = FALSE)
+  # decorate_heatmap_body("pval", {
+  #   # i = t_hat[i]
+  #   # x = i/ncol(mat)
+  #   # grid.lines(c(x,x), c(0,1), gp=gpar(lwd=2))
+  #   for (i in 1:(length(t_hat)-1)) {
+  #     i = t_hat[i]
+  #     x = i/ncol(mat)
+  #     y = t_hat[(i+1)]-1
+  #     y = y/ ncol(mat)
+  #     grid.lines(x = c(x,x), y = c(x,y))
+  #     grid.lines(x = c(y,y), y = c(x,y))
+  #     grid.lines(x = c(x,y), y = c(x,x))
+  #     grid.lines(x = c(x,y), y = c(y,y))
+  #   }
+  # })
+  
 }
