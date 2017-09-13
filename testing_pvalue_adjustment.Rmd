@@ -1,0 +1,59 @@
+---
+title: "Untitled"
+author: "John Stansfield"
+date: "September 13, 2017"
+output: html_document
+---
+
+# test p-value adjustment
+
+```{r}
+library(HiCcompare)
+
+data('HMEC.chr22')
+data('NHEK.chr22')
+hic.table <- create.hic.table(HMEC.chr22, NHEK.chr22, chr = 'chr22')
+# Plug hic.table into hic_loess()
+result <- hic_loess(hic.table, Plot = TRUE)
+# perform difference detection
+diff.result <- hic_diff(result, diff.thresh = 'auto', Plot = TRUE)
+
+hic.table <- diff.result
+
+######
+library(poweRlaw)
+# calculate A
+hic.table[, A := (adj.IF1 + adj.IF2) / 2]
+fit <- conlnorm$new(hic.table$A)
+# fit$setXmin(1)
+est <- estimate_xmin(fit)
+fit$setXmin(est)
+est <- estimate_pars(fit)
+fit$setPars(est)
+
+
+# test if powerlaw fit is good using KS
+bs_p <- bootstrap_p(fit, no_of_sims = 10, threads = 1)
+
+
+library(fitdistrplus)
+library(igraph)
+fit_power_law(hic.table$A)
+length(hic.table$A[hic.table$A < 4000])
+fit_power_law(hic.table$A[hic.table$A < 4000])
+
+# fit power law by deleting most extreme values
+fit_powerlaw = function(tab) {
+  tab = na.omit(tab) # remove any NAs
+  fit = power.law.fit(tab$x) # get initial fit
+  pval = fit$KS.p
+  # loop until fit is good
+  while(pval <= 0.05) {
+    tab = tab[-nrow(tab),]
+    fit = power.law.fit(tab$x)
+    pval = fit$KS.p
+  }
+  return(tab)
+}
+```
+
