@@ -8,6 +8,14 @@ output: html_document
 # test p-value adjustment
 
 ```{r}
+# power-law function
+.powerlaw <- function(x, C, alpha) {
+  C * x^(-alpha)
+}
+```
+
+
+```{r}
 library(HiCcompare)
 
 data('HMEC.chr22')
@@ -32,28 +40,64 @@ est <- estimate_pars(fit)
 fit$setPars(est)
 
 
+fit <- conlnorm$new(hic.table$A)
+est <- estimate_xmin(fit)
+fit$setXmin(est)
+est <- estimate_pars(fit)
+fit$setPars(est)
+plot(fit)
+lines(fit, col=2)
+
+fit2 <- conpl$new(hic.table$A)
+est <- estimate_xmin(hic.table$A)
+fit2$setXmin(est)
+est <- estimate_pars(hic.table$A)
+fit2$setPars(est)
+plot(fit2)
+lines(fit2, col=2)
+
 # test if powerlaw fit is good using KS
-bs_p <- bootstrap_p(fit, no_of_sims = 10, threads = 1)
+# bs_p <- bootstrap_p(fit, no_of_sims = 10, threads = 1)
 
 
-library(fitdistrplus)
+# library(fitdistrplus)
 library(igraph)
 fit_power_law(hic.table$A)
 length(hic.table$A[hic.table$A < 4000])
 fit_power_law(hic.table$A[hic.table$A < 4000])
 
 # fit power law by deleting most extreme values
-fit_powerlaw = function(tab) {
-  tab = na.omit(tab) # remove any NAs
-  fit = power.law.fit(tab$x) # get initial fit
+fit_powerlaw = function(x) {
+  x = na.omit(x) # remove any NAs
+  fit = power.law.fit(x) # get initial fit
   pval = fit$KS.p
   # loop until fit is good
   while(pval <= 0.05) {
-    tab = tab[-nrow(tab),]
-    fit = power.law.fit(tab$x)
+    x = x[-which(x == max(x))]
+    fit = power.law.fit(x)
     pval = fit$KS.p
   }
-  return(tab)
+  return(fit)
 }
+
+
+fit <- fit_powerlaw(hic.table$A)
+
+ .powerlaw(hic.table$A, fit$xmin, fit$alpha)
+
+
+.powerlaw(7, fit$xmin, fit$alpha)
+# between 6 and 7 the powerlaw fit hits 1. values > 7 are below 1 and and x increases to inf the value returned goes to 0
+
+# test multiplying powerlaw result by p-value
+adj.p <- hic.table$p.value * .powerlaw(hic.table$A, fit$xmin, fit$alpha)
+hist(adj.p)
+
+cbind(hic.table$A, hic.table$p.value, adj.p)[1:100,]
+cbind(hic.table$A, hic.table$p.value, adj.p)[2000:2100,]
+# that isn't going to work. Makes pretty much everything super significant
+
+# could we weight fold changes based on average expression before performing permutation test instead?
+# find midpoint of log A, this corresponds to weight of 1. A < midpoint downweight M and A > midpoint upweight M??
 ```
 
