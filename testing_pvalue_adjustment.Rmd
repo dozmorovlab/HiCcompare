@@ -90,14 +90,91 @@ fit <- fit_powerlaw(hic.table$A)
 # between 6 and 7 the powerlaw fit hits 1. values > 7 are below 1 and and x increases to inf the value returned goes to 0
 
 # test multiplying powerlaw result by p-value
-adj.p <- hic.table$p.value * .powerlaw(hic.table$A, fit$xmin, fit$alpha)
+adj.p <- hic.table$p.value * (1 + .powerlaw(hic.table$A, fit$xmin, fit$alpha))
 hist(adj.p)
+
+plaw <- .powerlaw(hic.table$A, fit$xmin, fit$alpha)
+hist(plaw)
 
 cbind(hic.table$A, hic.table$p.value, adj.p)[1:100,]
 cbind(hic.table$A, hic.table$p.value, adj.p)[2000:2100,]
+
+MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p)
+MD.plot2(hic.table$adj.M, hic.table$D, adj.p)
 # that isn't going to work. Makes pretty much everything super significant
 
 # could we weight fold changes based on average expression before performing permutation test instead?
 # find midpoint of log A, this corresponds to weight of 1. A < midpoint downweight M and A > midpoint upweight M??
+
+
+# maybe find change point on log A centered bell curve then use that as the multiplier. Things on tails either thrown 
+# out for left tail or multiplied by 1 for right tail
+
+
+# try weighting by raw difference
+hic.table <- diff.result
+weight <- (abs(hic.table$adj.IF1 - hic.table$adj.IF2) / max(c(hic.table$adj.IF1, hic.table$adj.IF2)))
+
+hic.table[, weight := weight]
+hic.table[, adj.p := p.value * weight]
+hic.table
+```
+
+# Test function on different datasets
+
+## set up prostate data
+```{r}
+library(GenomicRanges)
+core_path <- "D:/3D_DNA/rickman/rickman_lib1/"
+man_path <- "D:/3D_DNA/manuscript/prostate_analysis/"
+
+chrs <- paste0('chr', 1:22)
+chrs <- c(chrs, 'chrX')
+
+# read in data for 1 mb
+ERG_lib1 <- list()
+GFP_lib1 <- list()
+for(i in 1:22) {
+  ERG_lib1[[i]] <- read.table(paste0(core_path, 'ERG_lib1_chr', i, '.1mb.txt'), header = FALSE)
+  GFP_lib1[[i]] <- read.table(paste0(core_path, 'GFP_lib1_chr', i, '.1mb.txt'), header = FALSE)
+}
+ERG_lib1[[23]] <- read.table(paste0(core_path, 'ERG_lib1_chr', 'X', '.1mb.txt'), header = FALSE)
+GFP_lib1[[23]] <- read.table(paste0(core_path, 'GFP_lib1_chr', 'X', '.1mb.txt'), header = FALSE)
+
+cnv <- read.table('D:/3D_DNA/rickman/cnv_out.bed', header = TRUE)
+
+# cnv_rows <- which(cnv$ERG_lib1_1_2.hicup == -2 | cnv$ERG_lib1_1_2.hicup == 2 | cnv$GFP_lib1_1_2.hicup == -2 | cnv$GFP_lib1_1_2.hicup == 2)
+# exclude <- cnv[cnv_rows, 2:4]
+# cnv <- cnv[cnv_rows,]
+cnv.gi <- GRanges(seqnames = cnv$chromosome, ranges = IRanges(start = cnv$start, end = cnv$end))
+colnames(cnv)[1] <- 'chr'
+exclude <- rbind(cnv, hg19_blacklist)
+#exclude <- hg19_blacklist
+exclude.gi <- GRanges(seqnames = exclude$chr, ranges = IRanges(start = exclude$start, end = exclude$end))
+
+lib1_tables <- mapply(create.hic.table, ERG_lib1, GFP_lib1, chrs, SIMPLIFY = FALSE, MoreArgs = list(scale = FALSE, include.zeros = FALSE,
+                                                                                                    exclude.regions = exclude, 
+                                                                                                    exclude.overlap = 0.2))
+
+
+lib1_tables <- total_sum(lib1_tables)
+
+
+lib1_tables <- hic_loess(lib1_tables, Plot = TRUE, span = NA)
+lib1_tables <- hic_diff(lib1_tables, Plot = TRUE, diff.thresh = NA, iterations = 1000)
+
+
+```
+
+## test p-value adjustment
+
+```{r}
+chr1 <- lib1_tables[[1]]
+chr1 <- adjust_pval(chr1)
+
+par(mfrow = c(1,2))
+MD.plot2(chr1$M, chr1$D, chr1$p.value)
+MD.plot2(chr1$M, chr1$D, chr1$adj.p)
+
 ```
 
