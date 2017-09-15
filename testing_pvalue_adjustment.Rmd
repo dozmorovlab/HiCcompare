@@ -168,6 +168,22 @@ lib1_tables <- hic_diff(lib1_tables, Plot = TRUE, diff.thresh = NA, iterations =
 
 ## test p-value adjustment
 
+### chr22 test data
+```{r}
+data('HMEC.chr22')
+data('NHEK.chr22')
+hic.table <- create.hic.table(HMEC.chr22, NHEK.chr22, chr = 'chr22')
+# Plug hic.table into hic_loess()
+result <- hic_loess(hic.table, Plot = TRUE)
+# perform difference detection
+diff.result <- hic_diff(result, diff.thresh = 'auto', Plot = TRUE)
+
+hic.table <- diff.result
+
+adjust_pval(hic.table)
+```
+
+### prostate data
 ```{r}
 chr1 <- lib1_tables[[1]]
 chr1 <- adjust_pval(chr1)
@@ -176,5 +192,6 @@ par(mfrow = c(1,2))
 MD.plot2(chr1$M, chr1$D, chr1$p.value)
 MD.plot2(chr1$M, chr1$D, chr1$adj.p)
 
+# Powerlaw Xmin = 7.29600338922691 Powerlaw alpha = 84.4788481904521
 ```
 
