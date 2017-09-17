@@ -195,3 +195,80 @@ MD.plot2(chr1$M, chr1$D, chr1$adj.p)
 # Powerlaw Xmin = 7.29600338922691 Powerlaw alpha = 84.4788481904521
 ```
 
+
+# Test M weighting instead
+
+```{r}
+hist(log2(hic.table$A))
+hist(log2(chr1$A))
+
+which(chr1$A == median(chr1$A))
+which(log2(chr1$A) == median(log2(chr1$A)))
+
+fit_power_law(chr1$A[chr1$A < quantile(chr1$A, 0.75)])
+
+quantile(chr1$A)
+hist(chr1$A[chr1$A > 1 & chr1$A < 6.14])
+plot(density(chr1$A[chr1$A > 1 & chr1$A < 16]))
+
+# scale density to be on (0,1)
+tmpA <- (chr1$A[chr1$A > 1 & chr1$A < 16]) / max(chr1$A[chr1$A > 1 & chr1$A < 16])*5
+plot(density(tmpA))
+
+# plot(density(log2(chr1$A[chr1$A > 1 & chr1$A < 16])))
+
+density_A <- density(chr1$A[chr1$A > 1 & chr1$A < 16])
+A_pdf <- approxfun(density_A)
+A_pdf(3)
+
+density_A$x[which.max(density_A$y)]
+
+1 - A_pdf(1.7)
+1 - A_pdf(10)
+1 - (A_pdf(2) / max(density_A$y))
+q <- seq(1.7, 16, length.out = 1000)
+plot(1 - A_pdf(q) ~ q)
+plot(1 - (A_pdf(q) / max(density_A$y)) ~ q)
+```
+
+So maybe for values above 75% quantile on A, we trust so no down weighting to these values of M
+For A values < 1 we dont trust at all so should not be significant, weight their M to 0
+
+## test function
+
+```{r}
+chr1 <- weight_M(chr1, quant = 0.75)
+MD.plot2(chr1$adj.M, chr1$D)
+
+chr1 <- hic_diff(chr1, diff.thresh = 'auto', Plot = TRUE)
+
+
+hic.table <- weight_M(hic.table, quant = 0.1)
+MD.plot2(hic.table$adj.M, hic.table$D)
+
+new_tables <- lapply(lib1_tables, weight_M)
+
+pdf(file = "D:/3D_DNA/manuscript/prostate_analysis/M_weighting_prostate.pdf")
+new_tables <- hic_diff(new_tables, Plot = TRUE, diff.thresh = 'auto', iterations = 1000)
+dev.off()
+```
+
+
+### what happens if we pool all chrs together for M weighting
+
+```{r}
+library(data.table)
+lib1_tables <- mapply(create.hic.table, ERG_lib1, GFP_lib1, chrs, SIMPLIFY = FALSE, MoreArgs = list(scale = FALSE, include.zeros = FALSE,
+                                                                                                    exclude.regions = exclude, 
+                                                                                                    exclude.overlap = 0.2))
+
+
+lib1_tables <- total_sum(lib1_tables)
+
+
+lib1_tables <- hic_loess(lib1_tables, Plot = TRUE, span = NA)
+pool_tables <- rbindlist(lib1_tables)
+pool_tables <- weight_M(pool_tables)
+pool_tables <- hic_diff(pool_tables, Plot = TRUE, diff.thresh = 'auto')
+```
+
