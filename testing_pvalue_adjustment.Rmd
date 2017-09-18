@@ -270,5 +270,41 @@ lib1_tables <- hic_loess(lib1_tables, Plot = TRUE, span = NA)
 pool_tables <- rbindlist(lib1_tables)
 pool_tables <- weight_M(pool_tables)
 pool_tables <- hic_diff(pool_tables, Plot = TRUE, diff.thresh = 'auto')
+
+pool_tables[p.value < 0.05 & D > 200,]
+```
+
+
+# test on brain 50kb data
+
+```{r}
+amyg_bed <- read.table('D:/brain/data/amyg/50000/amyg_50000_abs.bed')
+amyg_mat <- read.table('D:/brain/data/amyg/50000/amyg_50000.matrix')
+dplfc_bed <- read.table('D:/brain/data/dplfc/50000/dplfc_50000_abs.bed')
+dplfc_mat <- read.table('D:/brain/data/dplfc/50000/dplfc_50000.matrix')
+amyg_data <- hicpro2bedpe(amyg_mat, amyg_bed)
+dplfc_data <- hicpro2bedpe(dplfc_mat, dplfc_bed)
+
+amyg_dplfc <- mapply(create.hic.table, amyg_data$cis[-23], dplfc_data$cis[-23], MoreArgs = list(exclude.regions = NA, exclude.overlap = 0.2,
+                                                                                      scale = FALSE), SIMPLIFY = FALSE)
+
+amyg_dplfc <- total_sum(amyg_dplfc)
+
+# amyg_dplfc <- hic_loess(amyg_dplfc, Plot = TRUE)
+# amyg_dplfc <- hic_diff(amyg_dplfc, Plot = TRUE, diff.thresh = 'auto')
+
+bchr1 <- amyg_dplfc[[1]]
+bchr22 <- amyg_dplfc[[22]]
+
+bchr22 <- hic_loess(bchr22, Plot = TRUE)
+bchr22 <- weight_M(bchr22)
+
+hist(bchr22$A)
+hist(bchr22$A[bchr22$A > 1 & bchr22$A < quantile(bchr22$A, 0.75)])
+hic_diff(bchr22, Plot = TRUE)
+
+bchr1 <- hic_loess(bchr1, Plot = TRUE)
+bchr1 <- weight_M(bchr1)
+bchr1 <- hic_diff(bchr1, Plot = TRUE)
 ```
 
