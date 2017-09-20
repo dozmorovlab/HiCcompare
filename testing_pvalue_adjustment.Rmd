@@ -306,5 +306,22 @@ hic_diff(bchr22, Plot = TRUE)
 bchr1 <- hic_loess(bchr1, Plot = TRUE)
 bchr1 <- weight_M(bchr1)
 bchr1 <- hic_diff(bchr1, Plot = TRUE)
+
+bchr2 <- amyg_dplfc[[2]]
+bchr2 <- hic_loess(bchr2)
+bchr2 <- weight_M(bchr2)
 ```
+
+
+# test plot A
+
+```{r}
+# prostate data
+plot_A(lib1_tables)
+
+# brain data
+amyg_dplfc <- hic_loess(amyg_dplfc, span = 0.08)
+plot_A(amyg_dplfc)
+```
+
 
