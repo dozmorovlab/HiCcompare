@@ -325,3 +325,23 @@ plot_A(amyg_dplfc)
 ```
 
 
+# test volcano
+
+```{r}
+lib1_tables <- mapply(create.hic.table, ERG_lib1, GFP_lib1, chrs, SIMPLIFY = FALSE, MoreArgs = list(scale = FALSE, include.zeros = FALSE,
+                                                                                                    exclude.regions = exclude, 
+                                                                                                    exclude.overlap = 0.2))
+
+
+lib1_tables <- total_sum(lib1_tables)
+
+
+lib1_tables <- hic_loess(lib1_tables, Plot = TRUE, span = NA)
+lib1_tables <- hic_diff(lib1_tables, diff.thresh = NA)
+
+volcano(lib1_tables[[1]])
+volcano(lib1_tables[[18]])
+volcano(lib1_tables[[19]])
+```
+
+
