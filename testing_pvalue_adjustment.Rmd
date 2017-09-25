@@ -322,10 +322,38 @@ plot_A(lib1_tables)
 # brain data
 amyg_dplfc <- hic_loess(amyg_dplfc, span = 0.08)
 plot_A(amyg_dplfc)
+
+```
+
+## brain at 100kb resolution
+
+```{r}
+amyg_bed <- read.table('D:/brain/data/amyg/100000/amyg_100000_abs.bed')
+amyg_mat <- read.table('D:/brain/data/amyg/100000/amyg_100000.matrix')
+dplfc_bed <- read.table('D:/brain/data/dplfc/100000/dplfc_100000_abs.bed')
+dplfc_mat <- read.table('D:/brain/data/dplfc/100000/dplfc_100000.matrix')
+amyg_data <- hicpro2bedpe(amyg_mat, amyg_bed)
+dplfc_data <- hicpro2bedpe(dplfc_mat, dplfc_bed)
+
+amyg_dplfc_100kb <- mapply(create.hic.table, amyg_data$cis[-23], dplfc_data$cis[-23], MoreArgs = list(exclude.regions = NA, exclude.overlap = 0.2,
+                                                                                      scale = FALSE), SIMPLIFY = FALSE)
+
+amyg_dplfc_100kb <- total_sum(amyg_dplfc_100kb)
+
+amyg_dplfc_100kb <- hic_loess(amyg_dplfc_100kb)
+
+plot_A(amyg_dplfc_100kb)
+
+bchr1.2 <- weight_M(amyg_dplfc_100kb[[1]], A.min = 3.5, quant = 0.9)
+bchr2.2 <- weight_M(amyg_dplfc_100kb[[2]], A.min = 3.5, quant = 0.9)
+bchr18.2 <- weight_M(amyg_dplfc_100kb[[18]], A.min = 3.5, quant = 0.9)
+bchr19.2 <- weight_M(amyg_dplfc_100kb[[19]], A.min = 3.5, quant = 0.9)
 ```
 
 
 # test volcano
+
+Volcano doesn't work. Makes everything except for stuff at shortest distances insignficant. Also makes things with small fold changes significant if theyre at short distance and have high Avg expression.
 
 ```{r}
 lib1_tables <- mapply(create.hic.table, ERG_lib1, GFP_lib1, chrs, SIMPLIFY = FALSE, MoreArgs = list(scale = FALSE, include.zeros = FALSE,
@@ -342,6 +370,11 @@ lib1_tables <- hic_diff(lib1_tables, diff.thresh = NA)
 volcano(lib1_tables[[1]])
 volcano(lib1_tables[[18]])
 volcano(lib1_tables[[19]])
+
+lib1_tables[[18]][, adj.p := exp(-volcano)]
+MD.plot2(lib1_tables[[18]]$adj.M, lib1_tables[[18]]$D, exp(-lib1_tables[[18]]$volcano))
+MD.plot2(lib1_tables[[1]]$adj.M, lib1_tables[[1]]$D, exp(-lib1_tables[[1]]$volcano))
+MD.plot2(lib1_tables[[19]]$adj.M, lib1_tables[[19]]$D, exp(-lib1_tables[[19]]$volcano))
 ```
 
 
