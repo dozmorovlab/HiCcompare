@@ -225,7 +225,7 @@ To weight M values, first we calculate the average expression associated with ea
 
 We can plot the dsitribution of A using the `plot_A` function on a list of hic.table objects. Here we use Hi-C data comparing two different regions of the brain for chromosomes 18 and 22 at 100KB resolution. The data has already been read into a `hic.table` list and jointly normalized with `hic_loess`. 
 
-```{r}
+```{r, fig.height=8, fig.width=6}
 data("brain_table")
 plot_A(brain_table)
 ```
@@ -239,6 +239,14 @@ brain_table <- weight_M(brain_table, A.min = 4, quant = 0.75, Plot.diagnostic = 
 ```
 
 The diagnostic plots are the histogram of raw A values between the `A.min` value and the `quant` quantile. The solid line represents the powerlaw fit to the density. You should always check these plots to make sure the fit of the weights is okay. You can also see the new MD plots after M weighting above. The diagnostic plots indicate that the parameters chosen worked for the data. You can now proceed to difference detection on your data. 
+
+Weighting of the M values occurs as follows. We estimate the kernel density for the A values which fall into the range $A > A_{min} and A < A_{quant}$. The approximate probability density function, $f_A(.)$, of the kernel density is then interpolated from the kernel density. Next, we fit a powerlaw to this subset of A. The powerlaw is defined as $P(A) = cA^{-\alpha}$. We get the best fit of the powerlaw to the kernel density by minimizing the sum of squared residuals (SSR) between the powerlaw fit and the kernel density. The weights, $w$, can be calculated as follows
+$$w = \begin{cases} 0, \  A < A_{min} \\
+1 - \frac{P(A)}{max(P(A))}, \ A_{min} \le A < A_{0.75} \\
+1, \ A \ge A_{0.75}
+\end{cases}
+$$
+where $P(A)$ is the powerlaw fit based on the minimizing the SSR. This weighting scheme will produce weights on [0, 1] corresponding the powerlaw fit to the estimated kernel density of A. The weights can then be multiplied to the normalized M values before difference detection is performed. The weights can only make the M values closer to 0 and thus the differences represented will become less significant if their corresponding A value is low. M values corresponding to high A values will be unchanged. 
 
 
 ## Difference Detection
