@@ -217,7 +217,7 @@ The `hic_loess` joint normalization function extends the `hic.table` with the ad
 
 ## Weighting of M values
 
-This is an optional step of the analysis process for advanced users. This step will require the user to look at several plots to decide if weighting is necessary and if so, decide on the input parameters for the weighting. Weighting of M values may not be necessary for data at low resolutions such as 1MB or 500KB. For higher resolution data this process will probably be more necessary. However, you will need to look at the data and plots in order to determine this for yourself.
+This is an optional step of the analysis process for advanced users. This step will require the user to look at several plots to decide if weighting is necessary and if so, decide on the input parameters for the weighting. Weighting of M values may not be necessary for data at low resolutions such as 1MB or 500KB. For higher resolution data this process will probably be more necessary. However, you will need to look at the data and plots in order to determine this for yourself. If you perform a standard `HiCcompare` analysis without weighting of M values on your data and find that a large number of detected differences have low average expression it may be helpful to use M weighting.
 
 M values are defined as $log2(IF2 / IF1)$. Since M values are the result of a ratio, differences on the log scale can appear identical when on the raw scale they are actually very different. For instance The M values for IF1 = 1 and IF2 = 10 and for IF1 = 10 and IF2 = 100 are both 3.32, despite the fact that the second pair of interaction frequencies has a much larger difference on the raw scale. This could potentially lead to issues in the analysis of Hi-C data, as IFs with lower average expression values are less trustworthy and more prone to display differences due solely to chance or technical biases rather than true biological differences. Therefore, M values derived from IFs with large average expression should be treated as more trustworthy than those derived from IFs exhibiting small average expression. One solution to this issue to weight M values based on their corresponding average expression before performing difference detection. 
 
@@ -225,35 +225,35 @@ To weight M values, first we calculate the average expression associated with ea
 
 We can plot the distribution of A using the `plot_A` function on a list of hic.table objects. Here we use Hi-C data comparing two different regions of the brain for chromosomes 18 and 22 at 100KB resolution. The data has already been read into a `hic.table` list and jointly normalized with `hic_loess`. 
 
-```{r, fig.height=8, fig.width=6}
+```{r, fig.height=8, fig.width=6, warning=FALSE, message=FALSE}
 data("brain_table")
-plot_A(brain_table)
+aplot <- plot_A(brain_table)
 ```
 
 From looking at the plots we can see that the density levels out by the 75th quantile so we can focus on the values of A < 75th quantile. Next we will need to determine the minimum value of A at which to start fitting the powerlaw for weighting. From the 4th plot we can see that after a value of 4 the density of A starts to more or less uniformly decrease so this should be a safe guess for the minimum A value. The peak of the log2(A) histogram looks to occur at about 1.5 so if we take the anti-log we get 2.8 further suggesting that a value between 2.8 and 4 should be okay for fitting the weights. 
 
 Now we can perform weighting of the M values.
 
-```{r}
+```{r, warning=FALSE}
 brain_table <- weight_M(brain_table, A.min = 4, quant = 0.75, Plot.diagnostic = TRUE, Plot.MD = TRUE)
 ```
 
 The diagnostic plots are the histogram of raw A values between the `A.min` value and the `quant` quantile. The solid line represents the powerlaw fit to the density. You should always check these plots to make sure the fit of the weights is okay. You can also see the new MD plots after M weighting above. The diagnostic plots indicate that the parameters chosen worked for the data. You can now proceed to difference detection on your data. 
 
-Weighting of the M values occurs as follows. We estimate the kernel density for the A values which fall into the range $A > A_{min} and A < A_{quant}$. The approximate probability density function, $f_A(.)$, of the kernel density is then interpolated from the kernel density. Next, we fit a powerlaw to this subset of A. The powerlaw is defined as $P(A) = cA^{-\alpha}$. We get the best fit of the powerlaw to the kernel density by minimizing the sum of squared residuals (SSR) between the powerlaw fit and the kernel density. The weights, $w$, can be calculated as follows
+Weighting of the M values occurs as follows. We estimate the kernel density for the A values which fall into the range $A \le A_{min} \ and \ A < A_{quant}$. The approximate probability density function, $f_A(.)$, of the kernel density is then interpolated from the kernel density. Next, we fit a powerlaw to this subset of A. The powerlaw is defined as $P(A) = cA^{-\alpha}$. We get the best fit of the powerlaw to the kernel density by minimizing the sum of squared residuals (SSR) between the powerlaw fit and the kernel density. The weights, $w$, can be calculated as follows
 $$w = \begin{cases} 0, \  A < A_{min} \\
 1 - \frac{P(A)}{max(P(A))}, \ A_{min} \le A < A_{0.75} \\
 1, \ A \ge A_{0.75}
 \end{cases}
 $$
-where $P(A)$ is the powerlaw fit based on the minimizing the SSR. This weighting scheme will produce weights on [0, 1] corresponding the powerlaw fit to the estimated kernel density of A. The weights can then be multiplied to the normalized M values before difference detection is performed. The weights can only make the M values closer to 0 and thus the differences represented will become less significant if their corresponding A value is low. M values corresponding to high A values will be unchanged. 
+where $P(A)$ is the powerlaw fit based on the minimizing the SSR. This weighting scheme will produce weights on [0, 1] corresponding to the powerlaw fit to the estimated kernel density of A. The weights can then be multiplied to the normalized M values before difference detection is performed. The weights can only make the M values closer to 0 and thus the differences represented will become less significant if their corresponding A value is low. M values corresponding to high A values will be unchanged. 
 
 
 ## Difference Detection
 
 Difference detection also makes use of the MD plot. The jointly normalized datasets are once again plotted on the MD plot. Difference detection takes place on a per-unit-distance basis using a permutation test. Permutations are broken into blocks for each unit distance. See methods section of the manuscript [here](https://doi.org/10.1101/147850) for more details. Difference detection can be performed at the same time as joint normalization if the `check.differences` option in `hic_loess` is set to TRUE. Otherwise a `hic.table` object output from the `hic_loess` function can be input into the `hic_diff` function for difference detection. 
 
-`hic_diff` accepts a `hic.table` object or a list of hic.table objects output from `hic_loess`. `hic_diff` can also utilize the `BiocParallel` package the same way as the `hic_loess` loess function. The same limits and uses apply as stated above. If the `Plot` option is set to TRUE, an MD plot will be displayed showing the normalized MD plot along with coloring based on the significance of each difference. The dotted lines on this MD plot represent the `diff.thresh` threshold. This threshold is automatically calculated as 2 standard deviations of M from 0 on the MD plot by default but can be set by the user or turned off. This option helps to deal with false positives by restricting the regions that can be labelled as significant when they fall inside the threshold. The threshold can be thought of as a range in which differences do not exceed the level of the expected noise in the Hi-C data. The function will return a hic.table or a list of hic.tables with an additional column containing the p-value for the significance of the difference between the IFs in each cell of the two Hi-C matrices. 
+`hic_diff` accepts a `hic.table` object or a list of hic.table objects output from `hic_loess`. `hic_diff` can also utilize the `BiocParallel` package the same way as the `hic_loess` loess function. The same limits and uses apply as stated above. If the `Plot` option is set to TRUE, an MD plot will be displayed showing the normalized MD plot along with coloring based on the significance of each difference. The dotted lines on this MD plot represent the `diff.thresh` threshold. This threshold is automatically calculated as 2 standard deviations of M from 0 on the MD plot by default but can be set by the user or turned off. This option helps to deal with false positives by restricting the regions that can be labelled as significant when they fall inside the threshold. The threshold can be thought of as a range in which differences do not exceed the level of the expected noise in the Hi-C data. If you used M weighting on your data you should use a `diff_thresh` otherwise you will get many false positives for longer range interactions. The function will return a hic.table or a list of hic.tables with an additional column containing the p-value for the significance of the difference between the IFs in each cell of the two Hi-C matrices. 
 
 If you wish to visualize the p-values in the form of a Hi-C contact map you can use the `visualize_pvals` function to transform the results to a contact matrix with the p-values inserted instead of IFs as illustrated in the example below.
 
