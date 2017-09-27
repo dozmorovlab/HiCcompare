@@ -30,7 +30,8 @@ importFrom("gridExtra", "grid.arrange")
 import(mgcv)
 importFrom("stats", "loess", "loess.control",
              "optimize", "p.adjust", "predict", "rnbinom", "rnorm",
-             "runif", "update", "qnorm", "t.test")
+             "runif", "update", "qnorm", "t.test", "approxfun", 
+             "density", "optim", "quantile")
 import(InteractionSet)
 importFrom("GenomicRanges", "GRanges")
 importFrom("IRanges", "IRanges", "splitAsList", "width", "pintersect")
@@ -38,7 +39,7 @@ importFrom("IRanges", "IRanges", "splitAsList", "width", "pintersect")
 
 importFrom("BiocParallel", "bpmapply", "bplapply", "bpparam", "register", "registered")
 importFrom("graphics", "abline", "legend", "lines", "par", "persp",
-             "points", "smoothScatter")
+             "points", "smoothScatter", "hist")
 importFrom("methods", "is")
 importFrom("utils", "read.table", "write.table")
 import(QDNAseq)

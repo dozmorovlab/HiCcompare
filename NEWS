@@ -7,4 +7,5 @@ NEWS for HiCcompare
   - smooht MD plot as an option
   - option to exclude regions in create.hic.table()
   - blacklisted locations added to data
-  
+  - weighting of M values based on average expression
+  - updated vignette
