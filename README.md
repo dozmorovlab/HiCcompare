@@ -79,6 +79,11 @@ To view the usage vignette:
 
 `browseVignettes("HiCcompare")`
 
+## Branches
+
+- Master: contains the current stable release of `HiCcompare`
+- supplemental: contains supplementary files and data, see Additional Vignettes section below
+- test_version: contains versions of `HiCcommpare` currently in development. This version of the software may be unstable and is not reccomended for users.
 
 ## Additional Vignettes
 
