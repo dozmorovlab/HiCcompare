@@ -78,7 +78,7 @@ The `cooler` software, [http://cooler.readthedocs.io/en/latest/index.html](http:
 
 ### Using data from HiC-Pro
 
-HiC-Pro is another tool for processing raw Hi-C data into useable matrix files. HiC-Pro will produce a `.matrix` file and a `.bed` file for the data. These `.matrix` files are in sparse upper triangular format similar to the results of Juicer and the dumped contents of a `.hic` file, however instead of using the genomic start coordinates for the first two columns of the sparse matrix they use an ID number. The `.bed` file contains the mappings for each of these IDs to their genomic coordinates. `HiCcompare` includes a function to convert the results of HiC-Pro into a useable format for analysis in `HiCcompare`. See the help using `?hicpro2bedpe` for more details.
+HiC-Pro is another tool for processing raw Hi-C data into usable matrix files. HiC-Pro will produce a `.matrix` file and a `.bed` file for the data. These `.matrix` files are in sparse upper triangular format similar to the results of Juicer and the dumped contents of a `.hic` file, however instead of using the genomic start coordinates for the first two columns of the sparse matrix they use an ID number. The `.bed` file contains the mappings for each of these IDs to their genomic coordinates. `HiCcompare` includes a function to convert the results of HiC-Pro into a usable format for analysis in `HiCcompare`. See the help using `?hicpro2bedpe` for more details.
 
 ## Detecting Copy Number Variations and Excluding regions
 
@@ -127,7 +127,7 @@ chr22.table <- create.hic.table(HMEC.chr22, NHEK.chr22, chr = 'chr22')
 head(chr22.table)
 ```
 
-By default, all regions for the data entered are used as is. It may be desiriable to exclude certain regions from any further analysis because they contain CNV or are overlapping blacklisted regions with known sequencing issues. To exclude the CNV and blacklisted regions we defined above, create the `hic.table` object as follows. 
+By default, all regions for the data entered are used as is. It may be desirable to exclude certain regions from any further analysis because they contain CNV or are overlapping blacklisted regions with known sequencing issues. To exclude the CNV and blacklisted regions we defined above, create the `hic.table` object as follows. 
 
 ```{r, eval = FALSE}
 chr22.table <- create.hic.table(HMEC.chr22, NHEK.chr22, chr = 'chr22', exclude.regions = exclude, exclude.overlap = 0.2)
@@ -188,7 +188,7 @@ If you are performing your `HiCcompare` analysis on the entire genome you can pe
 hic.list <- total_sum(hic.list)
 ```
 
-It is reccommended to use total sum scaling when performing a `HiCcompare` analysis on the entire genome. If you are only using data for a single chromosome then total sum scaling should be equivalent to the `scale` option in the `create.hic.table` function.
+It is recommended to use total sum scaling when performing a `HiCcompare` analysis on the entire genome. If you are only using data for a single chromosome then total sum scaling should be equivalent to the `scale` option in the `create.hic.table` function.
 
 ## Joint Normalization
 
@@ -219,11 +219,11 @@ The `hic_loess` joint normalization function extends the `hic.table` with the ad
 
 This is an optional step of the analysis process for advanced users. This step will require the user to look at several plots to decide if weighting is necessary and if so, decide on the input parameters for the weighting. Weighting of M values may not be necessary for data at low resolutions such as 1MB or 500KB. For higher resolution data this process will probably be more necessary. However, you will need to look at the data and plots in order to determine this for yourself.
 
-M values are defined as $log2(IF2 / IF1)$. Since M values are the result of a ratio, differences on the log scale can appear identical when on the raw scale they are actually very different. For instance The M values for IF1 = 1 and IF2 = 10 and for IF1 = 10 and IF2 = 100 are both 3.32, despite the fact that the second pair of interaction frequencies has a much larger difference on the raw scale. This could potentially lead to issues in the analysis of Hi-C data, as IFs with lower average expression values are less trustworthy and more prone to display differences due solely to chance or technical biases rather than true biological differences. Therefore, M values derived from IFs with large average expression should be treated as more trustworthy than those derived from IFs exhibitng small average expression. One solution to this issue to weight M values based on their corresponding average expression before performing difference detection. 
+M values are defined as $log2(IF2 / IF1)$. Since M values are the result of a ratio, differences on the log scale can appear identical when on the raw scale they are actually very different. For instance The M values for IF1 = 1 and IF2 = 10 and for IF1 = 10 and IF2 = 100 are both 3.32, despite the fact that the second pair of interaction frequencies has a much larger difference on the raw scale. This could potentially lead to issues in the analysis of Hi-C data, as IFs with lower average expression values are less trustworthy and more prone to display differences due solely to chance or technical biases rather than true biological differences. Therefore, M values derived from IFs with large average expression should be treated as more trustworthy than those derived from IFs exhibiting small average expression. One solution to this issue to weight M values based on their corresponding average expression before performing difference detection. 
 
 To weight M values, first we calculate the average expression associated with each M value, $A = (IF1 + IF2) / 2$. Simple plotting of A values indicates that average expression between two Hi-C datasets is roughly distributed in a powerlaw fashion, with the majority of A values being rather small and a long right tail of very large A values. A values less than 1 should not be trusted at all and so they can safely be ignored for now. At this point we will need to plot the distribution of A in order to determine a minimum value of A at which to start the weighting and at which quantile of A we should stop weighting.
 
-We can plot the dsitribution of A using the `plot_A` function on a list of hic.table objects. Here we use Hi-C data comparing two different regions of the brain for chromosomes 18 and 22 at 100KB resolution. The data has already been read into a `hic.table` list and jointly normalized with `hic_loess`. 
+We can plot the distribution of A using the `plot_A` function on a list of hic.table objects. Here we use Hi-C data comparing two different regions of the brain for chromosomes 18 and 22 at 100KB resolution. The data has already been read into a `hic.table` list and jointly normalized with `hic_loess`. 
 
 ```{r, fig.height=8, fig.width=6}
 data("brain_table")
@@ -304,13 +304,13 @@ TPR is the true positive rate, SPC is the specificity, pvals is a vector of the 
 
 `HiCcompare` contains some additional functions that may be useful. 
 
-If you do not choose to show the MD plots when you initially run `hic_loess` or `hic_diff` you can use the `MD.plot1` or `MD.plot2` functions. `MD.plot1` will create a side by side MD plot showing before and after loess normalization. Enter your original M and D vectors along with the M correction factor, `mc`, calculated by `hic_loess`. The `smooth` option controls if the plot is splotted using `smoothScatter` or as a `ggplot2` scatter plot.
+If you do not choose to show the MD plots when you initially run `hic_loess` or `hic_diff` you can use the `MD.plot1` or `MD.plot2` functions. `MD.plot1` will create a side by side MD plot showing before and after loess normalization. Enter your original M and D vectors along with the M correction factor, `mc`, calculated by `hic_loess`. The `smooth` option controls if the plot is plotted using `smoothScatter` or as a `ggplot2` scatter plot.
 
 ```{r, fig.height=4, fig.width=7}
 MD.plot1(M = hic.table$M, D = hic.table$D, mc = hic.table$mc, smooth = TRUE)
 ```
 
-`MD.plot2` will create a standard MD plot with optional colouring based on p-value. Just enter an M and D vector and a p-value vector if desired.
+`MD.plot2` will create a standard MD plot with optional coloring based on p-value. Just enter an M and D vector and a p-value vector if desired.
 
 ```{r, fig.height=4, fig.width=7}
 # no p-value coloring
