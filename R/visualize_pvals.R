@@ -1,12 +1,12 @@
-# - We need heatmap visualization of Hi-C matrices (like Fig 1A), overlapping the p-values of dots identified as differentially expressed. The goal is to see whether HiCcompare-detected differential interactions follow some patterns on the HiC heatmaps, e.g., overlap with visible TAD boundaries.  
-# - Differentially interacting "hotspots" - individual regions that are frequently differentially interactiong with others
-# - Are they cluster? There may be stretches of differential hotspots
-
-
 #' Function to visualize p-values from HiCcompare results
 #' 
 #' @param hic.table A hic.table object that has been
 #'     normalized and has had differences detected.
+#' @param alpha The alpha level at which you will 
+#'     call a p-value significant. If this is set to
+#'     a numeric value then any p-values >= alpha will
+#'     be set to 1 for the visualization in the heatmap.
+#'     Defaults to NA for visualization of all p-values.
 #' @details The goal of this function is to visualize
 #'     where in the Hi-C matrix the differences are
 #'     occuring between two experimental conditions.
@@ -30,7 +30,7 @@
 #' visualize_pvals(diff.result)
 #' @export
 
-visualize_pvals <- function(hic.table) {
+visualize_pvals <- function(hic.table, alpha = NA) {
   # check that hic.table is entered
   if (!is(hic.table, "data.table")) {
     stop("Enter a hic.table object")
@@ -39,12 +39,26 @@ visualize_pvals <- function(hic.table) {
   if (ncol(hic.table) < 16) {
     stop('Enter a hic.table that you have already performed normalization and difference detection on')
   }
+  if (!is.na(alpha)) {
+    if (!is.numeric(alpha)) {
+      stop("Alpha must be a numeric value between 0 and 1")
+    }
+    if (alpha < 0 | alpha > 1) {
+      stop("Alpha must be a numeric value between 0 and 1")
+    }
+  }
   # convert to full matrix
   m <- sparse2full(hic.table, hic.table = TRUE, column.name = 'p.value') 
   # get fold change
   fc <- sparse2full(hic.table, hic.table = TRUE, column.name = 'adj.M')
+  # remove non significant values from matrix if alpha is set to a value
+  if (!is.na(alpha)) {
+    m[m >= alpha] <- 1
+  }
   # plot heatmap
-  pheatmap::pheatmap(-log10(m) * sign(fc), cluster_rows = FALSE, cluster_cols = FALSE)
+  pheatmap::pheatmap(-log10(m) * sign(fc), cluster_rows = FALSE, 
+                     cluster_cols = FALSE, show_rownames = FALSE, 
+                     show_colnames = FALSE)
   # # get TADs
   # m2 <- sparse2full(hic.table, hic.table = TRUE, column.name = 'IF1') 
   # tads <- HiCseg::HiCseg_linkC_R(size_mat = nrow(m2), nb_change_max = round(nrow(m2) / 5) + 1, distrib = "B", mat_data = m2, model = "Dplus")

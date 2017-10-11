@@ -4,11 +4,17 @@
 \alias{visualize_pvals}
 \title{Function to visualize p-values from HiCcompare results}
 \usage{
-visualize_pvals(hic.table)
+visualize_pvals(hic.table, alpha = NA)
 }
 \arguments{
 \item{hic.table}{A hic.table object that has been
 normalized and has had differences detected.}
+
+\item{alpha}{The alpha level at which you will 
+call a p-value significant. If this is set to
+a numeric value then any p-values >= alpha will
+be set to 1 for the visualization in the heatmap.
+Defaults to NA for visualization of all p-values.}
 }
 \value{
 A heatmap
