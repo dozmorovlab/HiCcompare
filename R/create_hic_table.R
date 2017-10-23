@@ -208,6 +208,7 @@ create.hic.table <- function(sparse.mat1, sparse.mat2, chr = NA, scale = TRUE,
     # get percentage of overlap
     percent_olap <- target_overlap / target_widths
     # get which regions to remove
+    if (exclude.overlap == 0) exclude.overlap <- min(percent_olap[percent_olap != 0]) # bugfix for if exclude.overlap is 0 to not exclude everything
     regions_to_remove <- which(percent_olap >= exclude.overlap)
     to_remove <- NULL
     if (length(regions_to_remove) > 0) {
