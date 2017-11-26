@@ -5,7 +5,7 @@
 #'     \code{hic_loess} function. hic.table must be jointly normalized
 #'     before being entered.
 #' @param diff.thresh Fold change threshold desired to call a detected
-#'     difference clinically significant. Set to 'auto' by default to indicate that the
+#'     difference significant. Set to 'auto' by default to indicate that the
 #'     difference threshold will be automatically calculated as 2 standard
 #'     deviations of all the adjusted M values. For no p-value adjustment
 #'     set diff.thresh = NA. To set your own threshold enter a numeric value
