@@ -108,6 +108,10 @@ hic_diff <- function(hic.table, diff.thresh = "auto", iterations = 10000,
                                           iterations = iterations), SIMPLIFY = FALSE)
     }
   }
+  # Run ranking process similar to LOLA
+  ### temp marker
+  hic.table <- lapply(hic.table, .rank_table)
+  ### temp marker
   # clean up if single hic.table
   if (length(hic.table) == 1) {
     hic.table <- hic.table[[1]]
@@ -197,4 +201,21 @@ hic_diff <- function(hic.table, diff.thresh = "auto", iterations = 10000,
 }
 
 
+# Function to perform ranking on hic.table similar to LOLA
+.rank_table <- function(hic.table) {
+  # Rank M values at each distance
+  # do i want to rank M at each distance or rank based on all M values for chromosome???
+  ## Rank over all M
+  ranks <- data.table::frank(abs(hic.table$adj.M))
+  
+  ## Rank by distance
+  # split table up for each distance
+  temp_list <- S4Vectors::split(hic.table, hic.table$D)
+  temp_list <- lapply(temp_list, function(x) {
+    ranks <- data.table::frankv(abs(x$adj.M))
+    inv_ranks <- order(ranks, decreasing = TRUE)
+    x[, rnkM_D := ranks]
+    return(x)
+  })
+}
 
