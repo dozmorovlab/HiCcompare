@@ -298,11 +298,14 @@ hic_loess = function(hic.table, degree = 1, span = NA, loess.criterion = 'gcv',
     hic.table[, `:=`(mc, mc)]
   }
   # check for negative values in normalized matrices
+  # set any negative values to 0
   if (sum(hic.table$adj.IF1 < 0, na.rm = TRUE) > 0) {
     message("negatives introduced in normalization")
+    hic.table <- hic.table[adj.IF1 > 0]
   }
   if (sum(c(hic.table$adj.IF2) < 0, na.rm = TRUE) > 0) {
     message("negatives introduced in normalization")
+    hic.table <- hic.table[adj.IF2 > 0]
   }
   return(hic.table)
 }
