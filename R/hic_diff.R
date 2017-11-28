@@ -108,10 +108,16 @@ hic_diff <- function(hic.table, diff.thresh = "auto", iterations = 10000,
                                           iterations = iterations), SIMPLIFY = FALSE)
     }
   }
+ 
   # Run ranking process similar to LOLA
   ### temp marker
-  hic.table <- lapply(hic.table, .rank_table)
+  if (parallel) {
+    hic.table <- BiocParallel::bplapply(hic.table, .rank_table)
+  } else {
+    hic.table <- lapply(hic.table, .rank_table)
+  }
   ### temp marker
+  
   # clean up if single hic.table
   if (length(hic.table) == 1) {
     hic.table <- hic.table[[1]]
@@ -206,16 +212,38 @@ hic_diff <- function(hic.table, diff.thresh = "auto", iterations = 10000,
   # Rank M values at each distance
   # do i want to rank M at each distance or rank based on all M values for chromosome???
   ## Rank over all M
-  ranks <- data.table::frank(abs(hic.table$adj.M))
+  ranks <- data.table::frank(-abs(hic.table$adj.M), ties.method = "min")
+  hic.table[, rnkM := ranks]
   
   ## Rank by distance
   # split table up for each distance
   temp_list <- S4Vectors::split(hic.table, hic.table$D)
   temp_list <- lapply(temp_list, function(x) {
-    ranks <- data.table::frankv(abs(x$adj.M))
-    inv_ranks <- order(ranks, decreasing = TRUE)
+    ranks <- data.table::frank(-abs(x$adj.M), ties.method = "min")
     x[, rnkM_D := ranks]
     return(x)
   })
+  # recombine into one table
+  hic.table <- rbindlist(temp_list)
+  
+  # Rank by raw difference
+  diff_rank <- -abs(hic.table$adj.IF1 - hic.table$adj.IF2) %>% data.table::frank(., ties.method = "min")
+  hic.table[, rnkDiff := diff_rank]
+  
+  # Rank by distance
+  # D is equivalent to distance rank
+  # Rank by p-value
+  pval_rank <- data.table::frank(hic.table$p.value, ties.method = "min")
+  hic.table[, rnkPV := pval_rank]
+  
+  # Get max rank
+  max_rank <- hic.table %>% dplyr::select(rnkM, rnkM_D, rnkDiff, rnkPV, D) %>% as.matrix() %>% apply(., 1, max)
+  hic.table[, rnkMax := max_rank]
+  
+  # Get mean rank
+  mean_rank <- hic.table %>% dplyr::select(rnkM, rnkM_D, rnkDiff, rnkPV, D) %>% as.matrix() %>% apply(., 1, mean)
+  hic.table[, rnkMean := mean_rank]
+  
+  return(hic.table)
 }
 
