@@ -218,6 +218,14 @@ hic_diff <- function(hic.table, diff.thresh = "auto", iterations = 10000,
   ## Rank by distance
   # split table up for each distance
   temp_list <- S4Vectors::split(hic.table, hic.table$D)
+  # combined top 15% of distances into single data.table
+  all_dist <- sort(unique(hic.table$D))
+  dist_85 <- ceiling(0.85 * length(all_dist))
+  temp_list2 <- temp_list[1:dist_85]
+  temp_list2[[dist_85+1]] <- data.table::rbindlist(temp_list[(dist_85+1):length(temp_list)])
+  temp_list <- temp_list2
+  rm("temp_list2")
+  # rank M by distance
   temp_list <- lapply(temp_list, function(x) {
     ranks <- data.table::frank(-abs(x$adj.M), ties.method = "min")
     x[, rnkM_D := ranks]
@@ -243,6 +251,9 @@ hic_diff <- function(hic.table, diff.thresh = "auto", iterations = 10000,
   # Get mean rank
   mean_rank <- hic.table %>% dplyr::select(rnkM, rnkM_D, rnkDiff, rnkPV, D) %>% as.matrix() %>% apply(., 1, mean)
   hic.table[, rnkMean := mean_rank]
+  
+  # sort by max rank
+  hic.table <- hic.table[order(rnkMax, rnkMean),]
   
   return(hic.table)
 }
