@@ -209,13 +209,16 @@ hic_diff <- function(hic.table, diff.thresh = "auto", iterations = 10000,
 
 # Function to perform ranking on hic.table similar to LOLA
 .rank_table <- function(hic.table) {
+  ## Rank by distance
+  distance_rank <- data.table::frank(hic.table$D, ties.method = "min")
+  hic.table[, rnkD := distance_rank]
+  
   # Rank M values at each distance
   # do i want to rank M at each distance or rank based on all M values for chromosome???
   ## Rank over all M
   ranks <- data.table::frank(-abs(hic.table$adj.M), ties.method = "min")
   hic.table[, rnkM := ranks]
   
-  ## Rank by distance
   # split table up for each distance
   temp_list <- S4Vectors::split(hic.table, hic.table$D)
   # combined top 15% of distances into single data.table
@@ -244,12 +247,18 @@ hic_diff <- function(hic.table, diff.thresh = "auto", iterations = 10000,
   pval_rank <- data.table::frank(hic.table$p.value, ties.method = "min")
   hic.table[, rnkPV := pval_rank]
   
+  # Rank by average expression
+  A <- (hic.table$adj.IF1 + hic.table$adj.IF2) / 2 
+  rank_A <- data.table::frank(-A)
+  hic.table[, rnkA := rank_A]
+  
   # Get max rank
-  max_rank <- hic.table %>% dplyr::select(rnkM, rnkM_D, rnkDiff, rnkPV, D) %>% as.matrix() %>% apply(., 1, max)
+  # max_rank <- hic.table %>% dplyr::select(rnkM, rnkM_D, rnkDiff, rnkPV, rnkD, rnkA) %>% as.matrix() %>% apply(., 1, max)
+  max_rank <- hic.table %>% dplyr::select(rnkM, rnkDiff, rnkA) %>% as.matrix() %>% apply(., 1, max)
   hic.table[, rnkMax := max_rank]
   
   # Get mean rank
-  mean_rank <- hic.table %>% dplyr::select(rnkM, rnkM_D, rnkDiff, rnkPV, D) %>% as.matrix() %>% apply(., 1, mean)
+  mean_rank <- hic.table %>% dplyr::select(rnkM, rnkDiff, rnkA) %>% as.matrix() %>% apply(., 1, mean)
   hic.table[, rnkMean := mean_rank]
   
   # sort by max rank
