@@ -209,6 +209,11 @@ hic_diff <- function(hic.table, diff.thresh = "auto", iterations = 10000,
 
 # Function to perform ranking on hic.table similar to LOLA
 .rank_table <- function(hic.table) {
+  
+  # add average expression to table
+  A <- (hic.table$adj.IF1 + hic.table$adj.IF2) / 2 
+  hic.table[, A := A]
+  
   ## Rank by distance
   distance_rank <- data.table::frank(hic.table$D, ties.method = "min")
   hic.table[, rnkD := distance_rank]
@@ -248,7 +253,7 @@ hic_diff <- function(hic.table, diff.thresh = "auto", iterations = 10000,
   hic.table[, rnkPV := pval_rank]
   
   # Rank by average expression
-  A <- (hic.table$adj.IF1 + hic.table$adj.IF2) / 2 
+  
   rank_A <- data.table::frank(-A)
   hic.table[, rnkA := rank_A]
   

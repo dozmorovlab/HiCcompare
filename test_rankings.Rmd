@@ -1,0 +1,181 @@
+---
+title: "test_rankings"
+author: "John Stansfield"
+date: "November 30, 2017"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# set up
+
+```{r}
+library(readr)
+library(data.table)
+library(HiCcompare)
+library(dplyr)
+```
+
+
+```{r, message = FALSE, warning=FALSE, results='hide', cache=TRUE, echo = FALSE}
+# testing rankings
+
+
+
+# Set up
+#####
+centromeres <- read.table("D:/brain/data/hg38_centromeres.bed")
+
+# for dplfc 1 (dplfc folder)
+dplfc_1_mat <- read_tsv("D:/brain/data/all_resolutions/dplfc_1000000.matrix", col_names = FALSE) %>% as.data.table()
+dplfc_1_bed <- read_tsv("D:/brain/data/all_resolutions/dplfc_1000000_abs.bed", col_names = FALSE) %>% as.data.table()
+
+# for amyg
+amyg_mat <- read_tsv("D:/brain/data/all_resolutions/amyg_1000000.matrix", col_names = FALSE) %>% as.data.table()
+amyg_bed <- read_tsv("D:/brain/data/all_resolutions/amyg_1000000_abs.bed", col_names = FALSE) %>% as.data.table()
+
+
+dplfc_1 <- hicpro2bedpe(dplfc_1_mat, dplfc_1_bed)$cis[-c(23,25)] # remove chrM and chrY
+amyg <- hicpro2bedpe(amyg_mat, amyg_bed)$cis[-c(23,25)]
+
+amyg_dplfc1 <- mapply(create.hic.table, amyg, dplfc_1, MoreArgs = list(exclude.regions = centromeres, exclude.overlap = 0,
+                                                                       scale = FALSE), SIMPLIFY = FALSE)
+
+amyg_dplfc1 <- hic_loess(amyg_dplfc1, Plot = FALSE)
+
+amyg_dplfc1 <- hic_diff(amyg_dplfc1, Plot = FALSE, diff.thresh = 'auto')
+
+
+#######
+```
+
+
+# Test Rankings
+
+## MD plot of p-values using old methods
+
+```{r}
+# MD plot of p-values
+hic.table <- amyg_dplfc1[[1]]
+MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.value)
+```
+
+## Top 5% max ranks where max is taken from M, raw difference, and Avg expression
+
+```{r}
+# set up
+alpha <- 0.05
+idx <- 1:(nrow(hic.table) * alpha)
+
+
+# get top 5% of max ranks where max is taken from M, raw difference, and Avg expression
+hic.table <- hic.table[order(rnkMax),]
+topRanks <- rep(1, nrow(hic.table)) # make indicator for top ranks
+topRanks[idx] <- 0 # set top ranking rows to 0 indicator for plotting on MD plot
+MD.plot2(hic.table$adj.M, hic.table$D, p.val = topRanks)
+```
+
+## top 5% mean ranks where mean is taken from M, raw difference, and Avg expression
+
+```{r}
+# get top 5% of mean ranks
+hic.table <- hic.table[order(rnkMean),] # order by mean rank
+topRanks <- rep(1, nrow(hic.table)) # make indicator for top ranks
+topRanks[idx] <- 0 # set top ranking rows to 0 indicator for plotting on MD plot
+MD.plot2(hic.table$adj.M, hic.table$D, p.val = topRanks)
+```
+
+
+## top 5% rnkM and rnkDiff
+
+```{r}
+# by top 5% of rnkM and rnkDiff
+hic.table <- hic.table[order(rnkM, rnkDiff),] # order by mean rank
+topRanks <- rep(1, nrow(hic.table)) # make indicator for top ranks
+topRanks[idx] <- 0 # set top ranking rows to 0 indicator for plotting on MD plot
+MD.plot2(hic.table$adj.M, hic.table$D, p.val = topRanks)
+```
+
+
+## top 5% of rnkDiff
+
+```{r}
+# by top 5% of rnkDiff
+hic.table <- hic.table[order(rnkDiff),] # order by mean rank
+topRanks <- rep(1, nrow(hic.table)) # make indicator for top ranks
+topRanks[idx] <- 0 # set top ranking rows to 0 indicator for plotting on MD plot
+MD.plot2(hic.table$adj.M, hic.table$D, p.val = topRanks)
+```
+
+## top 5% of max(rnkM, rnkA)
+
+```{r}
+# by top 5% of rnkDiff
+max_rank <- hic.table %>% dplyr::select(rnkM, rnkA) %>% as.matrix() %>% apply(., 1, max)
+hic.table[, rnkMax := max_rank]
+hic.table <- hic.table[order(rnkMax),] # order by mean rank
+topRanks <- rep(1, nrow(hic.table)) # make indicator for top ranks
+topRanks[idx] <- 0 # set top ranking rows to 0 indicator for plotting on MD plot
+MD.plot2(hic.table$adj.M, hic.table$D, p.val = topRanks)
+```
+
+
+## top 5% of max(rnkM, rnkD, rnkA, rnkDiff)
+
+```{r}
+# by top 5% of rnkDiff
+max_rank <- hic.table %>% dplyr::select(rnkM, rnkA, rnkD, rnkDiff) %>% as.matrix() %>% apply(., 1, max)
+hic.table[, rnkMax := max_rank]
+hic.table <- hic.table[order(rnkMax),] # order by mean rank
+topRanks <- rep(1, nrow(hic.table)) # make indicator for top ranks
+topRanks[idx] <- 0 # set top ranking rows to 0 indicator for plotting on MD plot
+MD.plot2(hic.table$adj.M, hic.table$D, p.val = topRanks)
+```
+
+## top 5% of rnkM_D
+
+```{r}
+hic.table <- hic.table[order(rnkM_D),] # order by mean rank
+topRanks <- rep(1, nrow(hic.table)) # make indicator for top ranks
+topRanks[idx] <- 0 # set top ranking rows to 0 indicator for plotting on MD plot
+MD.plot2(hic.table$adj.M, hic.table$D, p.val = topRanks)
+```
+
+
+## top 5% of max(rankM_D, A, rnkDiff)
+
+```{r}
+# by top 5% of rnkDiff
+max_rank <- hic.table %>% dplyr::select(rnkM_D, rnkA, rnkDiff) %>% as.matrix() %>% apply(., 1, max)
+hic.table[, rnkMax := max_rank]
+hic.table <- hic.table[order(rnkMax),] # order by mean rank
+topRanks <- rep(1, nrow(hic.table)) # make indicator for top ranks
+topRanks[idx] <- 0 # set top ranking rows to 0 indicator for plotting on MD plot
+MD.plot2(hic.table$adj.M, hic.table$D, p.val = topRanks)
+```
+
+
+## top 5% of max(rankM_D, rnkDiff)
+
+```{r}
+# by top 5% of rnkDiff
+max_rank <- hic.table %>% dplyr::select(rnkM_D, rnkDiff) %>% as.matrix() %>% apply(., 1, max)
+hic.table[, rnkMax := max_rank]
+hic.table <- hic.table[order(rnkMax),] # order by mean rank
+topRanks <- rep(1, nrow(hic.table)) # make indicator for top ranks
+topRanks[idx] <- 0 # set top ranking rows to 0 indicator for plotting on MD plot
+MD.plot2(hic.table$adj.M, hic.table$D, p.val = topRanks)
+```
+
+
+## top 5% of max(rankM_D, rnkA)
+
+```{r}
+# by top 5% of rnkDiff
+max_rank <- hic.table %>% dplyr::select(rnkM_D, rnkA) %>% as.matrix() %>% apply(., 1, max)
+hic.table[, rnkMax := max_rank]
+hic.table <- hic.table[order(rnkMax),] # order by mean rank
+topRanks <- rep(1, nrow(hic.table)) # make indicator for top ranks
+topRanks[idx] <- 0 # set top ranking rows to 0 indicator for plotting on MD plot
+MD.plot2(hic.table$adj.M, hic.table$D, p.val = topRanks)
+```
