@@ -16,6 +16,8 @@
 KRnorm = function(A) {
   # remove any cols/rows of 0s
   zeros = unique(which(colSums(A) == 0), which(rowSums(A) == 0))
+  # save col/row names
+  cnames <- colnames(A)
   if (length(zeros) > 0) {
     A = A[-zeros, -zeros]
     message(paste0('Cols/Rows removed: '))
@@ -89,5 +91,17 @@ KRnorm = function(A) {
     idx <- as.matrix(NAlist[, 1:2])
     result[idx] <- NA
   }
+  # add colnames back
+  if (length(zeros) > 0) {
+    colnames(result) <- cnames[-zeros]
+    rownames(result) <- cnames[-zeros]
+  } else {
+    colnames(result) <- cnames
+    rownames(result) <- cnames
+  }
+  # force matrix to be symmetric
+  result <- round(result, digits = 6)
+  # result[lower.tri(result)] <- t(result)[lower.tri(result)]
+  
   return(result)
 }

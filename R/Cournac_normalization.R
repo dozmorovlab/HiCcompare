@@ -15,7 +15,7 @@
 #' m <- matrix(rpois(100, 5), 10, 10)
 #' SCN(m)
 
-SCN = function(a, max.iter = 5) {
+SCN = function(a, max.iter = 10) {
   # remove 0 columns from matrix
   zeros = unique(which(colSums(a) == 0), which(rowSums(a) == 0))
   if (length(zeros) > 0) {
@@ -32,10 +32,12 @@ SCN = function(a, max.iter = 5) {
     n.rows <- dim(a)[1]; n.cols <- dim(a)[2]
     # Euclidean normalization of matrix
     a.col.norms <- apply(a,2, function(x) sqrt(sum(x^2)) )
-    a.new <- t(t(a) / a.col.norms)
+    # a.new <- t(t(a) / a.col.norms) # old version of code. Not sure why matrices transposed
+    a.new <- (a) / a.col.norms # new
 
     a.row.norms <- apply(a.new, 1, function(x) sqrt(sum(x^2)) )
-    a <- t(t(a.new) / a.row.norms)
+    # a <- t(t(a.new) / a.row.norms) # old version
+    a <- a.new / a.row.norms # new
 
     diff = a.old - a
     diff = c(diff)
