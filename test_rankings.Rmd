@@ -179,3 +179,46 @@ topRanks <- rep(1, nrow(hic.table)) # make indicator for top ranks
 topRanks[idx] <- 0 # set top ranking rows to 0 indicator for plotting on MD plot
 MD.plot2(hic.table$adj.M, hic.table$D, p.val = topRanks)
 ```
+
+# Visualization
+
+
+## Mean rank 
+```{r}
+hic.table = amyg_dplfc1[[1]]
+visualize_differences(hic.table, which_rank = 'rnkMean', only_toprank = FALSE)
+
+```
+
+## Top 5% mean ranks
+
+```{r}
+visualize_differences(hic.table, which_rank = 'rnkMean', only_toprank = TRUE, proportion = 0.05)
+```
+
+## Top 10% mean ranks
+
+```{r}
+visualize_differences(hic.table, which_rank = 'rnkMean', only_toprank = TRUE, proportion = 0.1)
+```
+
+
+## Max rank
+
+```{r}
+hic.table = amyg_dplfc1[[1]]
+visualize_differences(hic.table, which_rank = 'rnkMax', only_toprank = FALSE)
+
+```
+
+## Top 5% mean ranks
+
+```{r}
+visualize_differences(hic.table, which_rank = 'rnkMax', only_toprank = TRUE, proportion = 0.05)
+```
+
+## Top 10% mean ranks
+
+```{r}
+visualize_differences(hic.table, which_rank = 'rnkMax', only_toprank = TRUE, proportion = 0.1)
+```
