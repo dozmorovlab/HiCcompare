@@ -86,28 +86,28 @@ hic_diff <- function(hic.table, diff.thresh = "auto", iterations = 10000,
       diff.thresh <- sapply(hic.table, .calc.diff.thresh)
     }
   }
-  # run difference detection for parallel / non-parallel
-  if (parallel) {
-    if (length(diff.thresh) == 1) {
-      hic.table <- BiocParallel::bplapply(hic.table, .calc.pval, Plot = Plot, Plot.smooth = Plot.smooth,
-                                          diff.thresh = diff.thresh,
-                            iterations = iterations, BPPARAM = BP_param)
-    } else {
-      hic.table <- BiocParallel::bpmapply(.calc.pval, hic.table, diff.thresh,
-                            MoreArgs = list(Plot = Plot, Plot.smooth = Plot.smooth,
-                                            iterations = iterations), SIMPLIFY = FALSE, BPPARAM = BP_param)
-    }
-  } else {
-    if (length(diff.thresh) == 1) {
-      hic.table <- lapply(hic.table, .calc.pval, Plot = Plot, Plot.smooth = Plot.smooth,
-                          diff.thresh = diff.thresh,
-                          iterations = iterations)
-    } else {
-      hic.table <- mapply(.calc.pval, hic.table, diff.thresh,
-                          MoreArgs = list(Plot = Plot, Plot.smooth = Plot.smooth,
-                                          iterations = iterations), SIMPLIFY = FALSE)
-    }
-  }
+  # # run difference detection for parallel / non-parallel
+  # if (parallel) {
+  #   if (length(diff.thresh) == 1) {
+  #     hic.table <- BiocParallel::bplapply(hic.table, .calc.pval, Plot = Plot, Plot.smooth = Plot.smooth,
+  #                                         diff.thresh = diff.thresh,
+  #                           iterations = iterations, BPPARAM = BP_param)
+  #   } else {
+  #     hic.table <- BiocParallel::bpmapply(.calc.pval, hic.table, diff.thresh,
+  #                           MoreArgs = list(Plot = Plot, Plot.smooth = Plot.smooth,
+  #                                           iterations = iterations), SIMPLIFY = FALSE, BPPARAM = BP_param)
+  #   }
+  # } else {
+  #   if (length(diff.thresh) == 1) {
+  #     hic.table <- lapply(hic.table, .calc.pval, Plot = Plot, Plot.smooth = Plot.smooth,
+  #                         diff.thresh = diff.thresh,
+  #                         iterations = iterations)
+  #   } else {
+  #     hic.table <- mapply(.calc.pval, hic.table, diff.thresh,
+  #                         MoreArgs = list(Plot = Plot, Plot.smooth = Plot.smooth,
+  #                                         iterations = iterations), SIMPLIFY = FALSE)
+  #   }
+  # }
  
   # Run ranking process similar to LOLA
   ### temp marker
@@ -248,9 +248,9 @@ hic_diff <- function(hic.table, diff.thresh = "auto", iterations = 10000,
   
   # Rank by distance
   # D is equivalent to distance rank
-  # Rank by p-value
-  pval_rank <- data.table::frank(hic.table$p.value, ties.method = "min")
-  hic.table[, rnkPV := pval_rank]
+  # # Rank by p-value
+  # pval_rank <- data.table::frank(hic.table$p.value, ties.method = "min")
+  # hic.table[, rnkPV := pval_rank]
   
   # Rank by average expression
   

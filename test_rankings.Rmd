@@ -10,6 +10,11 @@ output:
 # set up
 
 ```{r}
+knitr::opts_chunk$set(fig.height = 4)
+```
+
+
+```{r}
 library(readr)
 library(data.table)
 library(HiCcompare)
@@ -57,7 +62,7 @@ amyg_dplfc1 <- hic_diff(amyg_dplfc1, Plot = FALSE, diff.thresh = 'auto')
 ```{r}
 # MD plot of p-values
 hic.table <- amyg_dplfc1[[1]]
-MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.value)
+# MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.value)
 ```
 
 ## Top 5% max ranks where max is taken from M, raw difference, and Avg expression
