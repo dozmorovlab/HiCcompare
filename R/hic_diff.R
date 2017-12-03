@@ -254,7 +254,7 @@ hic_diff <- function(hic.table, diff.thresh = "auto", iterations = 10000,
   
   # Rank by average expression
   
-  rank_A <- data.table::frank(-A)
+  rank_A <- data.table::frank(-hic.table$A, ties.method = "min")
   hic.table[, rnkA := rank_A]
   
   # Get max rank
