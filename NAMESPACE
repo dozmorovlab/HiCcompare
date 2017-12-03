@@ -21,6 +21,7 @@ export(visualize_differences)
 export(hicpro2bedpe)
 export(weight_M)
 export(plot_A)
+export(hic_sim_matrix)
 import(S4Vectors)
 #import(data.table)
 importFrom("data.table", "as.data.table", "data.table", ":=", "rbindlist",

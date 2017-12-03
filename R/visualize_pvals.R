@@ -93,7 +93,7 @@ visualize_pvals <- function(hic.table, alpha = NA) {
 }
 
 
-# Alternate one for dealing with rankings
+#' Alternate heatmap for dealing with rankings
 #' @param which_rank The column name for the ranking that you
 #'    want to plot.
 #' @param only_toprank Logical, Should only the top ranks be 

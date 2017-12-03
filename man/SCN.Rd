@@ -4,7 +4,7 @@
 \alias{SCN}
 \title{SCN normalization from Cournac 2012}
 \usage{
-SCN(a, max.iter = 5)
+SCN(a, max.iter = 10)
 }
 \arguments{
 \item{a}{The matrix to be normalized. Any cols/rows that sum to
