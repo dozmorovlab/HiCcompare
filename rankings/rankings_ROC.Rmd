@@ -1,0 +1,61 @@
+---
+title: "ranking_ROC"
+author: "John Stansfield"
+date: "December 3, 2017"
+output: html_document
+---
+
+# ROC curves on ranks
+
+```{r}
+library(readr)
+library(data.table)
+library(HiCcompare)
+library(dplyr)
+library(pROC)
+```
+
+
+
+```{r}
+# simulate matrices
+i.range = sample(1:150, replace=TRUE, size = 200)
+j.range = sample(1:150, replace=TRUE, size = 200)
+sim <- hic_sim_matrix(nrow = 150, fold.change = 2, i.range = i.range, j.range = j.range)
+
+MD.plot2(sim$M, sim$D)
+
+# So general plan should be to simulate matrices, run thru hic_diff
+# then make indicator column for difference
+# plug hic.table with indicator into function to calculate TP, FP, TN, FN as done in hic_simulate
+
+# normalize and rank
+sim <- hic_loess(sim, Plot = TRUE)
+sim <- hic_diff(sim, Plot = FALSE)
+
+sim
+
+```
+
+
+```{r}
+# function to calculate TP, FP, TN, FN
+pre_roc <- function(hic.table, i.range, j.range) {
+  # hic.table must of diff_indicator column with 1 for difference, 0 for no difference
+  # get true.diffs
+  true.diffs <- data.table(i = c(i.range, j.range), j = c(j.range, i.range))
+  true.diffs <- left_join(true.diffs, sim, by = c(i = "start1", j = "start2"))
+  # remove duplicated rows
+  true.diffs <- true.diffs[!duplicated(true.diffs), ]
+  true.diffs <- as.data.table(na.omit(true.diffs))
+  # calculate TP, FP, FN, TN
+  true.pos <- sum(true.diffs$diff_indicator == 1)
+  false.pos <- sum(hic.table$diff_indicator == 1, na.rm = TRUE) - true.pos
+  false.neg <- nrow(true.diffs) - true.pos
+  true.neg <- nrow(hic.table) - true.pos - false.pos - false.neg
+  result <- c('TP' = true.pos, 'FP' = false.pos, 'TN' = true.neg, 'FN' = false.neg)
+  return(result)
+}
+```
+
+

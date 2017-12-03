@@ -270,7 +270,7 @@ hic_sim_matrix <- function(nrow = 100, medianIF = 50000, sdIF = 14000,
     sims[[1]] <- .add.CNV(sims[[1]], CNV.location, CNV.proportion, CNV.multiplier)
     #sims[[2]] <- .add.CNV(sims[[2]], CNV.location, CNV.proportion, CNV.multiplier)
   }
-  # perform HiCloess on simulated data convert matrix to sparse format
+  # convert matrix to sparse format
   colnames(sims[[1]]) <- 1:nrow
   colnames(sims[[2]]) <- 1:nrow
   sims[[1]] <- full2sparse(sims[[1]])
