@@ -43,7 +43,7 @@ amyg_bed <- read_tsv("D:/brain/data/all_resolutions/amyg_1000000_abs.bed", col_n
 dplfc_1 <- hicpro2bedpe(dplfc_1_mat, dplfc_1_bed)$cis[-c(23,25)] # remove chrM and chrY
 amyg <- hicpro2bedpe(amyg_mat, amyg_bed)$cis[-c(23,25)]
 
-amyg_dplfc1 <- mapply(create.hic.table, amyg, dplfc_1, MoreArgs = list(exclude.regions = centromeres, exclude.overlap = 0,
+amyg_dplfc1 <- mapply(create.hic.table, amyg[1:3], dplfc_1[1:3], MoreArgs = list(exclude.regions = centromeres, exclude.overlap = 0,
                                                                        scale = FALSE), SIMPLIFY = FALSE)
 
 amyg_dplfc1 <- hic_loess(amyg_dplfc1, Plot = FALSE)
@@ -227,3 +227,57 @@ visualize_differences(hic.table, which_rank = 'rnkMax', only_toprank = TRUE, pro
 ```{r}
 visualize_differences(hic.table, which_rank = 'rnkMax', only_toprank = TRUE, proportion = 0.1)
 ```
+
+
+# Test using mean A and M with distance weighting
+
+```{r}
+hic.table <- amyg_dplfc1[[1]]
+
+mean_rank <- hic.table %>% dplyr::select(rnkM, rnkA) %>% as.matrix() %>% apply(., 1, mean)
+hic.table[, rnkMean := mean_rank]
+hic.table <- hic.table[order(rnkMean),] # order by mean rank
+# create weight for distance
+dist_weight <- 1+((hic.table$D + 1)/max(hic.table$D + 1))
+hic.table[, rnkMean := dist_weight * rnkMean]
+hic.table <- hic.table[order(rnkMean),]
+
+topRanks <- rep(1, nrow(hic.table)) # make indicator for top ranks
+topRanks[idx] <- 0 # set top ranking rows to 0 indicator for plotting on MD plot
+MD.plot2(hic.table$adj.M, hic.table$D, p.val = topRanks)
+```
+
+
+# Test using max A and M with distance weighting
+
+```{r}
+mean_rank <- hic.table %>% dplyr::select(rnkM, rnkA) %>% as.matrix() %>% apply(., 1, max)
+hic.table[, rnkMean := mean_rank]
+hic.table <- hic.table[order(rnkMean),] # order by mean rank
+# create weight for distance
+dist_weight <- 1+((hic.table$D + 1)/max(hic.table$D + 1))
+hic.table[, rnkMean := dist_weight * rnkMean]
+hic.table <- hic.table[order(rnkMean),]
+
+topRanks <- rep(1, nrow(hic.table)) # make indicator for top ranks
+topRanks[idx] <- 0 # set top ranking rows to 0 indicator for plotting on MD plot
+MD.plot2(hic.table$adj.M, hic.table$D, p.val = topRanks)
+```
+
+
+# Test using mean A, M, raw difference with distance weighting
+
+```{r}
+mean_rank <- hic.table %>% dplyr::select(rnkM, rnkA, rnkDiff) %>% as.matrix() %>% apply(., 1, mean)
+hic.table[, rnkMean := mean_rank]
+hic.table <- hic.table[order(rnkMean),] # order by mean rank
+# create weight for distance
+dist_weight <- 1+((hic.table$D + 1)/max(hic.table$D + 1))
+hic.table[, rnkMean := dist_weight * rnkMean]
+hic.table <- hic.table[order(rnkMean),]
+
+topRanks <- rep(1, nrow(hic.table)) # make indicator for top ranks
+topRanks[idx] <- 0 # set top ranking rows to 0 indicator for plotting on MD plot
+MD.plot2(hic.table$adj.M, hic.table$D, p.val = topRanks)
+```
+
