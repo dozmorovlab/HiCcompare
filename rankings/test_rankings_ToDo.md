@@ -1,6 +1,6 @@
-- Use simulated matrices/a priori known differences.
++ Use simulated matrices/a priori known differences.
 
-- Add ROC curve analysis only for the ranking methods (no comparison with different normalizations). That is, the goal is to see which ranking method produces best ROC curve. May need to convert ranks to a scale used by the ROC curve function.
++ Add ROC curve analysis only for the ranking methods (no comparison with different normalizations). That is, the goal is to see which ranking method produces best ROC curve. May need to convert ranks to a scale used by the ROC curve function.
 
 + Distance-weighting idea:  
     + Use ranks of $M$, or $A$, or $IF_1 - IF_2$, or a combination of them
