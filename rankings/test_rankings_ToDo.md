@@ -11,3 +11,6 @@
 - Amygdala vs. DLPFC comparison, so the positive $M$s are higher in DLPFC? 
 
 - When using "top 5% of rnkDiff", the majority of $M$ differences are positive. That implies the raw difference is mostly one-directional, with interaction frequencies in one (DLPFC?) dataset are always higher across the range of distances. Need to investigate why.
+
+
+- Try to convert M to Z score and raw diff to Z score, take mean then multiply by distance weight see what we get

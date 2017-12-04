@@ -272,3 +272,73 @@ hic_diff <- function(hic.table, diff.thresh = "auto", iterations = 10000,
   return(hic.table)
 }
 
+
+# Z scores for M, Diff and distance weighting
+.calc_zscores <- function(hic.table) {
+  # calculate z scores
+  Zm <- (hic.table$adj.M - mean(hic.table$adj.M)) / sd(hic.table$adj.M)
+  hic.table[, raw_diff := adj.IF2 - adj.IF1]
+  Zd <- (hic.table$raw_diff - mean(hic.table$raw_diff)) / sd(hic.table$raw_diff)
+  Zmean <- (Zm + Zd) / 2
+  hic.table[, ':=' (Zm = Zm, Zd = Zd, Zmean = Zmean)]
+  # calculate distance weighting
+  dist_weight <- 1 - ((hic.table$D + 1)/max(hic.table$D + 1))
+  hic.table[, D_wt := dist_weight]
+  hic.table[, Zwt := Zmean * D_wt]
+  hic.table[, p.val := pnorm(Zwt)]
+  hic.table[, p.adj := p.adjust(p.val, method = 'fdr')]
+  MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj)
+  MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.val)
+}
+
+
+# Z scores for M, Diff with NO distance weighting
+.calc_zscores2 <- function(hic.table) {
+  # calculate z scores
+  Zm <- (hic.table$adj.M - mean(hic.table$adj.M)) / sd(hic.table$adj.M)
+  hic.table[, raw_diff := adj.IF2 - adj.IF1]
+  Zd <- (hic.table$raw_diff - mean(hic.table$raw_diff)) / sd(hic.table$raw_diff)
+  Zmean <- (Zm + Zd) / 2
+  hic.table[, ':=' (Zm = Zm, Zd = Zd, Zmean = Zmean)]
+  # calculate distance weighting
+  # dist_weight <- 1 - ((hic.table$D + 1)/max(hic.table$D + 1))
+  # hic.table[, D_wt := dist_weight]
+  # hic.table[, Zwt := Zmean * D_wt]
+  hic.table[, p.val := pnorm(Zmean)]
+  hic.table[, p.adj := p.adjust(p.val, method = 'fdr')]
+  MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj)
+  MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.val)
+}
+
+
+# Z scores for M, Diff and distance weighting calculated by Distance
+.calc_zscores3 <- function(hic.table) {
+  hic.table[, raw_diff := adj.IF2 - adj.IF1]
+  # split table up for each distance
+  temp_list <- S4Vectors::split(hic.table, hic.table$D)
+  # combined top 15% of distances into single data.table
+  all_dist <- sort(unique(hic.table$D))
+  dist_85 <- ceiling(0.85 * length(all_dist))
+  temp_list2 <- temp_list[1:dist_85]
+  temp_list2[[dist_85+1]] <- data.table::rbindlist(temp_list[(dist_85+1):length(temp_list)])
+  temp_list <- temp_list2
+  rm("temp_list2")
+  # z score by distance
+  temp_list <- lapply(temp_list, function(x) {
+    Zm <- (hic.table$adj.M - mean(hic.table$adj.M)) / sd(hic.table$adj.M)
+    Zd <- (hic.table$raw_diff - mean(hic.table$raw_diff)) / sd(hic.table$raw_diff)
+    Zmean <- (Zm + Zd) / 2
+    x[, ':=' (Zm = Zm, Zd = Zd, Zmean = Zmean)]
+    return(x)
+  })
+  # recombine into one table
+  hic.table <- rbindlist(temp_list)
+  # calculate distance weighting
+  dist_weight <- 1 - ((hic.table$D + 1)/max(hic.table$D + 1))
+  hic.table[, D_wt := dist_weight]
+  hic.table[, Zwt := Zmean * D_wt]
+  hic.table[, p.val := pnorm(Zwt)]
+  hic.table[, p.adj := p.adjust(p.val, method = 'fdr')]
+  MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj)
+  MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.val)
+}

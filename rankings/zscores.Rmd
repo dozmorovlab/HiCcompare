@@ -1,0 +1,155 @@
+---
+title: "z scores"
+author: "John Stansfield"
+date: "December 4, 2017"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# set up
+
+```{r, message = FALSE}
+library(readr)
+library(data.table)
+library(HiCcompare)
+library(dplyr)
+library(pROC)
+library(ggplot2)
+```
+
+```{r, message = FALSE, warning=FALSE, results='hide', cache=TRUE, echo = FALSE}
+# testing rankings
+
+
+
+# Set up
+#####
+centromeres <- read.table("D:/brain/data/hg38_centromeres.bed")
+
+# for dplfc 1 (dplfc folder)
+dplfc_1_mat <- read_tsv("D:/brain/data/all_resolutions/dplfc_1000000.matrix", col_names = FALSE) %>% as.data.table()
+dplfc_1_bed <- read_tsv("D:/brain/data/all_resolutions/dplfc_1000000_abs.bed", col_names = FALSE) %>% as.data.table()
+
+# for amyg
+amyg_mat <- read_tsv("D:/brain/data/all_resolutions/amyg_1000000.matrix", col_names = FALSE) %>% as.data.table()
+amyg_bed <- read_tsv("D:/brain/data/all_resolutions/amyg_1000000_abs.bed", col_names = FALSE) %>% as.data.table()
+
+
+dplfc_1 <- hicpro2bedpe(dplfc_1_mat, dplfc_1_bed)$cis[-c(23,25)] # remove chrM and chrY
+amyg <- hicpro2bedpe(amyg_mat, amyg_bed)$cis[-c(23,25)]
+
+amyg_dplfc1 <- mapply(create.hic.table, amyg[1:3], dplfc_1[1:3], MoreArgs = list(exclude.regions = centromeres, exclude.overlap = 0,
+                                                                       scale = FALSE), SIMPLIFY = FALSE)
+
+amyg_dplfc1 <- hic_loess(amyg_dplfc1, Plot = FALSE)
+
+amyg_dplfc1 <- hic_diff(amyg_dplfc1, Plot = FALSE, diff.thresh = 'auto')
+
+
+#######
+```
+
+
+```{r}
+# Z scores for M, Diff and distance weighting
+.calc_zscores <- function(hic.table) {
+  # calculate z scores
+  Zm <- (hic.table$adj.M - mean(hic.table$adj.M)) / sd(hic.table$adj.M)
+  hic.table[, raw_diff := adj.IF2 - adj.IF1]
+  Zd <- (hic.table$raw_diff - mean(hic.table$raw_diff)) / sd(hic.table$raw_diff)
+  Zmean <- (Zm + Zd) / 2
+  hic.table[, ':=' (Zm = Zm, Zd = Zd, Zmean = Zmean)]
+  # calculate distance weighting
+  dist_weight <- 1 - ((hic.table$D + 1)/max(hic.table$D + 1))
+  hic.table[, D_wt := dist_weight]
+  hic.table[, Zwt := Zmean * D_wt]
+  hic.table[, p.val := pnorm(Zwt)]
+  hic.table[, p.adj := p.adjust(p.val, method = 'fdr')]
+  MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj) 
+  MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.val) 
+}
+
+
+# Z scores for M, Diff with NO distance weighting
+.calc_zscores2 <- function(hic.table) {
+  # calculate z scores
+  Zm <- (hic.table$adj.M - mean(hic.table$adj.M)) / sd(hic.table$adj.M)
+  hic.table[, raw_diff := adj.IF2 - adj.IF1]
+  Zd <- (hic.table$raw_diff - mean(hic.table$raw_diff)) / sd(hic.table$raw_diff)
+  Zmean <- (Zm + Zd) / 2
+  hic.table[, ':=' (Zm = Zm, Zd = Zd, Zmean = Zmean)]
+  # calculate distance weighting
+  # dist_weight <- 1 - ((hic.table$D + 1)/max(hic.table$D + 1))
+  # hic.table[, D_wt := dist_weight]
+  # hic.table[, Zwt := Zmean * D_wt]
+  hic.table[, p.val := pnorm(Zmean)]
+  hic.table[, p.adj := p.adjust(p.val, method = 'fdr')]
+  MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj)
+  MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.val) 
+}
+
+
+# Z scores for M, Diff and distance weighting calculated by Distance
+.calc_zscores3 <- function(hic.table) {
+  hic.table[, raw_diff := adj.IF2 - adj.IF1]
+  # split table up for each distance
+  temp_list <- S4Vectors::split(hic.table, hic.table$D)
+  # combined top 15% of distances into single data.table
+  all_dist <- sort(unique(hic.table$D))
+  dist_85 <- ceiling(0.85 * length(all_dist))
+  temp_list2 <- temp_list[1:dist_85]
+  temp_list2[[dist_85+1]] <- data.table::rbindlist(temp_list[(dist_85+1):length(temp_list)])
+  temp_list <- temp_list2
+  rm("temp_list2")
+  # z score by distance
+  temp_list <- lapply(temp_list, function(x) {
+    Zm <- (x$adj.M - mean(x$adj.M)) / sd(x$adj.M)
+    Zd <- (x$raw_diff - mean(x$raw_diff)) / sd(x$raw_diff)
+    Zmean <- (Zm + Zd) / 2
+    x[, ':=' (Zm = Zm, Zd = Zd, Zmean = Zmean)]
+    return(x)
+  })
+  # recombine into one table
+  hic.table <- rbindlist(temp_list)
+  # calculate distance weighting
+  dist_weight <- 1 - ((hic.table$D + 1)/max(hic.table$D + 1))
+  hic.table[, D_wt := dist_weight]
+  hic.table[, Zwt := Zmean * D_wt]
+  hic.table[, p.val := pnorm(Zwt)]
+  hic.table[, p.adj := p.adjust(p.val, method = 'fdr')]
+  MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj) 
+  MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.val) 
+}
+
+```
+
+
+# Z scores for M, Diff and distance weighting
+
+First plot is FDR adjusted p-values. Second plot is raw p-values.
+
+```{r}
+hic.table <- amyg_dplfc1[[1]]
+
+.calc_zscores(hic.table)
+```
+
+# Z scores for M, Diff with NO distance weighting
+
+First plot is FDR adjusted p-values. Second plot is raw p-values.
+
+```{r}
+.calc_zscores2(hic.table)
+```
+
+# Z scores for M, Diff and distance weighting calculated by Distance
+
+First plot is FDR adjusted p-values. Second plot is raw p-values.
+
+```{r}
+hic.table <- amyg_dplfc1[[1]]
+.calc_zscores3(hic.table)
+```
+
+
