@@ -14,3 +14,5 @@
 
 
 - Try to convert M to Z score and raw diff to Z score, take mean then multiply by distance weight see what we get
+
+- Try z scores for M with a cut off for raw difference so only z-scores with raw diff bigger than cut off are considered. Maybe also try weighting by distance for raw difference
