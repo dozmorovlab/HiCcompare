@@ -1,0 +1,274 @@
+---
+title: "ROC_realdata"
+author: "John Stansfield"
+date: "December 7, 2017"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# ROC curves on ranks
+
+# Set up
+```{r}
+# SET UP PARAMETERS
+N = 300
+FC = 2
+```
+
+
+```{r, message=F, warning=F}
+library(readr)
+library(data.table)
+library(HiCcompare)
+library(dplyr)
+library(pROC)
+```
+
+```{r, message = FALSE, warning=FALSE, results='hide', cache=TRUE, echo = FALSE}
+# Set up
+#####
+centromeres <- read.table("D:/brain/data/hg38_centromeres.bed")
+
+# for dplfc 1 (dplfc folder)
+dplfc_1_mat <- read_tsv("D:/brain/data/all_resolutions/dplfc_1000000.matrix", col_names = FALSE) %>% as.data.table()
+dplfc_1_bed <- read_tsv("D:/brain/data/all_resolutions/dplfc_1000000_abs.bed", col_names = FALSE) %>% as.data.table()
+
+# for dplfc 2 (dplfc folder)
+dplfc_2_mat <- read_tsv("D:/brain/data/all_resolutions/dplfc_upseq_1000000.matrix", col_names = FALSE) %>% as.data.table()
+dplfc_2_bed <- read_tsv("D:/brain/data/all_resolutions/dplfc_upseq_1000000_abs.bed", col_names = FALSE) %>% as.data.table()
+
+
+dplfc_1 <- hicpro2bedpe(dplfc_1_mat, dplfc_1_bed)$cis[-c(23,25)] # remove chrM and chrY
+dplfc_2 <- hicpro2bedpe(dplfc_2_mat, dplfc_1_bed)$cis[-c(23,25)] # remove chrM and chrY
+
+dplfc1_2 <- mapply(create.hic.table, dplfc_1[1:3], dplfc_2[1:3], MoreArgs = list(exclude.regions = centromeres, exclude.overlap = 0,
+                                                                       scale = TRUE), SIMPLIFY = FALSE)
+
+```
+
+## introduce changes
+
+```{r}
+hic.table <- dplfc1_2[[1]]
+
+# introduce changes
+changes <- sample(1:nrow(hic.table), size = N)
+whichIF = ifelse(hic.table[changes, ]$M < 0, -1, 1)
+newIF1 = FC^whichIF * hic.table[changes,]$IF2
+newIF1 = (round(newIF1))
+hic.table[changes,]$IF1 = newIF1
+hic.table = hic.table[, M := log2(IF2/IF1)]
+
+# make truth vector
+truth <- rep(0, nrow(hic.table))
+truth[changes] <- 1
+hic.table[, truth := truth]
+
+# normalize
+hic.table <- hic_loess(hic.table, Plot = TRUE)
+hic.table <- hic_diff(hic.table, Plot = FALSE)
+
+backup.table <- hic.table
+```
+
+
+# ROC curves
+
+
+```{r}
+truth <- hic.table$truth
+
+roc_mean_A_M_diff <- roc(response = truth, predictor = hic.table$rnkMean)
+
+# for max(M, A, diff)
+roc_max_A_M_diff <- roc(response = truth, predictor = hic.table$rnkMax)
+
+# for rnkM only
+roc_rnkM <- roc(response = truth, predictor = hic.table$rnkM)
+
+# for rnkDiff only
+roc_rnkDiff <- roc(response = truth, predictor = hic.table$rnkDiff)
+
+# for mean(M, A) with D weighting
+mean_rank <- hic.table %>% dplyr::select(rnkM, rnkA) %>% as.matrix() %>% apply(., 1, mean)
+hic.table[, rnkMean := mean_rank]
+# create weight for distance
+dist_weight <- 1+((hic.table$D + 1)/max(hic.table$D + 1))
+hic.table[, rnkMean := dist_weight * rnkMean]
+roc_D_weight <- roc(response = truth, predictor = hic.table$rnkMean)
+
+# for rnkM_D only
+roc_rnkM_D <- roc(response = truth, predictor = hic.table$rnkM_D)
+
+# for mean(M, A, Diff) with D weighting
+mean_rank <- hic.table %>% dplyr::select(rnkM, rnkA, rnkDiff) %>% as.matrix() %>% apply(., 1, mean)
+hic.table[, rnkMean := mean_rank]
+# create weight for distance
+dist_weight <- 1+((hic.table$D + 1)/max(hic.table$D + 1))
+hic.table[, rnkMean := dist_weight * rnkMean]
+hic.table <- hic.table[order(rnkMean),]
+roc_D_weight2 <- roc(response = truth, predictor = hic.table$rnkMean)
+
+# plots
+plot.colors <- c('black', 'red', 'blue', 'green', 'yellow', 'orange', 'purple')
+plot(roc_mean_A_M_diff, main = paste0('Fold change = ', FC))
+plot(roc_max_A_M_diff, col = plot.colors[2], add = TRUE)
+plot(roc_rnkM, col = plot.colors[3], add = TRUE)
+plot(roc_rnkDiff, col = plot.colors[4], add = TRUE)
+plot(roc_D_weight, col = plot.colors[5], add = TRUE) # mean (M, A) w/ Dist weight
+plot(roc_D_weight2, col = plot.colors[6], add = TRUE) # mean(M, A, Diff) w/ dist weight
+plot(roc_rnkM_D, col = plot.colors[7], add = TRUE)
+legend('bottomright', inset = 0, legend = c('mean(M, A, Diff)', 'max(M, A, Diff)', 'rnkM', 'rnkDiff', 'mean(M, A)*D_weight', 'mean(M, A, diff)*D_weight',
+                                            'rnkM_D'), title = 'Method', fill = plot.colors, horiz = F)
+```
+
+
+# MD plots for raw difference cutoff z-score
+
+```{r}
+# weighting by distance
+.calc_zscores <- function(hic.table, rawdiff_cutoff, Plot = TRUE) {
+  hic.table[, diff := adj.IF2 - adj.IF1]
+  # calculate z scores
+  Zm1 <- (hic.table$adj.M - mean(hic.table$adj.M)) / sd(hic.table$adj.M)
+  # cut off for raw difference on Z score of M
+  # Zm_idx <- ifelse(abs(hic.table$diff) < rawdiff_cutoff, TRUE, FALSE)
+  # Zm[Zm_idx] <- 0 # set z scores where raw diff is below cut off to 0
+  Zm1[hic.table$diff < rawdiff_cutoff & hic.table$diff > -rawdiff_cutoff] <- 0
+
+  hic.table[, Zm := Zm1]
+  # calculate distance weighting
+  dist_weight <- 1 - ((hic.table$D + 1)/max(hic.table$D + 1))
+  hic.table[, D_wt := dist_weight]
+  hic.table[, Zwt := Zm * D_wt]
+  hic.table[, p.val := 2*pnorm(abs(Zwt), lower.tail = FALSE)]
+  hic.table[, p.adj := p.adjust(p.val, method = 'fdr')]
+  # MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj) 
+  if (Plot) MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.val) 
+  return(hic.table)
+}
+
+# no weighting by distance
+.calc_zscores2 <- function(hic.table, rawdiff_cutoff, Plot = TRUE) {
+  hic.table[, diff := adj.IF2 - adj.IF1]
+  # calculate z scores
+  Zm1 <- (hic.table$adj.M - mean(hic.table$adj.M)) / sd(hic.table$adj.M)
+  # cut off for raw difference on Z score of M
+  # Zm_idx <- ifelse(abs(hic.table$diff) < rawdiff_cutoff, TRUE, FALSE)
+  # Zm[Zm_idx] <- 0 # set z scores where raw diff is below cut off to 0
+  Zm1[hic.table$diff < rawdiff_cutoff & hic.table$diff > -rawdiff_cutoff] <- 0
+
+  hic.table[, Zm := Zm1]
+  # calculate distance weighting
+  dist_weight <- 1 - ((hic.table$D + 1)/max(hic.table$D + 1))
+  hic.table[, D_wt := dist_weight]
+  hic.table[, Zwt := Zm * D_wt]
+  hic.table[, p.val := 2*pnorm(abs(Zm), lower.tail = FALSE)]
+  hic.table[, p.adj := p.adjust(p.val, method = 'fdr')]
+  # MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj) 
+  if (Plot) MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.val) 
+  return(hic.table)
+}
+```
+
+## distance weighting
+
+```{r}
+hic.table <- backup.table
+hic.table <- .calc_zscores(hic.table, 10)
+hic.table <- .calc_zscores(hic.table, 20)
+hic.table <- .calc_zscores(hic.table, 30)
+hic.table <- .calc_zscores(hic.table, 100)
+```
+
+
+## no distance weighting
+
+```{r}
+hic.table <- backup.table
+hic.table <- .calc_zscores2(hic.table, 10)
+hic.table <- .calc_zscores2(hic.table, 20)
+hic.table <- .calc_zscores2(hic.table, 30)
+hic.table <- .calc_zscores2(hic.table, 100)
+```
+
+
+# ROC for Z scores
+
+## distance weighting
+```{r, results='hide', echo=F}
+hic.table <- backup.table
+hic.table <- .calc_zscores(hic.table, 10, FALSE)
+roc_w10 <- roc(response = hic.table$truth, predictor = hic.table$p.val)
+hic.table <- .calc_zscores(hic.table, 20, FALSE)
+roc_w20 <- roc(response = hic.table$truth, predictor = hic.table$p.val)
+hic.table <- .calc_zscores(hic.table, 30, FALSE)
+roc_w30 <- roc(response = hic.table$truth, predictor = hic.table$p.val)
+hic.table <- .calc_zscores(hic.table, 100, FALSE)
+roc_w100 <- roc(response = hic.table$truth, predictor = hic.table$p.val)
+```
+
+```{r}
+plot(roc_w10, main = 'z-score with D weighting')
+plot(roc_w20, col = plot.colors[2], add = TRUE)
+plot(roc_w30, col = plot.colors[3], add = TRUE)
+plot(roc_w100, col = plot.colors[4], add = TRUE)
+legend('bottomright', inset = 0, legend = c('diff cutoff = 10', 'diff cutoff = 20', 'diff cutoff = 30', 'diff cutoff = 100'), 
+       title = 'Method', fill = plot.colors[1:4], horiz = F)
+```
+
+
+## no distance weighting
+```{r, results='hide'}
+hic.table <- backup.table
+hic.table <- .calc_zscores2(hic.table, 10, FALSE)
+roc_w10 <- roc(response = hic.table$truth, predictor = hic.table$p.val)
+hic.table <- .calc_zscores2(hic.table, 20, FALSE)
+roc_w20 <- roc(response = hic.table$truth, predictor = hic.table$p.val)
+hic.table <- .calc_zscores2(hic.table, 30, FALSE)
+roc_w30 <- roc(response = hic.table$truth, predictor = hic.table$p.val)
+hic.table <- .calc_zscores2(hic.table, 100, FALSE)
+roc_w100 <- roc(response = hic.table$truth, predictor = hic.table$p.val)
+```
+
+```{r}
+plot(roc_w10, main = 'z-score with D weighting')
+plot(roc_w20, col = plot.colors[2], add = TRUE)
+plot(roc_w30, col = plot.colors[3], add = TRUE)
+plot(roc_w100, col = plot.colors[4], add = TRUE)
+legend('bottomright', inset = 0, legend = c('diff cutoff = 10', 'diff cutoff = 20', 'diff cutoff = 30', 'diff cutoff = 100'), 
+       title = 'Method', fill = plot.colors[1:4], horiz = F)
+```
+
+
+
+```{r}
+hic.table <- backup.table
+hic.table[, diff := adj.IF2 - adj.IF1]
+
+roc_diff <- roc(response = hic.table$truth, predictor = hic.table$diff)
+plot(roc_diff)
+```
+
+
+
+
+
+# MD plots
+
+```{r}
+hic.table <- backup.table
+alpha <- 0.05
+idx <- 1:(nrow(hic.table) * alpha)
+
+
+hic.table <- hic.table[order(rnkMax),]
+topRanks <- rep(1, nrow(hic.table)) # make indicator for top ranks
+topRanks[idx] <- 0 # set top ranking rows to 0 indicator for plotting on MD plot
+topRanks[hic.table$truth == 1] <- 0.04
+MD.plot2(hic.table$adj.M, hic.table$D, p.val = topRanks)
+```
+
+
+

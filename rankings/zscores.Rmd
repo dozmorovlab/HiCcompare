@@ -64,7 +64,7 @@ amyg_dplfc1 <- hic_diff(amyg_dplfc1, Plot = FALSE, diff.thresh = 'auto')
   dist_weight <- 1 - ((hic.table$D + 1)/max(hic.table$D + 1))
   hic.table[, D_wt := dist_weight]
   hic.table[, Zwt := Zmean * D_wt]
-  hic.table[, p.val := pnorm(Zwt)]
+  hic.table[, p.val := 2*pnorm(abs(Zwt), lower.tail = FALSE)]
   hic.table[, p.adj := p.adjust(p.val, method = 'fdr')]
   MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj) 
   MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.val) 
@@ -83,7 +83,7 @@ amyg_dplfc1 <- hic_diff(amyg_dplfc1, Plot = FALSE, diff.thresh = 'auto')
   # dist_weight <- 1 - ((hic.table$D + 1)/max(hic.table$D + 1))
   # hic.table[, D_wt := dist_weight]
   # hic.table[, Zwt := Zmean * D_wt]
-  hic.table[, p.val := pnorm(Zmean)]
+  hic.table[, p.val := 2*pnorm(abs(Zwt), lower.tail = FALSE)]
   hic.table[, p.adj := p.adjust(p.val, method = 'fdr')]
   MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj)
   MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.val) 
@@ -116,7 +116,7 @@ amyg_dplfc1 <- hic_diff(amyg_dplfc1, Plot = FALSE, diff.thresh = 'auto')
   dist_weight <- 1 - ((hic.table$D + 1)/max(hic.table$D + 1))
   hic.table[, D_wt := dist_weight]
   hic.table[, Zwt := Zmean * D_wt]
-  hic.table[, p.val := pnorm(Zwt)]
+  hic.table[, p.val := 2*pnorm(abs(Zwt), lower.tail = FALSE)]
   hic.table[, p.adj := p.adjust(p.val, method = 'fdr')]
   MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj) 
   MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.val) 
