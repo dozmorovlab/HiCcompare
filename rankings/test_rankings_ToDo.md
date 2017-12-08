@@ -13,8 +13,8 @@
 - When using "top 5% of rnkDiff", the majority of $M$ differences are positive. That implies the raw difference is mostly one-directional, with interaction frequencies in one (DLPFC?) dataset are always higher across the range of distances. Need to investigate why.
 
 
-- Try to convert M to Z score and raw diff to Z score, take mean then multiply by distance weight see what we get
++ Try to convert M to Z score and raw diff to Z score, take mean then multiply by distance weight see what we get
 
-- Try z scores for M with a cut off for raw difference so only z-scores with raw diff bigger than cut off are considered. Maybe also try weighting by distance for raw difference
++ Try z scores for M with a cut off for raw difference so only z-scores with raw diff bigger than cut off are considered. Maybe also try weighting by distance for raw difference
 
 - look at fit-hic see if we can just use their method and overlap results for 2 matrices
