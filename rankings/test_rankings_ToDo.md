@@ -18,3 +18,7 @@
 + Try z scores for M with a cut off for raw difference so only z-scores with raw diff bigger than cut off are considered. Maybe also try weighting by distance for raw difference
 
 - look at fit-hic see if we can just use their method and overlap results for 2 matrices
+
+- try mean of z score for M and z score for A
+
+- use smyth RWPE data as gold standard - make his regions into our regions for comparison

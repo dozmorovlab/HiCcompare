@@ -13,7 +13,7 @@ output:
 ```{r}
 # SET UP PARAMETERS
 N = 300
-FC = 2
+FC = 1.5
 ```
 
 
@@ -81,6 +81,11 @@ truth <- hic.table$truth
 
 roc_mean_A_M_diff <- roc(response = truth, predictor = hic.table$rnkMean)
 
+# rnk Mean(M,A)
+mean_rank <- hic.table %>% dplyr::select(rnkM, rnkA) %>% as.matrix() %>% apply(., 1, mean)
+hic.table[, rnkMean := mean_rank]
+roc_mean_A_M <- roc(response = truth, predictor = hic.table$rnkMean)
+
 # for max(M, A, diff)
 roc_max_A_M_diff <- roc(response = truth, predictor = hic.table$rnkMax)
 
@@ -111,7 +116,7 @@ hic.table <- hic.table[order(rnkMean),]
 roc_D_weight2 <- roc(response = truth, predictor = hic.table$rnkMean)
 
 # plots
-plot.colors <- c('black', 'red', 'blue', 'green', 'yellow', 'orange', 'purple')
+plot.colors <- c('black', 'red', 'blue', 'green', 'yellow', 'orange', 'purple', 'lightblue')
 plot(roc_mean_A_M_diff, main = paste0('Fold change = ', FC))
 plot(roc_max_A_M_diff, col = plot.colors[2], add = TRUE)
 plot(roc_rnkM, col = plot.colors[3], add = TRUE)
@@ -119,8 +124,9 @@ plot(roc_rnkDiff, col = plot.colors[4], add = TRUE)
 plot(roc_D_weight, col = plot.colors[5], add = TRUE) # mean (M, A) w/ Dist weight
 plot(roc_D_weight2, col = plot.colors[6], add = TRUE) # mean(M, A, Diff) w/ dist weight
 plot(roc_rnkM_D, col = plot.colors[7], add = TRUE)
+plot(roc_mean_A_M, col = plot.colors[8], add = TRUE)
 legend('bottomright', inset = 0, legend = c('mean(M, A, Diff)', 'max(M, A, Diff)', 'rnkM', 'rnkDiff', 'mean(M, A)*D_weight', 'mean(M, A, diff)*D_weight',
-                                            'rnkM_D'), title = 'Method', fill = plot.colors, horiz = F)
+                                            'rnkM_D', 'mean(M, A)'), title = 'Method', fill = plot.colors, horiz = F)
 ```
 
 
@@ -270,5 +276,103 @@ topRanks[hic.table$truth == 1] <- 0.04
 MD.plot2(hic.table$adj.M, hic.table$D, p.val = topRanks)
 ```
 
+
+
+# test Avg expression threshold for M ranking
+
+```{r}
+hic.table <- backup.table
+
+# fit log A dist
+hist(log2(hic.table$A))
+hist(log10(hic.table$A))
+
+qqnorm(log2(hic.table$A))
+qqline(log2(hic.table$A))
+
+qqnorm(log10(hic.table$A))
+qqline(log10(hic.table$A))
+
+```
+
+fit to normal for log2 and log10 pretty much the same.
+
+```{r}
+sd(log2(hic.table$A), na.rm = TRUE)
+mean(log2(hic.table$A), na.rm = TRUE)
+
+quantile((hic.table$A), 0.25, na.rm = TRUE)
+quantile(log2(hic.table$A), 0.25, na.rm = TRUE)
+
+threshold <- quantile((hic.table$A), 0.25, na.rm = TRUE)
+
+# maybe convert ranks of M into Z -scores using that inverse normal function
+# Then for ones with A < threshold set Z-score to 0
+# calculate p-value for z-scores
+.calc_z <- function(hic.table, quant = 0.25) {
+  threshold <- quantile((hic.table$A), 0.25, na.rm = TRUE)
+  Z <- (hic.table$adj.M - mean(hic.table$adj.M)) / sd(hic.table$adj.M)
+  # set z-scores where A < threshold to 0
+  Z[hic.table$A < threshold] <- 0
+  hic.table[, Z := Z]
+  hic.table[, p.val := 2*pnorm(abs(Z), lower.tail = FALSE)]
+  MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.val) 
+}
+
+
+```
+
+```{r}
+hic.table <- backup.table
+.calc_z(hic.table, quant = 0.25)
+```
+
+## ROC
+
+```{r}
+roc_zscore <- roc(response = hic.table$truth, predictor = hic.table$p.val)
+plot(roc_zscore)
+```
+
+
+
+
+# z score of M and A
+
+```{r}
+# Z scores for M, Diff and distance weighting
+.calc_zscores <- function(hic.table) {
+  # calculate z scores
+  Zm1 <- (hic.table$adj.M - mean(hic.table$adj.M)) / sd(hic.table$adj.M)
+  hic.table[, raw_diff := adj.IF2 - adj.IF1]
+  Za1 <- (log2(hic.table$A) - mean(log2(hic.table$A))) / sd(log2(hic.table$A))
+  Zmean1 <- (abs(Zm1) + Za1) / 2
+  hic.table[, ':=' (Zm = Zm1, Za = Za1, Zmean = Zmean1)]
+  hic.table[, p.val := 2*pnorm(abs(Zmean), lower.tail = FALSE)]
+  hic.table[, p.adj := p.adjust(p.val, method = 'fdr')]
+  # MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj) 
+  MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.val) 
+}
+```
+
+
+## with changes added 
+
+```{r}
+hic.table <- backup.table
+
+.calc_zscores(hic.table)
+```
+
+## with no changes added
+
+```{r}
+hic.table <- dplfc1_2[[1]]
+hic.table <- hic_loess(hic.table, Plot = FALSE)
+hic.table <- hic_diff(hic.table, Plot = FALSE)
+
+
+.calc_zscores(hic.table)
+```
 
 
