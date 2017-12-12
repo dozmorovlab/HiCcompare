@@ -22,3 +22,10 @@
 - try mean of z score for M and z score for A
 
 - use smyth RWPE data as gold standard - make his regions into our regions for comparison
+
+- decide whether to remove M values with low A before or after converting to Z scores
+  - Z before removing low A: less significant values due to higher std dev
+  - Z after removing low A: more significant values due to lower std dev
+  - removing low A before Z might be better for multiple testing correction
+
+- implement distance adjusted multiple testing correction, test on smyth RWPE data
