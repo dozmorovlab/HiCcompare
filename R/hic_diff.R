@@ -14,6 +14,11 @@
 #'     fold change for the difference between IF1 and IF2) then
 #'     the p-value will be set to 0.5.
 #' @param iterations Number of iterations for the permuation test.
+#' @param A.quantile The quantile for Average expression values (A)
+#'     that should be use used as the cutoff for not considering 
+#'     z-scores. I.e. any z-score derived from a difference with
+#'     an average expression lower than the specified quantile will
+#'     not be considered for difference detection. Defaults to 0.2.
 #' @param Plot Logical, should the MD plot showing before/after loess normalization
 #'     be output?
 #' @param Plot.smooth Logical, defaults to TRUE indicating the MD plot
@@ -53,6 +58,7 @@
 #' diff.result <- hic_diff(result, diff.thresh = 'auto', Plot = TRUE)
 #'
 hic_diff <- function(hic.table, diff.thresh = "auto", iterations = 10000,
+                     A.quantile = 0.20,
                      Plot = FALSE, Plot.smooth = TRUE,
                      parallel = FALSE, BP_param = bpparam()) {
   # check for correct input
@@ -109,14 +115,21 @@ hic_diff <- function(hic.table, diff.thresh = "auto", iterations = 10000,
   #   }
   # }
  
-  # Run ranking process similar to LOLA
-  ### temp marker
+  # # Run ranking process similar to LOLA
+  # ### temp marker
+  # if (parallel) {
+  #   hic.table <- BiocParallel::bplapply(hic.table, .rank_table)
+  # } else {
+  #   hic.table <- lapply(hic.table, .rank_table)
+  # }
+  # ### temp marker
+  
   if (parallel) {
-    hic.table <- BiocParallel::bplapply(hic.table, .rank_table)
+    hic.table <- BiocParallel::bplapply(hic.table, .calc_z, quant = A.quantile, Plot = Plot) ### May need to change this to calc_z2/calc_z
   } else {
-    hic.table <- lapply(hic.table, .rank_table)
+    hic.table <- lapply(hic.table, .calc_z, quant = A.quantile, Plot = Plot) ### May need to change this to calc_z2/calc_z
   }
-  ### temp marker
+  
   
   # clean up if single hic.table
   if (length(hic.table) == 1) {
@@ -273,72 +286,105 @@ hic_diff <- function(hic.table, diff.thresh = "auto", iterations = 10000,
 }
 
 
-# Z scores for M, Diff and distance weighting
-.calc_zscores <- function(hic.table) {
-  # calculate z scores
-  Zm <- (hic.table$adj.M - mean(hic.table$adj.M)) / sd(hic.table$adj.M)
-  hic.table[, raw_diff := adj.IF2 - adj.IF1]
-  Zd <- (hic.table$raw_diff - mean(hic.table$raw_diff)) / sd(hic.table$raw_diff)
-  Zmean <- (Zm + Zd) / 2
-  hic.table[, ':=' (Zm = Zm, Zd = Zd, Zmean = Zmean)]
-  # calculate distance weighting
-  dist_weight <- 1 - ((hic.table$D + 1)/max(hic.table$D + 1))
-  hic.table[, D_wt := dist_weight]
-  hic.table[, Zwt := Zmean * D_wt]
-  hic.table[, p.val := pnorm(Zwt)]
-  hic.table[, p.adj := p.adjust(p.val, method = 'fdr')]
-  MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj)
-  MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.val)
+# version where z scores calculated first then z scores with A < thresh set to 0
+.calc_z <- function(hic.table, quant, Plot) {
+  # add average expression to table
+  A <- (hic.table$adj.IF1 + hic.table$adj.IF2) / 2 
+  hic.table[, A := A]
+  threshold <- quantile((hic.table$A), quant, na.rm = TRUE)
+  Z1 <- (hic.table$adj.M - mean(hic.table$adj.M)) / sd(hic.table$adj.M)
+  # set z-scores where A < threshold to 0
+  Z1[hic.table$A < threshold] <- 0
+  hic.table[, Z := Z1]
+  hic.table[, p.val := 2*pnorm(abs(Z), lower.tail = FALSE)]
+  if (Plot) MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.val)
+  return(hic.table)
 }
 
 
-# Z scores for M, Diff with NO distance weighting
-.calc_zscores2 <- function(hic.table) {
-  # calculate z scores
-  Zm <- (hic.table$adj.M - mean(hic.table$adj.M)) / sd(hic.table$adj.M)
-  hic.table[, raw_diff := adj.IF2 - adj.IF1]
-  Zd <- (hic.table$raw_diff - mean(hic.table$raw_diff)) / sd(hic.table$raw_diff)
-  Zmean <- (Zm + Zd) / 2
-  hic.table[, ':=' (Zm = Zm, Zd = Zd, Zmean = Zmean)]
-  # calculate distance weighting
-  # dist_weight <- 1 - ((hic.table$D + 1)/max(hic.table$D + 1))
-  # hic.table[, D_wt := dist_weight]
-  # hic.table[, Zwt := Zmean * D_wt]
-  hic.table[, p.val := pnorm(Zmean)]
-  hic.table[, p.adj := p.adjust(p.val, method = 'fdr')]
-  MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj)
-  MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.val)
+# version where M values with A < 0 removed before z score calculations
+.calc_z2 <- function(hic.table, quant, Plot) {
+  # add average expression to table
+  A <- (hic.table$adj.IF1 + hic.table$adj.IF2) / 2 
+  hic.table[, A := A]
+  threshold <- quantile((hic.table$A), quant, na.rm = TRUE)
+  new_M <- hic.table$adj.M
+  new_M[hic.table$A < threshold] <- NA
+  Z1 <- (new_M - mean(new_M, na.rm = TRUE)) / sd(new_M, na.rm = TRUE)
+  hic.table[, Z := Z1]
+  hic.table[, p.val := 2*pnorm(abs(Z), lower.tail = FALSE)]
+  if (Plot) MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.val)
+  return(hic.table)
 }
 
 
-# Z scores for M, Diff and distance weighting calculated by Distance
-.calc_zscores3 <- function(hic.table) {
-  hic.table[, raw_diff := adj.IF2 - adj.IF1]
-  # split table up for each distance
-  temp_list <- S4Vectors::split(hic.table, hic.table$D)
-  # combined top 15% of distances into single data.table
-  all_dist <- sort(unique(hic.table$D))
-  dist_85 <- ceiling(0.85 * length(all_dist))
-  temp_list2 <- temp_list[1:dist_85]
-  temp_list2[[dist_85+1]] <- data.table::rbindlist(temp_list[(dist_85+1):length(temp_list)])
-  temp_list <- temp_list2
-  rm("temp_list2")
-  # z score by distance
-  temp_list <- lapply(temp_list, function(x) {
-    Zm <- (hic.table$adj.M - mean(hic.table$adj.M)) / sd(hic.table$adj.M)
-    Zd <- (hic.table$raw_diff - mean(hic.table$raw_diff)) / sd(hic.table$raw_diff)
-    Zmean <- (Zm + Zd) / 2
-    x[, ':=' (Zm = Zm, Zd = Zd, Zmean = Zmean)]
-    return(x)
-  })
-  # recombine into one table
-  hic.table <- rbindlist(temp_list)
-  # calculate distance weighting
-  dist_weight <- 1 - ((hic.table$D + 1)/max(hic.table$D + 1))
-  hic.table[, D_wt := dist_weight]
-  hic.table[, Zwt := Zmean * D_wt]
-  hic.table[, p.val := pnorm(Zwt)]
-  hic.table[, p.adj := p.adjust(p.val, method = 'fdr')]
-  MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj)
-  MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.val)
-}
+#### OLD Z SCORE CALCULATIONS
+# # Z scores for M, Diff and distance weighting
+# .calc_zscores <- function(hic.table) {
+#   # calculate z scores
+#   Zm <- (hic.table$adj.M - mean(hic.table$adj.M)) / sd(hic.table$adj.M)
+#   hic.table[, raw_diff := adj.IF2 - adj.IF1]
+#   Zd <- (hic.table$raw_diff - mean(hic.table$raw_diff)) / sd(hic.table$raw_diff)
+#   Zmean <- (Zm + Zd) / 2
+#   hic.table[, ':=' (Zm = Zm, Zd = Zd, Zmean = Zmean)]
+#   # calculate distance weighting
+#   dist_weight <- 1 - ((hic.table$D + 1)/max(hic.table$D + 1))
+#   hic.table[, D_wt := dist_weight]
+#   hic.table[, Zwt := Zmean * D_wt]
+#   hic.table[, p.val := pnorm(Zwt)]
+#   hic.table[, p.adj := p.adjust(p.val, method = 'fdr')]
+#   MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj)
+#   MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.val)
+# }
+# 
+# 
+# # Z scores for M, Diff with NO distance weighting
+# .calc_zscores2 <- function(hic.table) {
+#   # calculate z scores
+#   Zm <- (hic.table$adj.M - mean(hic.table$adj.M)) / sd(hic.table$adj.M)
+#   hic.table[, raw_diff := adj.IF2 - adj.IF1]
+#   Zd <- (hic.table$raw_diff - mean(hic.table$raw_diff)) / sd(hic.table$raw_diff)
+#   Zmean <- (Zm + Zd) / 2
+#   hic.table[, ':=' (Zm = Zm, Zd = Zd, Zmean = Zmean)]
+#   # calculate distance weighting
+#   # dist_weight <- 1 - ((hic.table$D + 1)/max(hic.table$D + 1))
+#   # hic.table[, D_wt := dist_weight]
+#   # hic.table[, Zwt := Zmean * D_wt]
+#   hic.table[, p.val := pnorm(Zmean)]
+#   hic.table[, p.adj := p.adjust(p.val, method = 'fdr')]
+#   MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj)
+#   MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.val)
+# }
+# 
+# 
+# # Z scores for M, Diff and distance weighting calculated by Distance
+# .calc_zscores3 <- function(hic.table) {
+#   hic.table[, raw_diff := adj.IF2 - adj.IF1]
+#   # split table up for each distance
+#   temp_list <- S4Vectors::split(hic.table, hic.table$D)
+#   # combined top 15% of distances into single data.table
+#   all_dist <- sort(unique(hic.table$D))
+#   dist_85 <- ceiling(0.85 * length(all_dist))
+#   temp_list2 <- temp_list[1:dist_85]
+#   temp_list2[[dist_85+1]] <- data.table::rbindlist(temp_list[(dist_85+1):length(temp_list)])
+#   temp_list <- temp_list2
+#   rm("temp_list2")
+#   # z score by distance
+#   temp_list <- lapply(temp_list, function(x) {
+#     Zm <- (hic.table$adj.M - mean(hic.table$adj.M)) / sd(hic.table$adj.M)
+#     Zd <- (hic.table$raw_diff - mean(hic.table$raw_diff)) / sd(hic.table$raw_diff)
+#     Zmean <- (Zm + Zd) / 2
+#     x[, ':=' (Zm = Zm, Zd = Zd, Zmean = Zmean)]
+#     return(x)
+#   })
+#   # recombine into one table
+#   hic.table <- rbindlist(temp_list)
+#   # calculate distance weighting
+#   dist_weight <- 1 - ((hic.table$D + 1)/max(hic.table$D + 1))
+#   hic.table[, D_wt := dist_weight]
+#   hic.table[, Zwt := Zmean * D_wt]
+#   hic.table[, p.val := pnorm(Zwt)]
+#   hic.table[, p.adj := p.adjust(p.val, method = 'fdr')]
+#   MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj)
+#   MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.val)
+# }
