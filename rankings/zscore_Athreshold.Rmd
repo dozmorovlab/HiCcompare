@@ -40,7 +40,7 @@ dplfc1_2 <- mapply(create.hic.table, dplfc_1[1:3], dplfc_2[1:3], MoreArgs = list
 
 ```{r}
 .calc_z <- function(hic.table, quant = 0.25) {
-  threshold <- quantile((hic.table$A), 0.25, na.rm = TRUE)
+  threshold <- quantile((hic.table$A), quant, na.rm = TRUE)
   Z <- (hic.table$adj.M - mean(hic.table$adj.M)) / sd(hic.table$adj.M)
   # set z-scores where A < threshold to 0
   Z[hic.table$A < threshold] <- 0
@@ -98,6 +98,9 @@ quant20 <- make_roc(hic.table, N = 300, FC = 1.5, quant = 0.2)
 rm("hic.table")
 hic.table <- backup.table
 quant25 <- make_roc(hic.table, N = 300, FC = 1.5, quant = 0.25)
+rm("hic.table")
+hic.table <- backup.table
+quant0 <- make_roc(hic.table, N = 300, FC = 1.5, quant = 0)
 ```
 
 ```{r}
@@ -106,7 +109,8 @@ plot(quant5, main = paste0('Fold change = ', 1.5))
 plot(quant10, add = TRUE, col = plot.colors[2])
 plot(quant20, add = TRUE, col = plot.colors[3])
 plot(quant25, add = TRUE, col = plot.colors[4])
-legend('bottomright', inset = 0, legend = c('5%', '10%', '20%', '25%'), title = 'Quantile', fill = plot.colors[1:4], horiz = F)
+plot(quant0, add = TRUE, col = plot.colors[5])
+legend('bottomright', inset = 0, legend = c('5%', '10%', '20%', '25%', '0%'), title = 'Quantile', fill = plot.colors[1:5], horiz = F)
 ```
 
 
@@ -127,6 +131,9 @@ quant20 <- make_roc(hic.table, N = 300, FC = 2, quant = 0.2)
 rm("hic.table")
 hic.table <- backup.table
 quant25 <- make_roc(hic.table, N = 300, FC = 2, quant = 0.25)
+rm("hic.table")
+hic.table <- backup.table
+quant0 <- make_roc(hic.table, N = 300, FC = 2, quant = 0)
 ```
 
 ```{r}
@@ -135,7 +142,8 @@ plot(quant5, main = paste0('Fold change = ', 2))
 plot(quant10, add = TRUE, col = plot.colors[2])
 plot(quant20, add = TRUE, col = plot.colors[3])
 plot(quant25, add = TRUE, col = plot.colors[4])
-legend('bottomright', inset = 0, legend = c('5%', '10%', '20%', '25%'), title = 'Quantile', fill = plot.colors[1:4], horiz = F)
+plot(quant0, add = TRUE, col = plot.colors[5])
+legend('bottomright', inset = 0, legend = c('5%', '10%', '20%', '25%', '0%'), title = 'Quantile', fill = plot.colors[1:5], horiz = F)
 ```
 
 
@@ -156,6 +164,9 @@ quant20 <- make_roc(hic.table, N = 300, FC = 4, quant = 0.2)
 rm("hic.table")
 hic.table <- backup.table
 quant25 <- make_roc(hic.table, N = 300, FC = 4, quant = 0.25)
+rm("hic.table")
+hic.table <- backup.table
+quant0 <- make_roc(hic.table, N = 300, FC = 4, quant = 0)
 ```
 
 ```{r}
@@ -164,7 +175,8 @@ plot(quant5, main = paste0('Fold change = ', 4))
 plot(quant10, add = TRUE, col = plot.colors[2])
 plot(quant20, add = TRUE, col = plot.colors[3])
 plot(quant25, add = TRUE, col = plot.colors[4])
-legend('bottomright', inset = 0, legend = c('5%', '10%', '20%', '25%'), title = 'Quantile', fill = plot.colors[1:4], horiz = F)
+plot(quant0, add = TRUE, col = plot.colors[5])
+legend('bottomright', inset = 0, legend = c('5%', '10%', '20%', '25%', '0%'), title = 'Quantile', fill = plot.colors[1:5], horiz = F)
 ```
 
 
@@ -188,6 +200,9 @@ quant20 <- make_roc(hic.table, N = 50, FC = 3, quant = 0.2)
 rm("hic.table")
 hic.table <- backup.table
 quant25 <- make_roc(hic.table, N = 50, FC = 3, quant = 0.25)
+rm("hic.table")
+hic.table <- backup.table
+quant0 <- make_roc(hic.table, N = 50, FC = 3, quant = 0)
 ```
 
 ```{r}
@@ -196,7 +211,8 @@ plot(quant5, main = paste0('Fold change = ', 3))
 plot(quant10, add = TRUE, col = plot.colors[2])
 plot(quant20, add = TRUE, col = plot.colors[3])
 plot(quant25, add = TRUE, col = plot.colors[4])
-legend('bottomright', inset = 0, legend = c('5%', '10%', '20%', '25%'), title = 'Quantile', fill = plot.colors[1:4], horiz = F)
+plot(quant0, add = TRUE, col = plot.colors[5])
+legend('bottomright', inset = 0, legend = c('5%', '10%', '20%', '25%', '0%'), title = 'Quantile', fill = plot.colors[1:5], horiz = F)
 ```
 
 
@@ -216,6 +232,9 @@ quant20 <- make_roc(hic.table, N = 500, FC = 2, quant = 0.2)
 rm("hic.table")
 hic.table <- backup.table
 quant25 <- make_roc(hic.table, N = 500, FC = 2, quant = 0.25)
+rm("hic.table")
+hic.table <- backup.table
+quant0 <- make_roc(hic.table, N = 500, FC = 2, quant = 0)
 ```
 
 ```{r}
@@ -224,5 +243,6 @@ plot(quant5, main = paste0('Fold change = ', 2))
 plot(quant10, add = TRUE, col = plot.colors[2])
 plot(quant20, add = TRUE, col = plot.colors[3])
 plot(quant25, add = TRUE, col = plot.colors[4])
-legend('bottomright', inset = 0, legend = c('5%', '10%', '20%', '25%'), title = 'Quantile', fill = plot.colors[1:4], horiz = F)
+plot(quant0, add = TRUE, col = plot.colors[5])
+legend('bottomright', inset = 0, legend = c('5%', '10%', '20%', '25%', '0%'), title = 'Quantile', fill = plot.colors[1:5], horiz = F)
 ```
