@@ -1,0 +1,122 @@
+---
+title: "smyth_comparison"
+author: "John Stansfield"
+date: "December 13, 2017"
+output: html_document
+---
+
+```{r}
+library(HiCcompare)
+library(data.table)
+library(InteractionSet)
+library(MDmisc)
+library(ggplot2)
+library(gridExtra)
+```
+
+```{r}
+options(stringsAsFactors = FALSE)
+```
+
+```{r}
+dataframe2interactionset <- function(df) {
+  df <- as.data.frame(df)
+  set1 <- GRanges(df$chr1, IRanges(start = df$start1, end = df$end1))
+  set2 <- GRanges(df$chr2, IRanges(start = df$start2, end = df$end2))
+  gi <- GInteractions(set1, set2)
+  if (ncol(df) > 6) {
+    S4Vectors::values(gi) <- cbind(S4Vectors::values(gi), df[, 7:ncol(df)])
+  }
+  return(gi)
+}
+```
+
+
+# Redone data
+## read in lib1 data
+```{r}
+# core_path <- "C:/VM_Shared/DNA_int_analysis/rickman/rickman_lib1/"
+# man_path <- "C:/VM_Shared/DNA_int_analysis/manuscript/prostate_analysis/"
+
+core_path <- "D:/3D_DNA/rickman/rickman_lib1/"
+man_path <- "D:/3D_DNA/manuscript/prostate_analysis/"
+
+chrs <- paste0('chr', 1:22)
+chrs <- c(chrs, 'chrX')
+
+# read in data for 1 mb
+ERG_lib1 <- list()
+GFP_lib1 <- list()
+for(i in 1:22) {
+  ERG_lib1[[i]] <- read.table(paste0(core_path, 'ERG_lib1_chr', i, '.1mb.txt'), header = FALSE)
+  GFP_lib1[[i]] <- read.table(paste0(core_path, 'GFP_lib1_chr', i, '.1mb.txt'), header = FALSE)
+}
+ERG_lib1[[23]] <- read.table(paste0(core_path, 'ERG_lib1_chr', 'X', '.1mb.txt'), header = FALSE)
+GFP_lib1[[23]] <- read.table(paste0(core_path, 'GFP_lib1_chr', 'X', '.1mb.txt'), header = FALSE)
+
+```
+
+
+## Read in smyth data
+
+```{r}
+# set up their data for overlap analysis
+# core_path <- "C:/VM_Shared/DNA_int_analysis/prostate_data/"
+core_path <- "D:/3D_DNA/prostate_data/"
+library(readr)
+their.results <- read_tsv(paste0(core_path, 'results.tsv'))
+# their.results <- subset(their.results, FDR < 0.05)
+# they used the lower triangle of the matrix for most pairs of regions while we only use upper triangle. need to convert to upper triangle for overlap to work
+new_start1 <- ifelse(their.results$anchor.start >= their.results$target.start, their.results$target.start, their.results$anchor.start)
+new_end1 <- ifelse(their.results$anchor.end >= their.results$target.end, their.results$target.end, their.results$anchor.end)
+new_start2 <- ifelse(their.results$anchor.start >= their.results$target.start, their.results$anchor.start, their.results$target.start)
+new_end2 <- ifelse(their.results$anchor.end >= their.results$target.end, their.results$anchor.end, their.results$target.end)
+new.their.results <- data.frame(anchor = their.results$anchor, anchor.start = new_start1, anchor.end = new_end1, 
+                                target = their.results$target, target.start = new_start2, target.end = new_end2)
+new.their.results <- cbind(new.their.results, their.results[, 7:11])
+their.results <- new.their.results
+s1 <- GRanges(their.results$anchor, IRanges(start = their.results$anchor.start, end = their.results$anchor.end))
+s2 <- GRanges(their.results$target, IRanges(start = their.results$target.start, end = their.results$target.end))
+smyth.gi <- GInteractions(s1, s2)
+meta <- cbind(their.results$logFC, their.results$logCPM, their.results$F, their.results$PValue, their.results$FDR)
+meta <- as.data.frame(meta)
+colnames(meta) <- c('logFC', 'logCPM', 'F', 'PValue', 'FDR')
+S4Vectors::values(smyth.gi) <- cbind(S4Vectors::values(smyth.gi), meta)
+```
+
+
+```{r}
+# try to get smyth data into same regions as our data
+their.results <- as.data.table(their.results)
+their.results <- their.results[, 1:11, with = FALSE]
+# sort
+their.results <- their.results[order(anchor, target, anchor.start, target.start)]
+
+tmp <- their.results[1:100,]
+tmp$anchor.start - tmp$anchor.end
+
+# function to convert their ranges to ours
+convert_ranges <- function(tb, res = 1000000) {
+  # divide by 1,000,000 then round to nearest integer then multiply back by 1,000,000
+  new.start <- (tb$anchor.start / res) %>% round(., digits = 0) * res
+  new.end <- (tb$anchor.end / res) %>% round(., digits = 0) * res
+  tb[, anchor.start := new.start]
+  tb[, anchor.end := new.end]
+  new.start <- (tb$target.start / res) %>% round(., digits = 0) * res
+  new.end <- (tb$target.end / res) %>% round(., digits = 0) * res
+  tb[, target.start := new.start]
+  tb[, target.end := new.end]
+  return(tb)
+}
+# some of the regions are ending up with 0 range of greater than 1 mil range
+their.results <- convert_ranges(their.results)
+their.results[, diff2 := target.end - target.start]
+their.results[, diff1 := anchor.end - anchor.start]
+```
+
+
+# read in our data
+```{r}
+lib1_tables <- mapply(create.hic.table, ERG_lib1, GFP_lib1, chrs, SIMPLIFY = FALSE, MoreArgs = list(scale = FALSE))
+```
+
