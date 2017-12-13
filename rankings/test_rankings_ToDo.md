@@ -26,6 +26,6 @@
 - decide whether to remove M values with low A before or after converting to Z scores
   - Z before removing low A: less significant values due to higher std dev
   - Z after removing low A: more significant values due to lower std dev
-  - removing low A before Z might be better for multiple testing correction
+  - removing low A before Z might be better for multiple testing correction but produces more false positives
 
 - implement distance adjusted multiple testing correction, test on smyth RWPE data

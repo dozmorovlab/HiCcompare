@@ -1,0 +1,154 @@
+---
+title: "test adjust pval"
+author: "John Stansfield"
+date: "December 13, 2017"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+
+```{r, message=F, warning=F}
+library(readr)
+library(data.table)
+library(HiCcompare)
+library(dplyr)
+library(pROC)
+```
+
+```{r, message = FALSE, warning=FALSE, results='hide', cache=FALSE, echo = FALSE}
+# Set up
+#####
+centromeres <- read.table("D:/brain/data/hg38_centromeres.bed")
+
+# for dplfc 1 (dplfc folder)
+dplfc_1_mat <- read_tsv("D:/brain/data/all_resolutions/dplfc_1000000.matrix", col_names = FALSE) %>% as.data.table()
+dplfc_1_bed <- read_tsv("D:/brain/data/all_resolutions/dplfc_1000000_abs.bed", col_names = FALSE) %>% as.data.table()
+
+# for dplfc 2 (dplfc folder)
+dplfc_2_mat <- read_tsv("D:/brain/data/all_resolutions/dplfc_upseq_1000000.matrix", col_names = FALSE) %>% as.data.table()
+dplfc_2_bed <- read_tsv("D:/brain/data/all_resolutions/dplfc_upseq_1000000_abs.bed", col_names = FALSE) %>% as.data.table()
+
+
+dplfc_1 <- hicpro2bedpe(dplfc_1_mat, dplfc_1_bed)$cis[-c(23,25)] # remove chrM and chrY
+dplfc_2 <- hicpro2bedpe(dplfc_2_mat, dplfc_1_bed)$cis[-c(23,25)] # remove chrM and chrY
+
+dplfc1_2 <- mapply(create.hic.table, dplfc_1[1:3], dplfc_2[1:3], MoreArgs = list(exclude.regions = centromeres, exclude.overlap = 0,
+                                                                       scale = TRUE), SIMPLIFY = FALSE)
+
+```
+
+
+```{r}
+make_changes <- function(hic.table, N = 300, FC = 2, quant = 0.25) {
+  # introduce changes
+  changes <- sample(1:nrow(hic.table), size = N)
+  whichIF = ifelse(hic.table[changes, ]$M < 0, -1, 1)
+  newIF1 = FC^whichIF * hic.table[changes,]$IF2
+  newIF1 = (round(newIF1))
+  newIF1[newIF1 < 0.01] <- 1
+  hic.table[changes,]$IF1 = newIF1
+  hic.table = hic.table[, M := log2(IF2/IF1)]
+  
+  # make truth vector
+  truth <- rep(0, nrow(hic.table))
+  truth[changes] <- 1
+  hic.table[, truth := truth]
+  
+  # normalize
+  hic.table <- hic_loess(hic.table, Plot = FALSE)
+  hic.table <- hic_diff(hic.table, Plot = TRUE)
+  
+  
+  # roc_result <- roc(response = result$truth, predictor = result$p.val)
+  # return(roc_result)
+  return(hic.table)
+}
+```
+
+
+```{r}
+# function to adjust p-values based on distance holm method
+adjust_pval <- function(hic.table, theta = 1, alpha = 0.05) {
+  # get distance percentages
+  d_percent <- ((hic.table$D + 1) / max(hic.table$D + 1)) * 100
+  # calculate threshold for checking if p-value is < thresh to be a rejection of the null hypothesis
+  threshhold <- alpha / (d_percent * theta)
+  P <- hic.table$p.val
+  P[P > threshhold] <- 1
+  hic.table[, thresh := threshhold]
+  hic.table[, p.adj := P]
+  MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj)
+  return(hic.table)
+} 
+
+```
+
+# Test adjust_pval
+
+## N = 300 FC = 1.5
+
+```{r}
+hic.table <- dplfc1_2[[1]]
+backup.table <- hic.table
+
+
+hic.table <- make_changes(hic.table, N = 300, FC = 1.5, quant = 0.25)
+hic.table <- adjust_pval(hic.table)
+```
+
+
+## N = 300 FC = 2
+
+```{r}
+hic.table <- backup.table
+
+hic.table <- make_changes(hic.table, N = 300, FC = 2, quant = 0.25)
+hic.table <- adjust_pval(hic.table)
+```
+
+## N = 300 FC = 3
+
+```{r}
+hic.table <- backup.table
+
+hic.table <- make_changes(hic.table, N = 300, FC = 3, quant = 0.25)
+hic.table <- adjust_pval(hic.table)
+```
+
+## N = 300 FC = 4
+
+```{r}
+hic.table <- backup.table
+
+hic.table <- make_changes(hic.table, N = 300, FC = 4, quant = 0.25)
+hic.table <- adjust_pval(hic.table)
+```
+
+## N = 50 FC = 3
+
+```{r}
+hic.table <- backup.table
+
+hic.table <- make_changes(hic.table, N = 50, FC = 4, quant = 0.25)
+hic.table <- adjust_pval(hic.table)
+```
+
+
+## N = 50 FC = 4
+
+```{r}
+hic.table <- backup.table
+
+hic.table <- make_changes(hic.table, N = 50, FC = 4, quant = 0.25)
+hic.table <- adjust_pval(hic.table)
+```
+
+## No changes
+
+```{r}
+hic.table <- backup.table
+hic.table <- hic_loess(hic.table, Plot = FALSE)
+hic.table <- hic_diff(hic.table, Plot = FALSE)
+hic.table <- adjust_pval(hic.table)
+```

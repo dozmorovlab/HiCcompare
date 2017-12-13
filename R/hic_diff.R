@@ -125,9 +125,9 @@ hic_diff <- function(hic.table, diff.thresh = "auto", iterations = 10000,
   # ### temp marker
   
   if (parallel) {
-    hic.table <- BiocParallel::bplapply(hic.table, .calc_z, quant = A.quantile, Plot = Plot) ### May need to change this to calc_z2/calc_z
+    hic.table <- BiocParallel::bplapply(hic.table, .calc_z2, quant = A.quantile, Plot = Plot) ### May need to change this to calc_z2/calc_z
   } else {
-    hic.table <- lapply(hic.table, .calc_z, quant = A.quantile, Plot = Plot) ### May need to change this to calc_z2/calc_z
+    hic.table <- lapply(hic.table, .calc_z2, quant = A.quantile, Plot = Plot) ### May need to change this to calc_z2/calc_z
   }
   
   
