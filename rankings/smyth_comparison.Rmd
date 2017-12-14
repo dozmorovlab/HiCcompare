@@ -100,14 +100,56 @@ convert_ranges <- function(tb, res = 1000000) {
   # divide by 1,000,000 then round to nearest integer then multiply back by 1,000,000
   new.start <- (tb$anchor.start / res) %>% round(., digits = 0) * res
   new.end <- (tb$anchor.end / res) %>% round(., digits = 0) * res
-  tb[, anchor.start := new.start]
-  tb[, anchor.end := new.end]
+  tb[, start1 := new.start]
+  tb[, end1 := new.end]
   new.start <- (tb$target.start / res) %>% round(., digits = 0) * res
   new.end <- (tb$target.end / res) %>% round(., digits = 0) * res
-  tb[, target.start := new.start]
-  tb[, target.end := new.end]
+  tb[, start2 := new.start]
+  tb[, end2 := new.end]
+  diff1 <- tb$end1 - tb$start1
+  diff2 <- tb$end2 - tb$start2
+  idx <- which(tb$start1 == tb$end1)
+  # idx <- which(diff1 < res)
+  for(i in 1:length(idx)) {
+    tb[idx[i], start1 := (anchor.start / res) %>% floor() * res]
+    tb[idx[i], end1 := (anchor.end / res) %>% ceiling() * res]
+  }
+  idx <- which(tb$start2 == tb$end2)
+  # idx <- which(diff2 < res)
+  for(i in 1:length(idx)) {
+    tb[idx[i], start2 := (target.start / res) %>% floor() * res]
+    tb[idx[i], end2 := (target.end / res) %>% ceiling() * res]
+  }
+  tb[start1 == end1, end1 := end1 + res]
+  tb[start2 == end2, end1 := end1 + res]
+  
   return(tb)
 }
+
+
+
+# function to convert their ranges to ours
+convert_ranges <- function(tb, res = 1000000) {
+  # divide by 1,000,000 then round to nearest integer then multiply back by 1,000,000
+  new.start <- (tb$anchor.start / res) %>% floor() * res
+  new.end <- (tb$anchor.end / res) %>% ceiling() * res
+  tb[, start1 := new.start]
+  tb[, end1 := new.end]
+  new.start <- (tb$target.start / res) %>% round(., digits = 0) * res
+  new.end <- (tb$target.end / res) %>% round(., digits = 0) * res
+  tb[, start2 := new.start]
+  tb[, end2 := new.end]
+  diff1 <- tb$end1 - tb$start1
+  diff2 <- tb$end2 - tb$start2
+  idx <- which(tb$start1 == tb$end1)
+
+
+  tb[start1 == end1,]
+  tb[start2 == end2, end1 := end1 + res]
+  
+  return(tb)
+}
+
 # some of the regions are ending up with 0 range of greater than 1 mil range
 their.results <- convert_ranges(their.results)
 their.results[, diff2 := target.end - target.start]
@@ -119,4 +161,28 @@ their.results[, diff1 := anchor.end - anchor.start]
 ```{r}
 lib1_tables <- mapply(create.hic.table, ERG_lib1, GFP_lib1, chrs, SIMPLIFY = FALSE, MoreArgs = list(scale = FALSE))
 ```
+
+# try to overlap with all regions
+```{r}
+# get all regions
+all_reg <- lapply(ERG_lib1, sparse2full)
+all_cols <- lapply(all_reg, colnames)
+regions <- mapply(function(x, y) {
+  x <- as.numeric(x)
+  reg <- data.table(chr = y, start = x, end = x + 1000000)
+  return(reg)
+}, all_cols, paste0('chr', c(1:22, 'X')), SIMPLIFY = FALSE)
+
+regions <- rbindlist(regions)
+r.gr <- GRanges(regions$chr, ranges = IRanges(start=regions$start, end = regions$end))
+colnames(their.results)[1:6] <- c('chr1', 'start1', 'end1', 'chr2', 'start2', 'end2')
+smyth.gi <- dataframe2interactionset(as.data.frame(their.results))
+
+olaps <- findOverlaps(smyth.gi, r.gr, use.region = 'first')
+
+smyth.gi[olaps@from[1:10],]
+r.gr[olaps@to[1:10],]
+```
+
+
 
