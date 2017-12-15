@@ -5,7 +5,7 @@
 \title{Detect differences between two jointly normalized Hi-C datasets.}
 \usage{
 hic_diff(hic.table, diff.thresh = "auto", iterations = 10000,
-  A.quantile = 0.2, Plot = FALSE, Plot.smooth = TRUE, parallel = FALSE,
+  Plot = FALSE, Plot.smooth = TRUE, parallel = FALSE,
   BP_param = bpparam())
 }
 \arguments{
@@ -24,12 +24,6 @@ fold change for the difference between IF1 and IF2) then
 the p-value will be set to 0.5.}
 
 \item{iterations}{Number of iterations for the permuation test.}
-
-\item{A.quantile}{The quantile for Average expression values (A)
-that should be use used as the cutoff for not considering 
-z-scores. I.e. any z-score derived from a difference with
-an average expression lower than the specified quantile will
-not be considered for difference detection. Defaults to 0.2.}
 
 \item{Plot}{Logical, should the MD plot showing before/after loess normalization
 be output?}
