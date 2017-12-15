@@ -69,6 +69,70 @@ make_changes <- function(hic.table, N = 300, FC = 2, quant = 0.25) {
 ```
 
 
+```{r}
+# pvalue adjustment -  FDR by distance
+fdr_adjust <- function(hic.table) {
+   # split table up for each distance
+  temp_list <- S4Vectors::split(hic.table, hic.table$D)
+  # combined top 15% of distances into single data.table
+  all_dist <- sort(unique(hic.table$D))
+  dist_85 <- ceiling(0.85 * length(all_dist))
+  temp_list2 <- temp_list[1:dist_85]
+  temp_list2[[dist_85+1]] <- data.table::rbindlist(temp_list[(dist_85+1):length(temp_list)])
+  temp_list <- temp_list2
+  rm("temp_list2")
+  # rank M by distance
+  temp_list <- lapply(temp_list, function(x) {
+    x[, p.adj := p.adjust(p.val, method = 'fdr')]
+    return(x)
+  })
+  # recombine into one table
+  hic.table <- rbindlist(temp_list)
+  MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj) 
+  return(hic.table)
+}
+```
+
+
+```{r}
+calc_stats1 <- function(hic.table) {
+  TP <- sum(hic.table$truth == 1 & hic.table$p.val < 0.05) 
+  TN <- sum(hic.table$truth == 0 & hic.table$p.val > 0.05) 
+  FP <- sum(hic.table$truth == 0 & hic.table$p.val < 0.05)
+  FN <- sum(hic.table$truth == 1 & hic.table$p.val > 0.05)
+  TPR <- TP / (TP + FN)
+  TNR <- TN / (TN + FP)
+  PPV <- TP / (TP + FP)
+  NPV <- TN / (TN + FN)
+  FPR <- FP / (FP + TN)
+  FNR <- FN / (TP + FN)
+  FDR <- FP / (TP + FP)
+  ACC <- (TP + TN) / (TP + FP + FN + TN)
+  res <- data.frame(TPR = TPR, TNR = TNR, PPV = PPV, NPV = NPV, FPR = FPR, FNR = FNR, FDR = FDR, ACC = ACC)
+  knitr::kable(res)
+}
+
+
+calc_stats <- function(hic.table) {
+  TP <- sum(hic.table$truth == 1 & hic.table$p.adj < 0.05) 
+  TN <- sum(hic.table$truth == 0 & hic.table$p.adj > 0.05) 
+  FP <- sum(hic.table$truth == 0 & hic.table$p.adj < 0.05)
+  FN <- sum(hic.table$truth == 1 & hic.table$p.adj > 0.05)
+  TPR <- TP / (TP + FN)
+  TNR <- TN / (TN + FP)
+  PPV <- TP / (TP + FP)
+  NPV <- TN / (TN + FN)
+  FPR <- FP / (FP + TN)
+  FNR <- FN / (TP + FN)
+  FDR <- FP / (TP + FP)
+  ACC <- (TP + TN) / (TP + FP + FN + TN)
+  res <- data.frame(TPR = TPR, TNR = TNR, PPV = PPV, NPV = NPV, FPR = FPR, FNR = FNR, FDR = FDR, ACC = ACC)
+  knitr::kable(res)
+}
+```
+
+
+
 # Test fisher test
 
 ## N = 300 FC = 1.5
@@ -80,13 +144,18 @@ backup.table <- hic.table
 
 hic.table <- make_changes(hic.table, N = 300, FC = 1.5, quant = 0.25)
 ## True positive rate:
-sum(hic.table$truth == 1 & hic.table$p.val < 0.05) / 300
+calc_stats1(hic.table)
 
-# test p-value adjustments
+# FDR on full vector
 hic.table[, p.adj := p.adjust(p.val, method = 'fdr')]
 MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj)
-## True positive rate:
-sum(hic.table$truth == 1 & hic.table$p.adj < 0.05) / 300
+calc_stats(hic.table)
+
+
+
+# FDR by distance
+hic.table <- fdr_adjust(hic.table)
+calc_stats(hic.table)
 ```
 
 
@@ -97,13 +166,18 @@ hic.table <- backup.table
 
 hic.table <- make_changes(hic.table, N = 300, FC = 2, quant = 0.25)
 ## True positive rate:
-sum(hic.table$truth == 1 & hic.table$p.val < 0.05) / 300
+calc_stats1(hic.table)
 
-# test p-value adjustments
+# FDR on full vector
 hic.table[, p.adj := p.adjust(p.val, method = 'fdr')]
 MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj)
 ## True positive rate:
-sum(hic.table$truth == 1 & hic.table$p.adj < 0.05) / 300
+calc_stats(hic.table)
+
+
+# FDR by distance
+hic.table <- fdr_adjust(hic.table)
+calc_stats(hic.table)
 ```
 
 ## N = 300 FC = 3
@@ -113,13 +187,18 @@ hic.table <- backup.table
 
 hic.table <- make_changes(hic.table, N = 300, FC = 3, quant = 0.25)
 ## True positive rate:
-sum(hic.table$truth == 1 & hic.table$p.val < 0.05) / 300
+calc_stats1(hic.table)
 
-# test p-value adjustments
+# FDR on full vector
 hic.table[, p.adj := p.adjust(p.val, method = 'fdr')]
 MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj)
 ## True positive rate:
-sum(hic.table$truth == 1 & hic.table$p.adj < 0.05) / 300
+calc_stats(hic.table)
+
+
+# FDR by distance
+hic.table <- fdr_adjust(hic.table)
+calc_stats(hic.table)
 ```
 
 ## N = 300 FC = 4
@@ -129,7 +208,19 @@ hic.table <- backup.table
 
 hic.table <- make_changes(hic.table, N = 300, FC = 4, quant = 0.25)
 ## True positive rate:
-sum(hic.table$truth == 1 & hic.table$p.val < 0.05) / 300
+calc_stats1(hic.table)
+
+
+# FDR on full vector
+hic.table[, p.adj := p.adjust(p.val, method = 'fdr')]
+MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj)
+## True positive rate:
+calc_stats(hic.table)
+
+
+# FDR by distance
+hic.table <- fdr_adjust(hic.table)
+calc_stats(hic.table)
 
 ```
 
@@ -139,13 +230,19 @@ sum(hic.table$truth == 1 & hic.table$p.val < 0.05) / 300
 hic.table <- backup.table
 
 hic.table <- make_changes(hic.table, N = 50, FC = 4, quant = 0.25)
-sum(hic.table$truth == 1 & hic.table$p.val < 0.05) / 50
+calc_stats1(hic.table)
 
-# test p-value adjustments
+# FDR on full vector
 hic.table[, p.adj := p.adjust(p.val, method = 'fdr')]
 MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj)
 ## True positive rate:
-sum(hic.table$truth == 1 & hic.table$p.adj < 0.05) / 300
+calc_stats(hic.table)
+
+
+
+# FDR by distance
+hic.table <- fdr_adjust(hic.table)
+calc_stats(hic.table)
 ```
 
 
@@ -156,13 +253,18 @@ hic.table <- backup.table
 
 hic.table <- make_changes(hic.table, N = 50, FC = 4, quant = 0.25)
 ## True positive rate:
-sum(hic.table$truth == 1 & hic.table$p.val < 0.05) / 50
+calc_stats1(hic.table)
 
-# test p-value adjustments
+# FDR on full vector
 hic.table[, p.adj := p.adjust(p.val, method = 'fdr')]
 MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj)
 ## True positive rate:
-sum(hic.table$truth == 1 & hic.table$p.adj < 0.05) / 300
+calc_stats(hic.table)
+
+
+# FDR by distance
+hic.table <- fdr_adjust(hic.table)
+calc_stats(hic.table)
 ```
 
 ## No changes
@@ -172,12 +274,18 @@ hic.table <- backup.table
 hic.table <- hic_loess(hic.table, Plot = FALSE)
 hic.table <- hic_diff(hic.table, Plot = TRUE)
 ## False positives
-sum(hic.table$p.val < 0.05)
+calc_stats1(hic.table)
 
-# test p-value adjustments
+# FDR on full vector
 hic.table[, p.adj := p.adjust(p.val, method = 'fdr')]
 MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj)
 ## False positives
-sum(hic.table$p.adj < 0.05)
+calc_stats(hic.table)
+
+
+
+# FDR by distance
+hic.table <- fdr_adjust(hic.table)
+calc_stats(hic.table)
 ```
 
