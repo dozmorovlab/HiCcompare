@@ -114,7 +114,7 @@
 }
 
 # wrapper function for simulation studies will generate the matrices
-# and perform HiCdiff analysis on them
+# and perform HiCcompare analysis on them
 
 #' Simulate a Hi-C matrix and perform hic_diff analysis on it
 #'
@@ -297,9 +297,18 @@ hic_simulate <- function(nrow = 100, medianIF = 50000, sdIF = 14000,
                                        include.zeros = include.zeros)
   sims <- create.hic.table(sims[[1]], sims[[2]], chr = "ChrSim",
                            scale = scale, include.zeros = include.zeros)
-  normed <- hic_loess(sims, Plot = Plot, diff.thresh = diff.thresh,
-                      check.differences = TRUE)
-  pvals <- normed$p.value
+  #####
+  # ORIGINAL CONFIGURATION WHEN USING HIC_DIFF()
+  # normed <- hic_loess(sims, Plot = Plot, diff.thresh = diff.thresh,
+  #                     check.differences = TRUE)
+  # pvals <- normed$p.value
+  ####
+  ####
+  # NEW CONFIGURATION WHEN USING HIC_COMPARE()
+  normed <- hic_loess(sims, Plot = Plot)
+  normed <- hic_compare(normed, Plot = Plot)
+  pvals <- normed$p.adj
+  ####
 
   # get the true differences
   true.diffs <- data.table(i = c(i.range, j.range), j = c(j.range, i.range))
@@ -323,9 +332,17 @@ hic_simulate <- function(nrow = 100, medianIF = 50000, sdIF = 14000,
   truth <- left_join(normed, temp.true.diffs, by = c(start1 = "i", start2 = "j"))
   truth$truth[is.na(truth$truth)] <- 0
   truth <- truth$truth
-
-  results <- list(TPR = TPR, SPC = SPC, pvals = normed$p.value, hic.table = normed,
+  
+  #### 
+  # OLD VERSION FOR HIC_DIFF()
+  # results <- list(TPR = TPR, SPC = SPC, pvals = normed$p.value, hic.table = normed,
+                  # true.diff = true.diffs, truth = truth, sim.table = backup.sim.table)
+  ####
+  # NEW VERSION FOR HIC_COMPARE()
+  results <- list(TPR = TPR, SPC = SPC, pvals = normed$p.adj, hic.table = normed,
                   true.diff = true.diffs, truth = truth, sim.table = backup.sim.table)
+  ####
+  
   if (!is.na(fold.change)) {
     message("True Positives: ", true.pos, " Total added differences: ",
                 nrow(true.diffs), " True Negatives: ", true.neg, sep = "")
@@ -336,7 +353,7 @@ hic_simulate <- function(nrow = 100, medianIF = 50000, sdIF = 14000,
 }
 
 
-# function to get TPR/SPC and generate truth matrix results of HiCdiff
+# function to get TPR/SPC and generate truth matrix results of HiCcompare
 # on non-hicloess normalized data enter sim.table as a hic.table for
 # the pre-normalized simulated matrices. Normalization can be done
 # using some other method than hic_loess
@@ -382,8 +399,15 @@ sim.other.methods <- function(sim.table, i.range, j.range, Plot = TRUE,
     sim.table <- sim.table[, `:=`(adj.IF2, IF2)]
     sim.table <- sim.table[, `:=`(adj.M, M)]
   }
-  diffs <- hic_diff(sim.table, Plot = Plot, diff.thresh = diff.thresh)
-  pvals <- diffs$p.value
+  ####
+  # OLD VERSION FOR HIC_DIFF()
+  # diffs <- hic_diff(sim.table, Plot = Plot, diff.thresh = diff.thresh)
+  # pvals <- diffs$p.value
+  ####
+  # NEW VERSION FOR HIC_COMPARE()
+  diffs <- hic_compare(sim.table, Plot = Plot)
+  pvals <- diffs$p.adj
+  ####
 
   true.diffs <- data.table(i = c(i.range, j.range), j = c(j.range, i.range))
   true.diffs <- left_join(true.diffs, diffs, by = c(i = "start1", j = "start2"))
@@ -392,8 +416,15 @@ sim.other.methods <- function(sim.table, i.range, j.range, Plot = TRUE,
   true.diffs <- as.data.table(na.omit(true.diffs))
 
   # calculate sensitivty and specificity
-  true.pos <- sum(true.diffs$p.value < alpha)
-  false.pos <- sum(diffs$p.value < alpha, na.rm = TRUE) - true.pos  #### changed to < 0.1
+  ####
+  # OLD VERSION FOR HIC_DIFF()
+  # true.pos <- sum(true.diffs$p.value < alpha)
+  # false.pos <- sum(diffs$p.value < alpha, na.rm = TRUE) - true.pos  #### changed to < 0.1
+  ####
+  # NEW VERSION FOR HIC_COMPARE()
+  true.pos <- sum(true.diffs$p.adj < alpha)
+  false.pos <- sum(diffs$p.adj < alpha, na.rm = TRUE) - true.pos  #### changed to < 0.1
+  ####
   false.neg <- nrow(true.diffs) - true.pos
   true.neg <- nrow(diffs) - true.pos - false.pos - false.neg
   TPR <- true.pos/(true.pos + false.neg)
@@ -406,9 +437,15 @@ sim.other.methods <- function(sim.table, i.range, j.range, Plot = TRUE,
   truth$truth[is.na(truth$truth)] <- 0
   truth <- truth$truth
 
-
-  results <- list(TPR = TPR, SPC = SPC, pvals = diffs$p.value, hic.table = diffs,
+  ####
+  # OLD VERSION FOR HIC_DIFF()
+  # results <- list(TPR = TPR, SPC = SPC, pvals = diffs$p.value, hic.table = diffs,
+                  # true.diff = true.diffs, truth = truth)
+  ####
+  # NEW VERSION FOR HIC_COMPARE()
+  results <- list(TPR = TPR, SPC = SPC, pvals = diffs$p.adj, hic.table = diffs,
                   true.diff = true.diffs, truth = truth)
+  ####
   message("True Positives: ", true.pos, " Total added differences: ",
               nrow(true.diffs), " True Negatives: ", true.neg, sep = "")
   message("TPR: ", TPR, sep = "")
