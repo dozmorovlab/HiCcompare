@@ -136,6 +136,9 @@ hic_compare <- function(hic.table,
 }
 
 
+########
+# OLD METHODS
+########
 
 # # Permutation test function called from hic_loess function or hic_diff
 # # function
