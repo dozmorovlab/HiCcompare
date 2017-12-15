@@ -94,7 +94,7 @@ hic_compare <- function(hic.table,
   IF_mat <- cbind(hic.table$adj.IF1, hic.table$adj.IF2) %>% as.matrix()
   # get p-values
   pval <- apply(IF_mat, 1, .get_fisher)
-  hic.table[, p.val := pval]
+  hic.table[, p.value := pval]
   
   # if (Plot) MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj)
   return(new.table)
@@ -125,7 +125,7 @@ hic_compare <- function(hic.table,
   rm("temp_list2")
   # adjust p-values
   temp_list <- lapply(temp_list, function(x) {
-    x[, p.adj := p.adjust(p.val, method = 'fdr')]
+    x[, p.adj := p.adjust(p.value, method = 'fdr')]
     return(x)
   })
   # recombine into one table
