@@ -97,7 +97,7 @@ hic_compare <- function(hic.table,
   hic.table[, p.value := pval]
   
   # if (Plot) MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj)
-  return(new.table)
+  return(hic.table)
 }
 
 # function to take row from IF_mat and produce

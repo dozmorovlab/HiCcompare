@@ -29,3 +29,8 @@
   - removing low A before Z might be better for multiple testing correction but produces more false positives
 
 - implement distance adjusted multiple testing correction, test on smyth RWPE data
+
+
+- grep -i hicdiff *.R in R folder, replace old instances in documentation
+- Redo Vignette
+- go through all functions to make sure unnecessary ones added for testing are removed
