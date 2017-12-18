@@ -105,12 +105,6 @@ hic_compare <- function(hic.table, adjust_dist = TRUE,
   N2 <- aggregate(hic.table$adj.IF2, by = list(hic.table$D), sum)
   colnames(N1) <- c('D', 'N1')
   colnames(N2) <- c('D', 'N2')
-  # combine top 10% of distance total sums so we do not get a divide by 0 error for last p-value
-  # nevermind that might not work either. Maybe just combine last 2 distances?
-  dist_90 <- ceiling(0.90 * nrow(N1))
-  N1$N1[dist_90:nrow(N1)] <- sum(N1$N1[dist_90:nrow(N1)])
-  N2$N2[dist_90:nrow(N2)] <- sum(N2$N2[dist_90:nrow(N2)])
-  
   new.table <- left_join(hic.table, N1, by = c('D' = 'D')) %>% as.data.table()
   new.table <- left_join(new.table, N2, by = c('D' = 'D')) %>% as.data.table()
   
@@ -122,6 +116,17 @@ hic_compare <- function(hic.table, adjust_dist = TRUE,
   pval <- 2 * pnorm(-abs(Z1))
   new.table[, Z := Z1]
   new.table[, p.value := pval]
+  
+  # fix any NaNs for final distance
+  if (sum(is.na(new.table$Z)) > 0) {
+    new.table[is.na(Z), ]$p.value <- 1
+    new.table[is.na(Z), ]$p.adj <- 1
+    new.table[is.na(Z), ]$Z <- 0
+  }
+  # remove N columns
+  new.table[, N1 := NULL]
+  new.table[, N2 := NULL]
+  
   
   # MD.plot2(new.table$adj.M, new.table$D, new.table$p.value)
   
