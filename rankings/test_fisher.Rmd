@@ -59,7 +59,7 @@ make_changes <- function(hic.table, N = 300, FC = 2, quant = 0.25) {
   
   # normalize
   hic.table <- hic_loess(hic.table, Plot = FALSE)
-  hic.table <- hic_diff(hic.table, Plot = TRUE)
+  # hic.table <- hic_diff(hic.table, Plot = TRUE)
   
   
   # roc_result <- roc(response = result$truth, predictor = result$p.val)
@@ -287,5 +287,87 @@ calc_stats(hic.table)
 # FDR by distance
 hic.table <- fdr_adjust(hic.table)
 calc_stats(hic.table)
+```
+
+
+
+# alternate fisher test
+
+```{r}
+.kal <- function(hic.table) {
+  # get sum of all IFs at each distance
+  N1 <- aggregate(hic.table$adj.IF1, by = list(hic.table$D), sum)
+  N2 <- aggregate(hic.table$adj.IF2, by = list(hic.table$D), sum)
+  colnames(N1) <- c('D', 'N1')
+  colnames(N2) <- c('D', 'N2')
+  new.table <- left_join(hic.table, N1, by = c('D' = 'D')) %>% as.data.table()
+  new.table <- left_join(new.table, N2, by = c('D' = 'D')) %>% as.data.table()
+  
+  # start kal test
+  p1 <- new.table$adj.IF1 / new.table$N1
+  p2 <- new.table$adj.IF2 / new.table$N2
+  p0 <- (new.table$adj.IF1 + new.table$adj.IF2) / (new.table$N1 + new.table$N2)
+  Z1 = (p1 - p2) / (sqrt( (p0 * (1 - p0) / new.table$N1) + (p0 * (1 - p0) / new.table$N2) ))
+  pval <- 2 * pnorm(-abs(Z1))
+  new.table[, Z := Z1]
+  new.table[, p.value := pval]
+  MD.plot2(new.table$adj.M, new.table$D, new.table$p.value)
+  MD.plot2(new.table$adj.M, new.table$D, p.adjust(new.table$p.value, 'fdr'))
+  return(new.table)
+} 
+
+
+.fisher <- function(hic.table) {
+  # get sum of all IFs at each distance
+  N1 <- aggregate(hic.table$adj.IF1, by = list(hic.table$D), sum)
+  N2 <- aggregate(hic.table$adj.IF2, by = list(hic.table$D), sum)
+  colnames(N1) <- c('D', 'N1')
+  colnames(N2) <- c('D', 'N2')
+  new.table <- left_join(hic.table, N1, by = c('D' = 'D')) %>% as.data.table()
+  new.table <- left_join(new.table, N2, by = c('D' = 'D')) %>% as.data.table()
+  
+  IF_mat <- cbind(new.table$adj.IF1, new.table$adj.IF2, new.table$N1, new.table$N2) %>% as.matrix()
+  pval <- apply(IF_mat, 1, .get_fisher)
+  new.table[, p.value := pval]
+  MD.plot2(new.table$adj.M, new.table$D, new.table$p.value)
+  MD.plot2(new.table$adj.M, new.table$D, p.adjust(new.table$p.value, 'fdr'))
+  return(new.table)
+}
+
+
+.get_fisher <- function(x) {
+  m <- matrix(c(x[1], x[3] - x[1], x[2], x[4] - x[2]), ncol = 2)
+  pval <- fisher.test(m)$p.value
+  return(pval)
+}
+```
+
+
+# what we have now
+
+```{r}
+hic.table <- backup.table
+hic.table <- make_changes(hic.table, FC = 3)
+hic.table <- hic_compare(hic.table, Plot = TRUE)
+```
+
+
+
+# Kal
+
+```{r}
+hic.table <- backup.table
+hic.table <- make_changes(hic.table, FC = 3)
+hic.table <- .kal(hic.table)
+
+
+```
+
+# fisher
+
+```{r}
+hic.table <- backup.table
+hic.table <- make_changes(hic.table, FC = 3)
+hic.table <- .fisher(hic.table)
 ```
 
