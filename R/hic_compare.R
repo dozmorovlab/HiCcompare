@@ -46,7 +46,7 @@
 #' # perform difference detection
 #' diff.result <- hic_compare(result, Plot = TRUE)
 #'
-hic_compare <- function(hic.table,
+hic_compare <- function(hic.table, adjust_dist = TRUE,
                      Plot = FALSE, Plot.smooth = TRUE,
                      parallel = FALSE, BP_param = bpparam()) {
   # check for correct input
@@ -66,17 +66,28 @@ hic_compare <- function(hic.table,
   
   # perform fisher's exact test on each element of the list
   if (parallel) {
-    hic.table <- BiocParallel::bplapply(hic.table, .fisher, Plot = Plot) ### May need to change this to calc_z2/calc_z
+    hic.table <- BiocParallel::bplapply(hic.table, .kal) ### May need to change this to calc_z2/calc_z
   } else {
-    hic.table <- lapply(hic.table, .fisher, Plot = Plot) ### May need to change this to calc_z2/calc_z
+    hic.table <- lapply(hic.table, .kal) ### May need to change this to calc_z2/calc_z
   }
   
   # adjust p-values
-  if (parallel) {
-    hic.table <- BiocParallel::bplapply(hic.table, .adjust_pval, Plot = Plot) ### May need to change this to calc_z2/calc_z
+  if (adjust_dist) {
+    if (parallel) {
+      hic.table <- BiocParallel::bplapply(hic.table, .adjust_pval, Plot = Plot) ### May need to change this to calc_z2/calc_z
+    } else {
+      hic.table <- lapply(hic.table, .adjust_pval, Plot = Plot) ### May need to change this to calc_z2/calc_z
+    }
   } else {
-    hic.table <- lapply(hic.table, .adjust_pval, Plot = Plot) ### May need to change this to calc_z2/calc_z
+    hic.table <- lapply(hic.table, function(x) {
+      x[, p.adj := p.adjust(x$p.value, method = 'fdr')]
+      return(x)
+    })
+    if (Plot) lapply(hic.table, function(x) {
+      MD.plot2(x$adj.M, x$D, x$p.adj)
+    })
   }
+  
   
   # clean up if single hic.table
   if (length(hic.table) == 1) {
@@ -86,30 +97,54 @@ hic_compare <- function(hic.table,
 }
 
 
-# background functions for hic_diff
+# background functions for hic_compare
 
-# function to perform fisher's exact test on individual hic.table
-.fisher <- function(hic.table, Plot) {
-  # make adj.IFs into 2 column matrix
-  IF_mat <- cbind(hic.table$adj.IF1, hic.table$adj.IF2) %>% as.matrix()
-  # get p-values
-  pval <- apply(IF_mat, 1, .get_fisher)
-  hic.table[, p.value := pval]
+.kal <- function(hic.table) {
+  # get sum of all IFs at each distance
+  N1 <- aggregate(hic.table$adj.IF1, by = list(hic.table$D), sum)
+  N2 <- aggregate(hic.table$adj.IF2, by = list(hic.table$D), sum)
+  colnames(N1) <- c('D', 'N1')
+  colnames(N2) <- c('D', 'N2')
+  new.table <- left_join(hic.table, N1, by = c('D' = 'D')) %>% as.data.table()
+  new.table <- left_join(new.table, N2, by = c('D' = 'D')) %>% as.data.table()
   
-  # if (Plot) MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj)
-  return(hic.table)
-}
+  # start kal test
+  p1 <- new.table$adj.IF1 / new.table$N1
+  p2 <- new.table$adj.IF2 / new.table$N2
+  p0 <- (new.table$adj.IF1 + new.table$adj.IF2) / (new.table$N1 + new.table$N2)
+  Z1 = (p1 - p2) / (sqrt( (p0 * (1 - p0) / new.table$N1) + (p0 * (1 - p0) / new.table$N2) ))
+  pval <- 2 * pnorm(-abs(Z1))
+  new.table[, Z := Z1]
+  new.table[, p.value := pval]
+  
+  # MD.plot2(new.table$adj.M, new.table$D, new.table$p.value)
+  
+  return(new.table)
+} 
 
-# function to take row from IF_mat and produce
-# a 2x2 table for input into fisher.test()
-# then return the fisher exact p-value
-.get_fisher <- function(x) {
-  IF_mean <- mean(x) %>% round(., digits = 0)
-  x <- round(x, digits = 0)
-  m <- matrix(c(x[1], x[2], IF_mean, IF_mean), ncol = 2)
-  pval <- fisher.test(m)$p.value
-  return(pval)
-}
+
+# # function to perform fisher's exact test on individual hic.table
+# .fisher <- function(hic.table, Plot) {
+#   # make adj.IFs into 2 column matrix
+#   IF_mat <- cbind(hic.table$adj.IF1, hic.table$adj.IF2) %>% as.matrix()
+#   # get p-values
+#   pval <- apply(IF_mat, 1, .get_fisher)
+#   hic.table[, p.value := pval]
+#   
+#   # if (Plot) MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj)
+#   return(hic.table)
+# }
+# 
+# # function to take row from IF_mat and produce
+# # a 2x2 table for input into fisher.test()
+# # then return the fisher exact p-value
+# .get_fisher <- function(x) {
+#   IF_mean <- mean(x) %>% round(., digits = 0)
+#   x <- round(x, digits = 0)
+#   m <- matrix(c(x[1], x[2], IF_mean, IF_mean), ncol = 2)
+#   pval <- fisher.test(m)$p.value
+#   return(pval)
+# }
 
 
 .adjust_pval <- function(hic.table, Plot) {
