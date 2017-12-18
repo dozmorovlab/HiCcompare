@@ -31,20 +31,6 @@
 #'     for BiocParallel for more information
 #'     \url{http://bioconductor.org/packages/release/bioc/vignettes/BiocParallel/
 #'     inst/doc/Introduction_To_BiocParallel.pdf}
-#' @param check.differences Logical, should difference detection be performed? If TRUE,
-#'     the same procedure as hic_diff will be performed. If FALSE,
-#'     only normalization will be performed on the entered data. Defaults to FALSE.
-#' @param diff.thresh Fold change threshold desired to call a detected difference
-#'     clinically significant. Set to "auto" by default to indicate that the
-#'     difference threshold will be automatically calculated as 2 standard deviations
-#'     of all the adjusted M values. For no p-value adjustment
-#'     set diff.thresh = NA. To set your own threshold enter a numeric value i.e.
-#'     diff.thresh = 1. If set to "auto" or a numeric value, a check will
-#'     be made as follows: if permutation p-value < 0.05 AND M < diff.thresh (the log2
-#'     fold change for the difference between IF1 and IF2) then
-#'     the p-value will be set to 0.5. Defaults to 'auto'.
-#' @param iterations Number of iterations for the permuation test. Will only be used
-#'     if check.differences set to TRUE. Defaults to 10000.
 #'
 #' @details The function takes in a hic.table or a list of hic.table objects created
 #'     with the \code{create.hic.loess} function. If you wish to perform joint
@@ -65,9 +51,8 @@
 #'
 #' @return An updated hic.table is returned with the additional columns of adj.IF1,
 #'    adj.IF2 for the respective normalized IFs, an adj.M column for the
-#'    adjusted M, and mc for the loess correction factor. If \code{check.differences}
-#'    is set to TRUE a column containing the p-values for the
-#'    significance of the difference between the two datasets will also be returned.
+#'    adjusted M, mc for the loess correction factor, and A for the average
+#'    expression value between adj.IF1 and adj.IF2. 
 #'
 #' @examples
 #' # Create hic.table object using included Hi-C data in sparse upper
@@ -82,18 +67,9 @@
 #'
 hic_loess = function(hic.table, degree = 1, span = NA, loess.criterion = 'gcv',
                      Plot = FALSE, Plot.smooth = TRUE,
-                     parallel = FALSE, BP_param = bpparam(),
-                     check.differences = FALSE, diff.thresh = 'auto',  iterations = 10000) {
+                     parallel = FALSE, BP_param = bpparam()
+                     ) {
   # check for correct inputs
-  if (iterations < 100) {
-    stop("Enter a value for iterations >= 100")
-  }
-  if (!is.na(diff.thresh) & is.numeric(diff.thresh) & diff.thresh <= 0) {
-    stop('Enter a numeric value > 0 for diff.thresh or set it to NA or "auto"')
-  }
-  if (!is.na(diff.thresh) & is.character(diff.thresh) & diff.thresh != "auto") {
-    stop('Enter a numeric value > 0 for diff.thresh or set it to NA or "auto"')
-  }
   if (!is.na(span) & span < 0.001) {
     stop('Enter a larger value for span')
   }
@@ -111,36 +87,7 @@ hic_loess = function(hic.table, degree = 1, span = NA, loess.criterion = 'gcv',
                           degree = degree,
                           span = span, loess.criterion = loess.criterion)
 
-  # calculate p-value matrices if option is TRUE
-  if(check.differences) {
-    if (!is.na(diff.thresh)) {
-      if (diff.thresh == 'auto') {
-        diff.thresh = sapply(hic.table, .calc.diff.thresh)
-      }
-    }
-    if (parallel) {
-      if (length(diff.thresh) == 1) {
-        hic.table = BiocParallel::bplapply(hic.table, .calc.pval, Plot = Plot,
-                             Plot.smooth = Plot.smooth, diff.thresh = diff.thresh,
-                             iterations = iterations, BPPARAM = BP_param)
-      } else {
-        hic.table = BiocParallel::bpmapply(.calc.pval, hic.table, diff.thresh,
-                             MoreArgs = list(Plot = Plot, Plot.smooth = Plot.smooth,
-                                             iterations = iterations), SIMPLIFY = FALSE,
-                             BPPARAM = BP_param)
-      }
-    } else {
-      if (length(diff.thresh) == 1) {
-        hic.table = lapply(hic.table, .calc.pval, Plot = Plot, Plot.smooth = Plot.smooth,
-                           diff.thresh = diff.thresh,
-                           iterations = iterations)
-      } else {
-        hic.table = mapply(.calc.pval, hic.table, diff.thresh,
-                           MoreArgs = list(Plot = Plot, Plot.smooth = Plot.smooth,
-                                           iterations = iterations), SIMPLIFY = FALSE)
-      }
-    }
-  }
+ 
   # if there is only one hic.table entered pull it out the list before returning it
   if (length(hic.table) == 1) hic.table = hic.table[[1]]
   return(hic.table)
@@ -291,11 +238,13 @@ hic_loess = function(hic.table, degree = 1, span = NA, loess.criterion = 'gcv',
     hic.table[, `:=`(adj.IF2, 2^(log2(IF2 + 1) - mhat))]
     hic.table[, `:=`(adj.M, log2((adj.IF2)/(adj.IF1)))]
     hic.table[, `:=`(mc, mc)]
+    hic.table[, `:=`(A, (adj.IF1 + adj.IF2)/2)]
   } else {
     hic.table[, `:=`(adj.IF1, 2^(log2(IF1) + mhat))]
     hic.table[, `:=`(adj.IF2, 2^(log2(IF2) - mhat))]
     hic.table[, `:=`(adj.M, log2((adj.IF2)/(adj.IF1)))]
     hic.table[, `:=`(mc, mc)]
+    hic.table[, `:=`(A, (adj.IF1 + adj.IF2)/2)]
   }
   # check for negative values in normalized matrices
   # set any negative values to 0
