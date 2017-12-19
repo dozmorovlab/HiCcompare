@@ -1,0 +1,159 @@
+---
+title: "check KR"
+author: "John Stansfield"
+date: "December 19, 2017"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r libraries}
+library(HiCcompare)
+library(chromoR)
+library(pROC)
+library(MLmetrics)
+library(HiTC)
+library(Matrix)
+library(GenomicRanges)
+library(ggplot2)
+library(gridExtra)
+library(data.table)
+
+```
+
+```{r}
+# load data
+githubURL <- "https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_data/S1_File_data.RData"
+load(url(githubURL))
+```
+
+```{r}
+## `hic.table` format
+
+chr1.tab      <- create.hic.table(S1.dpnii.chr1,   S1.mbol.chr1,        chr = 'chr1')
+chr11.tab     <- create.hic.table(S1.dpnii.chr11,  S1.mbol.chr11,       chr = 'chr11')
+chr18.tab     <- create.hic.table(S1.dpnii.chr18,  S1.mbol.chr18,       chr = 'chr18')
+chr19.tab     <- create.hic.table(S1.dpnii.chr19,  S1.mbol.chr19,       chr = 'chr19')
+replicate.tab <- create.hic.table(S1.primary.chr1, S1.replicate.chr1,   chr = 'chr1')
+rep.chr11.tab <- create.hic.table(S1.primary.chr11, S1.replicate.chr11, chr = 'chr1')
+rep.chr18.tab <- create.hic.table(S1.primary.chr18, S1.replicate.chr18, chr = 'chr1')
+rep.chr19.tab <- create.hic.table(S1.primary.chr19, S1.replicate.chr19, chr = 'chr1')
+
+unscaled.tab       <- create.hic.table(S1.dpnii.chr1,  S1.mbol.chr1,  chr='chr1',  scale=T)
+chr11.unscaled.tab <- create.hic.table(S1.dpnii.chr11, S1.mbol.chr11, chr='chr11', scale=T)
+
+# BEDPE-like hic.table object
+#head(chr1.tab)
+```
+
+
+# default KR
+```{r}
+
+mat1 = sparse2full(chr11.tab[, c('start1', 'start2', 'IF1'), with=F])
+mat2 = sparse2full(chr11.tab[, c('start1', 'start2', 'IF2'), with=F])
+zeros1 = which(colSums(mat1) == 0)
+zeros2 = which(colSums(mat2) == 0)
+if (length(zeros1) > 0) {
+  cr.mat1 = mat1[-zeros1, -zeros1]
+} else {
+  cr.mat1 = mat1
+}
+if (length(zeros2) > 0) {
+  cr.mat2 = mat2[-zeros2, -zeros2]
+} else {
+  cr.mat2 = mat2
+}
+sim1.kr = KRnorm(cr.mat1)
+sim2.kr = KRnorm(cr.mat2)
+colnames(sim1.kr) = colnames(cr.mat1)
+colnames(sim2.kr) = colnames(cr.mat2)
+sim1.kr = full2sparse(sim1.kr)
+sim2.kr = full2sparse(sim2.kr)
+kr.table = create.hic.table(sim1.kr, sim2.kr, scale = FALSE, chr = 'chr11')
+
+kr.table[, ':=' (adj.IF1 = IF1, adj.IF2 = IF2, adj.M = M)]
+
+# p1 = MD.plot2(tab$M, tab$D, smooth = FALSE) + ggtitle('Before Normalization')
+MD.plot2(kr.table$M, kr.table$D, smooth = FALSE) + ggtitle('After Normalization')
+# grid.arrange(p1, p2, ncol = 2)
+
+
+diffs = hic_compare(kr.table, Plot = T,  adjust_dist = FALSE, Plot.smooth = FALSE)
+counts = sum(diffs$p.adj < 0.05)
+print(paste0(counts, ' differences found between the datasets'))
+```
+
+
+# KR multiply matrix by 10k
+
+```{r}
+zeros1 = which(colSums(mat1) == 0)
+zeros2 = which(colSums(mat2) == 0)
+if (length(zeros1) > 0) {
+  cr.mat1 = mat1[-zeros1, -zeros1]
+} else {
+  cr.mat1 = mat1
+}
+if (length(zeros2) > 0) {
+  cr.mat2 = mat2[-zeros2, -zeros2]
+} else {
+  cr.mat2 = mat2
+}
+sim1.kr = KRnorm(cr.mat1)
+sim2.kr = KRnorm(cr.mat2)
+colnames(sim1.kr) = colnames(cr.mat1)
+colnames(sim2.kr) = colnames(cr.mat2)
+sim1.kr = full2sparse(sim1.kr)
+sim2.kr = full2sparse(sim2.kr)
+kr.table = create.hic.table(sim1.kr, sim2.kr, scale = FALSE, chr = 'chr11')
+
+kr.table[, ':=' (adj.IF1 = 10000 * IF1, adj.IF2 = 10000 * IF2)]
+kr.table[, adj.M := log2(adj.IF2 / adj.IF1)]
+
+# p1 = MD.plot2(tab$M, tab$D, smooth = FALSE) + ggtitle('Before Normalization')
+p2 = MD.plot2(kr.table$M, kr.table$D, smooth = FALSE) + ggtitle('After Normalization')
+# grid.arrange(p1, p2, ncol = 2)
+
+
+diffs = hic_compare(kr.table, Plot = T,  adjust_dist = FALSE, Plot.smooth = FALSE)
+counts = sum(diffs$p.adj < 0.05)
+print(paste0(counts, ' differences found between the datasets'))
+```
+
+
+# KR multiply matrix by 100k
+
+```{r}
+zeros1 = which(colSums(mat1) == 0)
+zeros2 = which(colSums(mat2) == 0)
+if (length(zeros1) > 0) {
+  cr.mat1 = mat1[-zeros1, -zeros1]
+} else {
+  cr.mat1 = mat1
+}
+if (length(zeros2) > 0) {
+  cr.mat2 = mat2[-zeros2, -zeros2]
+} else {
+  cr.mat2 = mat2
+}
+sim1.kr = KRnorm(cr.mat1)
+sim2.kr = KRnorm(cr.mat2)
+colnames(sim1.kr) = colnames(cr.mat1)
+colnames(sim2.kr) = colnames(cr.mat2)
+sim1.kr = full2sparse(sim1.kr)
+sim2.kr = full2sparse(sim2.kr)
+kr.table = create.hic.table(sim1.kr, sim2.kr, scale = FALSE, chr = 'chr11')
+
+kr.table[, ':=' (adj.IF1 = 100000 * IF1, adj.IF2 = 100000 * IF2)]
+kr.table[, adj.M := log2(adj.IF2 / adj.IF1)]
+
+# p1 = MD.plot2(tab$M, tab$D, smooth = FALSE) + ggtitle('Before Normalization')
+p2 = MD.plot2(kr.table$M, kr.table$D, smooth = FALSE) + ggtitle('After Normalization')
+# grid.arrange(p1, p2, ncol = 2)
+
+
+diffs = hic_compare(kr.table, Plot = T,  adjust_dist = FALSE, Plot.smooth = FALSE)
+counts = sum(diffs$p.adj < 0.05)
+print(paste0(counts, ' differences found between the datasets'))
+```
