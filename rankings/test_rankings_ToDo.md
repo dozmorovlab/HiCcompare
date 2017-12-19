@@ -34,3 +34,10 @@
 - grep -i hicdiff *.R in R folder, replace old instances in documentation
 - Redo Vignette
 - go through all functions to make sure unnecessary ones added for testing are removed
+
+
+- go back to ranks
+- do ROC to figure out A and M cutoffs for what to call significant
+- use smyth data as gold standard
+  - regions with 50% overlap with their significant regions for gold standard
+  

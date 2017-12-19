@@ -4,6 +4,8 @@
 #' @param hic.table A hic.table or list of hic.tables output from the
 #'     \code{hic_loess} function. hic.table must be jointly normalized
 #'     before being entered.
+#' @param A.quantile The quantile of A values would like to be filtered
+#'     out. Defaults to 0.1. Typically should be between 0.05-0.2.
 #' @param Plot Logical, should the MD plot showing before/after loess normalization
 #'     be output?
 #' @param Plot.smooth Logical, defaults to TRUE indicating the MD plot
@@ -46,9 +48,9 @@
 #' # perform difference detection
 #' diff.result <- hic_compare(result, Plot = TRUE)
 #'
-hic_compare <- function(hic.table, adjust_dist = TRUE,
-                     Plot = FALSE, Plot.smooth = TRUE,
-                     parallel = FALSE, BP_param = bpparam()) {
+hic_compare <- function(hic.table, adjust_dist = TRUE, A.quantile = 0.1, p.method = 'fdr',
+                        Plot = FALSE, Plot.smooth = TRUE,
+                        parallel = FALSE, BP_param = bpparam()) {
   # check for correct input
   if (is(hic.table, "list")) {
     if ( sapply(hic.table, ncol) %>% min() < 13) {
@@ -64,23 +66,23 @@ hic_compare <- function(hic.table, adjust_dist = TRUE,
     hic.table <- list(hic.table)
   }
   
-  # perform fisher's exact test on each element of the list
+  # calculate z-scores
   if (parallel) {
-    hic.table <- BiocParallel::bplapply(hic.table, .kal) 
+    hic.table <- BiocParallel::bplapply(hic.table, .calc_z, quant = A.quantile) 
   } else {
-    hic.table <- lapply(hic.table, .kal) 
+    hic.table <- lapply(hic.table, .calc_z, quant = A.quantile) 
   }
   
   # adjust p-values
   if (adjust_dist) {
     if (parallel) {
-      hic.table <- BiocParallel::bplapply(hic.table, .adjust_pval, Plot = Plot) ### May need to change this to calc_z2/calc_z
+      hic.table <- BiocParallel::bplapply(hic.table, .adjust_pval, Plot = Plot, p.method = p.method)
     } else {
-      hic.table <- lapply(hic.table, .adjust_pval, Plot = Plot) ### May need to change this to calc_z2/calc_z
+      hic.table <- lapply(hic.table, .adjust_pval, Plot = Plot, p.method = p.method) 
     }
   } else {
     hic.table <- lapply(hic.table, function(x) {
-      x[, p.adj := p.adjust(x$p.value, method = 'fdr')]
+      x[, p.adj := p.adjust(x$p.value, method = p.method)]
       return(x)
     })
     if (Plot) lapply(hic.table, function(x) {
@@ -97,41 +99,218 @@ hic_compare <- function(hic.table, adjust_dist = TRUE,
 }
 
 
-# background functions for hic_compare
 
-.kal <- function(hic.table) {
-  # get sum of all IFs at each distance
-  N1 <- aggregate(hic.table$adj.IF1, by = list(hic.table$D), sum)
-  N2 <- aggregate(hic.table$adj.IF2, by = list(hic.table$D), sum)
-  colnames(N1) <- c('D', 'N1')
-  colnames(N2) <- c('D', 'N2')
-  new.table <- left_join(hic.table, N1, by = c('D' = 'D')) %>% as.data.table()
-  new.table <- left_join(new.table, N2, by = c('D' = 'D')) %>% as.data.table()
-  
-  # start kal test
-  p1 <- new.table$adj.IF1 / new.table$N1
-  p2 <- new.table$adj.IF2 / new.table$N2
-  p0 <- (new.table$adj.IF1 + new.table$adj.IF2) / (new.table$N1 + new.table$N2)
-  Z1 = (p1 - p2) / (sqrt( (p0 * (1 - p0) / new.table$N1) + (p0 * (1 - p0) / new.table$N2) ))
-  pval <- 2 * pnorm(-abs(Z1))
-  new.table[, Z := Z1]
-  new.table[, p.value := pval]
-  
-  # fix any NaNs for final distance
-  if (sum(is.na(new.table$Z)) > 0) {
-    new.table[is.na(Z), ]$p.value <- 1
-    new.table[is.na(Z), ]$p.adj <- 1
-    new.table[is.na(Z), ]$Z <- 0
-  }
-  # remove N columns
-  new.table[, N1 := NULL]
-  new.table[, N2 := NULL]
-  
-  
-  # MD.plot2(new.table$adj.M, new.table$D, new.table$p.value)
-  
-  return(new.table)
-} 
+
+# version where z scores calculated first then z scores with A < thresh set to 0
+.calc_z <- function(hic.table, quant, Plot  = TRUE) {
+  # add average expression to table
+  A <- (hic.table$adj.IF1 + hic.table$adj.IF2) / 2
+  hic.table[, A := A]
+  threshold <- quantile((hic.table$A), quant, na.rm = TRUE)
+  Z1 <- (hic.table$adj.M - mean(hic.table$adj.M)) / sd(hic.table$adj.M)
+  # set z-scores where A < threshold to 0
+  Z1[hic.table$A < threshold] <- 0
+  hic.table[, Z := Z1]
+  hic.table[, p.value := 2*pnorm(abs(Z), lower.tail = FALSE)]
+  if (Plot) MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.value)
+  return(hic.table)
+}
+
+
+# version where M values with A < 0 removed before z score calculations
+.calc_z2 <- function(hic.table, quant, Plot = TRUE) {
+  # add average expression to table
+  A <- (hic.table$adj.IF1 + hic.table$adj.IF2) / 2
+  hic.table[, A := A]
+  threshold <- quantile((hic.table$A), quant, na.rm = TRUE)
+  new_M <- hic.table$adj.M
+  new_M[hic.table$A < threshold] <- NA
+  Z1 <- (new_M - mean(new_M, na.rm = TRUE)) / sd(new_M, na.rm = TRUE)
+  hic.table[, Z := Z1]
+  hic.table[, p.value := 2*pnorm(abs(Z), lower.tail = FALSE)]
+  if (Plot) MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.value)
+  return(hic.table)
+}
+
+
+.adjust_pval <- function(hic.table, Plot, p.method) {
+  # apply distance wise FDR p-value correction
+  # split table up for each distance
+  temp_list <- S4Vectors::split(hic.table, hic.table$D)
+  # combined top 15% of distances into single data.table
+  all_dist <- sort(unique(hic.table$D))
+  dist_85 <- ceiling(0.85 * length(all_dist))
+  temp_list2 <- temp_list[1:dist_85]
+  temp_list2[[dist_85+1]] <- data.table::rbindlist(temp_list[(dist_85+1):length(temp_list)])
+  temp_list <- temp_list2
+  rm("temp_list2")
+  # adjust p-values
+  temp_list <- lapply(temp_list, function(x) {
+    x[, p.adj := p.adjust(p.value, method = p.method)]
+    return(x)
+  })
+  # recombine into one table
+  hic.table <- rbindlist(temp_list)
+
+  if (Plot) MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj)
+  return(hic.table)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##########################################################################
+##########################################################################
+# OLD METHOD
+
+#' #' Detect differences between two jointly normalized Hi-C datasets.
+#' #'
+#' #' @export
+#' #' @param hic.table A hic.table or list of hic.tables output from the
+#' #'     \code{hic_loess} function. hic.table must be jointly normalized
+#' #'     before being entered.
+#' #' @param Plot Logical, should the MD plot showing before/after loess normalization
+#' #'     be output?
+#' #' @param Plot.smooth Logical, defaults to TRUE indicating the MD plot
+#' #'     will be a smooth scatter plot. Set to FALSE for a scatter plot
+#' #'     with discrete points.
+#' #' @param parallel Logical, set to TRUE to utilize the \code{parallel} package's
+#' #'     parallelized computing. Only works on unix operating systems. Only useful if
+#' #'     entering a list of hic.tables.
+#' #' @param BP_param Parameters for BiocParallel. Defaults to bpparam(), see help
+#' #'     for BiocParallel for more information
+#' #'     \url{http://bioconductor.org/packages/release/bioc/vignettes/BiocParallel/
+#' #'     inst/doc/Introduction_To_BiocParallel.pdf}
+#' #'
+#' #'
+#' #' @details  The function takes in a hic.table or a list of hic.table objects created
+#' #'     with the \code{hic_loess} function. If you wish to perform difference
+#' #'     detection on Hi-C data for multiple chromosomes use a list of hic.tables. The process
+#' #'     can be parallelized using the \code{parallel}
+#' #'     setting. The adjusted IF and adjusted M calculated from \code{hic_loess} are used for
+#' #'     difference detection. Fisher's exact test is performed for each pair of IFs between
+#' #'     the two datasets. For example if IF1 = 50 and IF2 = 100 we create a 2x2 table of the
+#' #'     form \code{matrix(c(50, 100, 75, 75), ncol=2)}. The null hypothesis is that IF1 = IF2
+#' #'     = Average expression of IF1 and IF2. We can then perform fisher's exact test on this
+#' #'     2x2 table. FDR p-value adjustment for multiple testing is then performed on a per
+#' #'     distance basis. i.e. at each distance the vector of p-values corresponding to the
+#' #'     interactions occuring at that distance have the FDR multiple testing correction 
+#' #'     applied to them. See methods of Stansfield & Dozmorov 2017 for more details.
+#' #'
+#' #' @return A hic.table with additional columns containing a p-value for the significance
+#' #'     of the difference and the raw fold change between the IFs of the two datasets.
+#' #'
+#' #' @examples
+#' #' # Create hic.table object using included Hi-C data in sparse upper triangular
+#' #' # matrix format
+#' #' data('HMEC.chr22')
+#' #' data('NHEK.chr22')
+#' #' hic.table <- create.hic.table(HMEC.chr22, NHEK.chr22, chr = 'chr22')
+#' #' # Plug hic.table into hic_loess()
+#' #' result <- hic_loess(hic.table, Plot = TRUE)
+#' #' # perform difference detection
+#' #' diff.result <- hic_compare(result, Plot = TRUE)
+#' #'
+#' hic_compare <- function(hic.table, adjust_dist = TRUE,
+#'                      Plot = FALSE, Plot.smooth = TRUE,
+#'                      parallel = FALSE, BP_param = bpparam()) {
+#'   # check for correct input
+#'   if (is(hic.table, "list")) {
+#'     if ( sapply(hic.table, ncol) %>% min() < 13) {
+#'       stop("Make sure you run hic_loess() on your hic.table before inputting it into hic_diff()")
+#'     }
+#'   } else {
+#'     if (ncol(hic.table) < 13) {
+#'       stop("Make sure you run hic_loess() on your hic.table before inputting it into hic_diff()")
+#'     }
+#'   }
+#'   # check if single hic.table or list
+#'   if (is.data.table(hic.table)) {
+#'     hic.table <- list(hic.table)
+#'   }
+#'   
+#'   # perform fisher's exact test on each element of the list
+#'   if (parallel) {
+#'     hic.table <- BiocParallel::bplapply(hic.table, .kal) 
+#'   } else {
+#'     hic.table <- lapply(hic.table, .kal) 
+#'   }
+#'   
+#'   # adjust p-values
+#'   if (adjust_dist) {
+#'     if (parallel) {
+#'       hic.table <- BiocParallel::bplapply(hic.table, .adjust_pval, Plot = Plot) ### May need to change this to calc_z2/calc_z
+#'     } else {
+#'       hic.table <- lapply(hic.table, .adjust_pval, Plot = Plot) ### May need to change this to calc_z2/calc_z
+#'     }
+#'   } else {
+#'     hic.table <- lapply(hic.table, function(x) {
+#'       x[, p.adj := p.adjust(x$p.value, method = 'fdr')]
+#'       return(x)
+#'     })
+#'     if (Plot) lapply(hic.table, function(x) {
+#'       MD.plot2(x$adj.M, x$D, x$p.adj)
+#'     })
+#'   }
+#'   
+#'   
+#'   # clean up if single hic.table
+#'   if (length(hic.table) == 1) {
+#'     hic.table <- hic.table[[1]]
+#'   }
+#'   return(hic.table)
+#' }
+#' 
+#' 
+#' # background functions for hic_compare
+#' 
+#' .kal <- function(hic.table) {
+#'   # get sum of all IFs at each distance
+#'   N1 <- aggregate(hic.table$adj.IF1, by = list(hic.table$D), sum)
+#'   N2 <- aggregate(hic.table$adj.IF2, by = list(hic.table$D), sum)
+#'   colnames(N1) <- c('D', 'N1')
+#'   colnames(N2) <- c('D', 'N2')
+#'   new.table <- left_join(hic.table, N1, by = c('D' = 'D')) %>% as.data.table()
+#'   new.table <- left_join(new.table, N2, by = c('D' = 'D')) %>% as.data.table()
+#'   
+#'   # start kal test
+#'   p1 <- new.table$adj.IF1 / new.table$N1
+#'   p2 <- new.table$adj.IF2 / new.table$N2
+#'   p0 <- (new.table$adj.IF1 + new.table$adj.IF2) / (new.table$N1 + new.table$N2)
+#'   Z1 = (p1 - p2) / (sqrt( (p0 * (1 - p0) / new.table$N1) + (p0 * (1 - p0) / new.table$N2) ))
+#'   pval <- 2 * pnorm(-abs(Z1))
+#'   new.table[, Z := Z1]
+#'   new.table[, p.value := pval]
+#'   
+#'   # fix any NaNs for final distance
+#'   if (sum(is.na(new.table$Z)) > 0) {
+#'     new.table[is.na(Z), ]$p.value <- 1
+#'     new.table[is.na(Z), ]$p.adj <- 1
+#'     new.table[is.na(Z), ]$Z <- 0
+#'   }
+#'   # remove N columns
+#'   new.table[, N1 := NULL]
+#'   new.table[, N2 := NULL]
+#'   
+#'   
+#'   # MD.plot2(new.table$adj.M, new.table$D, new.table$p.value)
+#'   
+#'   return(new.table)
+#' } 
 
 
 # # function to perform fisher's exact test on individual hic.table
@@ -158,28 +337,28 @@ hic_compare <- function(hic.table, adjust_dist = TRUE,
 # }
 
 
-.adjust_pval <- function(hic.table, Plot) {
-  # apply distance wise FDR p-value correction
-  # split table up for each distance
-  temp_list <- S4Vectors::split(hic.table, hic.table$D)
-  # combined top 15% of distances into single data.table
-  all_dist <- sort(unique(hic.table$D))
-  dist_85 <- ceiling(0.85 * length(all_dist))
-  temp_list2 <- temp_list[1:dist_85]
-  temp_list2[[dist_85+1]] <- data.table::rbindlist(temp_list[(dist_85+1):length(temp_list)])
-  temp_list <- temp_list2
-  rm("temp_list2")
-  # adjust p-values
-  temp_list <- lapply(temp_list, function(x) {
-    x[, p.adj := p.adjust(p.value, method = 'fdr')]
-    return(x)
-  })
-  # recombine into one table
-  hic.table <- rbindlist(temp_list)
-  
-  if (Plot) MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj)
-  return(hic.table)
-}
+# .adjust_pval <- function(hic.table, Plot) {
+#   # apply distance wise FDR p-value correction
+#   # split table up for each distance
+#   temp_list <- S4Vectors::split(hic.table, hic.table$D)
+#   # combined top 15% of distances into single data.table
+#   all_dist <- sort(unique(hic.table$D))
+#   dist_85 <- ceiling(0.85 * length(all_dist))
+#   temp_list2 <- temp_list[1:dist_85]
+#   temp_list2[[dist_85+1]] <- data.table::rbindlist(temp_list[(dist_85+1):length(temp_list)])
+#   temp_list <- temp_list2
+#   rm("temp_list2")
+#   # adjust p-values
+#   temp_list <- lapply(temp_list, function(x) {
+#     x[, p.adj := p.adjust(p.value, method = 'fdr')]
+#     return(x)
+#   })
+#   # recombine into one table
+#   hic.table <- rbindlist(temp_list)
+#   
+#   if (Plot) MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj)
+#   return(hic.table)
+# }
 
 
 ########
