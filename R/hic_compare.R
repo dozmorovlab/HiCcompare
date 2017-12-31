@@ -48,7 +48,7 @@
 #' # perform difference detection
 #' diff.result <- hic_compare(result, Plot = TRUE)
 #'
-hic_compare <- function(hic.table, adjust_dist = TRUE, A.quantile = 0.1, p.method = 'fdr',
+hic_compare <- function(hic.table, adjust_dist = TRUE, A.quantile = 0.1, p.method = 'holm',
                         Plot = FALSE, Plot.smooth = TRUE,
                         parallel = FALSE, BP_param = bpparam()) {
   # check for correct input
@@ -102,10 +102,11 @@ hic_compare <- function(hic.table, adjust_dist = TRUE, A.quantile = 0.1, p.metho
 
 
 # version where z scores calculated first then z scores with A < thresh set to 0
+# this version means that M values have wider standard deviation thus lower Z-scores
 .calc_z <- function(hic.table, quant, Plot  = TRUE) {
   # add average expression to table
-  A <- (hic.table$adj.IF1 + hic.table$adj.IF2) / 2
-  hic.table[, A := A]
+  # A <- (hic.table$adj.IF1 + hic.table$adj.IF2) / 2
+  # hic.table[, A := A]
   threshold <- quantile((hic.table$A), quant, na.rm = TRUE)
   Z1 <- (hic.table$adj.M - mean(hic.table$adj.M)) / sd(hic.table$adj.M)
   # set z-scores where A < threshold to 0
@@ -118,10 +119,11 @@ hic_compare <- function(hic.table, adjust_dist = TRUE, A.quantile = 0.1, p.metho
 
 
 # version where M values with A < 0 removed before z score calculations
+# this version makes M have a lower standard deviation and thus higher z-scores
 .calc_z2 <- function(hic.table, quant, Plot = TRUE) {
   # add average expression to table
-  A <- (hic.table$adj.IF1 + hic.table$adj.IF2) / 2
-  hic.table[, A := A]
+  # A <- (hic.table$adj.IF1 + hic.table$adj.IF2) / 2
+  # hic.table[, A := A]
   threshold <- quantile((hic.table$A), quant, na.rm = TRUE)
   new_M <- hic.table$adj.M
   new_M[hic.table$A < threshold] <- NA
