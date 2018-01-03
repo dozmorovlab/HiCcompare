@@ -26,6 +26,16 @@ chr1.table <- create.hic.table(chr1.primary, chr1.replicate, chr = 'chr1', scale
 backup.table <- create.hic.table(chr1.primary, chr1.replicate, chr = 'chr1', scale = TRUE)
 ```
 
+## See what is found different before any changes
+
+```{r}
+chr1.table <- hic_loess(chr1.table)
+chr1.table <- hic_compare(chr1.table, adjust_dist = TRUE, p.method = 'holm', A.quantile = 0.1, Plot = TRUE)
+sum(chr1.table$p.adj < 0.05)
+```
+
+
+
 ## function to spike differences and generate ROC
 
 ```{r}
