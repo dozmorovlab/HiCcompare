@@ -1,0 +1,90 @@
+---
+title: "differences by distance"
+author: "John Stansfield"
+date: "January 3, 2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# Set up
+
+```{r, message=F, warning=F}
+library(readr)
+library(data.table)
+library(HiCcompare)
+library(dplyr)
+library(pROC)
+```
+
+## read in GM12878 replicates data
+```{r}
+chr1.primary <- read.table("D:/3D_DNA/GM12878_replicates/GM12878_primary_1000000/primary.chr1.1000000.txt")
+chr1.replicate <- read.table("D:/3D_DNA/GM12878_replicates/GM12878_replicate_1000000/replicate.chr1.1000000.txt")
+
+chr1.table <- create.hic.table(chr1.primary, chr1.replicate, chr = 'chr1', scale = TRUE)
+backup.table <- create.hic.table(chr1.primary, chr1.replicate, chr = 'chr1', scale = TRUE)
+```
+
+## function to spike differences and generate ROC
+
+```{r}
+make_ROC <- function(raw1, raw2, FC = 2, numChanges= 10, dist = 1, A.quantile = 0.1, adjust_dist = TRUE,  p.method = 'holm') {
+  hic.table <- create.hic.table(raw1, raw2, chr='chr1', scale = TRUE)
+  # spike in differences
+  # get which interactions at distance
+  sample_space <- which(hic.table$D == dist)
+  changes <- sample(sample_space, numChanges)
+  # set IFs to mean IF then multiply one by FC
+  
+  meanIF <- ((hic.table[changes,]$IF1 + hic.table[changes,]$IF2) / 2) %>% round() %>% as.integer()
+  hic.table[changes, IF1 := meanIF ]
+  hic.table[changes, IF2 := meanIF]
+  newIF <- hic.table[changes,]$IF1 * FC %>% as.integer()
+  hic.table[changes, IF1 :=  newIF]
+  hic.table = hic.table[, M := log2(IF2/IF1)]
+  truth <- rep(0, nrow(hic.table))
+  truth[changes] <- 1
+  hic.table[, truth := truth]
+  
+  # run HiCcompare
+  hic.table <- hic_loess(hic.table, Plot = TRUE)
+  hic.table <- hic_compare(hic.table, adjust_dist = adjust_dist, A.quantile = A.quantile, p.method = p.method, Plot = TRUE)
+  
+  
+  # get number true positive
+  # print('number TRUE POSITIVE')
+  # print(sum(hic.table[changes,]$p.adj < 0.05))
+  
+  # make ROC
+  result <- list(roc(response = hic.table$truth, predictor = hic.table$p.adj), hic.table)
+  return(result)
+}
+```
+
+# ROC
+
+```{r}
+# chr1.table <- backup.table
+fc2d1 <- make_ROC(chr1.primary, chr1.replicate, FC = 2, numChanges = 10, dist = 1, A.quantile = 0.1, adjust_dist = TRUE, p.method = 'holm')
+fc2d10 <- make_ROC(chr1.primary, chr1.replicate, FC = 2, numChanges = 10, dist = 10, A.quantile = 0.1, adjust_dist = TRUE, p.method = 'holm')
+fc2d40 <- make_ROC(chr1.primary, chr1.replicate, FC = 2, numChanges = 10, dist = 40, A.quantile = 0.1, adjust_dist = TRUE, p.method = 'holm')
+fc2d50 <- make_ROC(chr1.primary, chr1.replicate, FC = 2, numChanges = 10, dist = 50, A.quantile = 0.1, adjust_dist = TRUE, p.method = 'holm')
+fc2d60 <- make_ROC(chr1.primary, chr1.replicate, FC = 2, numChanges = 10, dist = 60, A.quantile = 0.1, adjust_dist = TRUE, p.method = 'holm')
+
+
+plot_colors = c('black', 'blue', 'red', 'green', 'purple', 'orange')
+plot(fc2d1[[1]])
+plot(fc2d10[[1]], col = plot_colors[2], add = TRUE)
+plot(fc2d40[[1]], col = plot_colors[3], add = TRUE)
+plot(fc2d50[[1]], col = plot_colors[4], add = TRUE)
+plot(fc2d60[[1]], col = plot_colors[5], add = TRUE)
+
+sum(fc2d1[[2]][truth == 1,]$p.adj < 0.05)
+sum(fc2d10[[2]][truth == 1,]$p.adj < 0.05)
+sum(fc2d40[[2]][truth == 1,]$p.adj < 0.05)
+sum(fc2d50[[2]][truth == 1,]$p.adj < 0.05)
+sum(fc2d60[[2]][truth == 1,]$p.adj < 0.05)
+```
+
+

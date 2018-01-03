@@ -122,7 +122,7 @@ smyth.sig <- smyth.gi[smyth.gi$FDR < 0.05,]
 smyth.sig <- sort(smyth.sig)
 
 # get overlaps
-olaps <- InteractionSet::findOverlaps(smyth.sig, ours, use.region = 'same', minoverlap = 10000)
+olaps <- InteractionSet::findOverlaps(smyth.sig, ours, use.region = 'same', minoverlap = 500000)
 # make truth vector
 truth <- rep(0, length(ours))
 truth[unique(olaps@to)] <- 1
@@ -148,6 +148,8 @@ sum(truth == 1)
 sum(truth == 1 & ours@elementMetadata$p.adj < 0.05)
 sum(truth == 1 & ours@elementMetadata$p.value < 0.05)
 
+sum(ours@elementMetadata$p.value < 0.05)
+sum(ours@elementMetadata$p.adj < 0.05)
 
 ```
 

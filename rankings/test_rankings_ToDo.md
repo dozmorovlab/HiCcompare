@@ -41,3 +41,7 @@
 - use smyth data as gold standard
   - regions with 50% overlap with their significant regions for gold standard
   
+  
+- do 2 ROCs one at short distance and one at large distance
+- spike in differences only at single distance at a time and run our method on it then generate ROC
+
