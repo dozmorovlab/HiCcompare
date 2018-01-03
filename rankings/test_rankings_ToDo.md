@@ -44,4 +44,21 @@
   
 - do 2 ROCs one at short distance and one at large distance
 - spike in differences only at single distance at a time and run our method on it then generate ROC
+- do different normalization methods and ROC at distances same as for hiccompare
+- for ROCs fix Distance and vary fold change
+  - fix folc change, vary distance
 
+- need to write out justifications for difference detection method
+  - why use 10% of A to throw out
+  - which p-value adjustment method
+  - show how it works over different resolutions / chrs
+  - justify that M is approximately normal at diff resolutions / distances
+  - show that slices of M's at different distances are the same so that we can pool them all together for standardizing to Z scores
+  - try to use FDR instead of holm because it is easier to interpret
+  
+look for pairs() function to make QQplots
+google for plot pairwise combinations of columns
+scatterplotmatrix
+psych package
+
+- prepare manuscript for bioinformatics
