@@ -2,7 +2,9 @@
 title: "smyth_goldstandard"
 author: "John Stansfield"
 date: "December 31, 2017"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 # set up
@@ -14,6 +16,7 @@ library(InteractionSet)
 library(MDmisc)
 library(ggplot2)
 library(gridExtra)
+library(pROC)
 ```
 
 ```{r}
@@ -69,14 +72,14 @@ lib1_tables <- total_sum(lib1_tables)
 
 ```{r}
 # pdf(file = paste0(man_path, 'new_data.pdf'))
-lib1_tables <- hic_loess(lib1_tables, Plot = TRUE, span = NA)
+lib1_tables <- hic_loess(lib1_tables, Plot = FALSE, span = NA)
 # dev.off()
 
 # pdf(file = paste0(man_path, 'new_data_diff.pdf'))
 # lib1_tables <- hic_diff(lib1_tables, Plot = TRUE, diff.thresh = NA, iterations = 1000)
 # dev.off()
 
-lib1_tables <- hic_compare(lib1_tables, Plot = TRUE, adjust_dist = TRUE, A.quantile = 0.1, p.method = 'holm')
+lib1_tables <- hic_compare(lib1_tables, Plot = FALSE, adjust_dist = TRUE, A.quantile = 0.05, p.method = 'holm')
 ```
 
 
@@ -120,8 +123,33 @@ smyth.sig <- sort(smyth.sig)
 
 # get overlaps
 olaps <- InteractionSet::findOverlaps(smyth.sig, ours, use.region = 'same', minoverlap = 10000)
-
+# make truth vector
+truth <- rep(0, length(ours))
+truth[unique(olaps@to)] <- 1
 ```
 
 
+# ROC 
+
+```{r}
+pval_roc <- roc(response = truth, predictor = ours@elementMetadata$p.value)
+adjpval_roc <- roc(response = truth, predictor = ours@elementMetadata$p.adj)
+
+
+plot(pval_roc)
+plot(adjpval_roc, add = TRUE, col = 'red')
+```
+
+
+# look at how smyth corresponds to our results
+
+```{r}
+sum(truth == 1)
+sum(truth == 1 & ours@elementMetadata$p.adj < 0.05)
+sum(truth == 1 & ours@elementMetadata$p.value < 0.05)
+
+
+```
+
+smyth significant regions and our significant regions barely overlap.
 
