@@ -4,13 +4,28 @@
 \alias{hic_compare}
 \title{Detect differences between two jointly normalized Hi-C datasets.}
 \usage{
-hic_compare(hic.table, Plot = FALSE, Plot.smooth = TRUE, parallel = FALSE,
+hic_compare(hic.table, A.quantile = 0.1, adjust.dist = TRUE,
+  p.method = "fdr", Plot = FALSE, Plot.smooth = TRUE, parallel = FALSE,
   BP_param = bpparam())
 }
 \arguments{
 \item{hic.table}{A hic.table or list of hic.tables output from the
 \code{hic_loess} function. hic.table must be jointly normalized
 before being entered.}
+
+\item{A.quantile}{The quantile of A values you would like to be filtered
+out. Defaults to 0.1. Typically should be between 0.05-0.2.}
+
+\item{adjust.dist}{Logical, should the p-value adjustment be performed
+on a per distance basis. i.e. The p-values at distance 1 will be grouped
+and the p-value adjustment will be applied. This process is repeated for
+each distance. The highest 15% of distancecs are grouped together i.e. 
+if you matrix has a maximum distance of 100, then distances 85-100 will be
+pooled together for p-value adjustment.}
+
+\item{p.method}{The method for p-value adjustment. See ?p.adjust() help for
+options and more information. Defaults to "fdr". Can be set to "none" for
+no p-value adjustments.}
 
 \item{Plot}{Logical, should the MD plot showing before/after loess normalization
 be output?}
@@ -41,13 +56,16 @@ The function takes in a hic.table or a list of hic.table objects created
     detection on Hi-C data for multiple chromosomes use a list of hic.tables. The process
     can be parallelized using the \code{parallel}
     setting. The adjusted IF and adjusted M calculated from \code{hic_loess} are used for
-    difference detection. Fisher's exact test is performed for each pair of IFs between
-    the two datasets. For example if IF1 = 50 and IF2 = 100 we create a 2x2 table of the
-    form \code{matrix(c(50, 100, 75, 75), ncol=2)}. The null hypothesis is that IF1 = IF2
-    = Average expression of IF1 and IF2. We can then perform fisher's exact test on this
-    2x2 table. FDR p-value adjustment for multiple testing is then performed on a per
-    distance basis. i.e. at each distance the vector of p-values corresponding to the
-    interactions occuring at that distance have the FDR multiple testing correction 
+    difference detection. Difference detection is performed by converting adjusted M 
+    values to Z-scores. Any M value with a corresponding average expression level (A;
+    mean of IF1 and IF2)
+    less than the specified A.quantile has it's Z-score set to 0. This throws out the
+    untrustworthy interactions that tend to produce false positives.
+    The Z-scores are assumed to follow a roughly standard normal
+    distribution and p-values are obtained. P-value adjustment for multiple testing 
+    is then performed on a per distance basis (or on all p-values, optionally). 
+    i.e. at each distance the vector of p-values corresponding to the
+    interactions occuring at that distance have the selected multiple testing correction 
     applied to them. See methods of Stansfield & Dozmorov 2017 for more details.
 }
 \examples{

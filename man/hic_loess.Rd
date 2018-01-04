@@ -6,8 +6,7 @@
 \usage{
 hic_loess(hic.table, degree = 1, span = NA, loess.criterion = "gcv",
   Plot = FALSE, Plot.smooth = TRUE, parallel = FALSE,
-  BP_param = bpparam(), check.differences = FALSE, diff.thresh = "auto",
-  iterations = 10000)
+  BP_param = bpparam())
 }
 \arguments{
 \item{hic.table}{hic.table or a list of hic.tables generated from
@@ -47,30 +46,12 @@ entering a list of hic.tables. Defauts to FALSE.}
 for BiocParallel for more information
 \url{http://bioconductor.org/packages/release/bioc/vignettes/BiocParallel/
 inst/doc/Introduction_To_BiocParallel.pdf}}
-
-\item{check.differences}{Logical, should difference detection be performed? If TRUE,
-the same procedure as hic_diff will be performed. If FALSE,
-only normalization will be performed on the entered data. Defaults to FALSE.}
-
-\item{diff.thresh}{Fold change threshold desired to call a detected difference
-clinically significant. Set to "auto" by default to indicate that the
-difference threshold will be automatically calculated as 2 standard deviations
-of all the adjusted M values. For no p-value adjustment
-set diff.thresh = NA. To set your own threshold enter a numeric value i.e.
-diff.thresh = 1. If set to "auto" or a numeric value, a check will
-be made as follows: if permutation p-value < 0.05 AND M < diff.thresh (the log2
-fold change for the difference between IF1 and IF2) then
-the p-value will be set to 0.5. Defaults to 'auto'.}
-
-\item{iterations}{Number of iterations for the permuation test. Will only be used
-if check.differences set to TRUE. Defaults to 10000.}
 }
 \value{
 An updated hic.table is returned with the additional columns of adj.IF1,
    adj.IF2 for the respective normalized IFs, an adj.M column for the
-   adjusted M, and mc for the loess correction factor. If \code{check.differences}
-   is set to TRUE a column containing the p-values for the
-   significance of the difference between the two datasets will also be returned.
+   adjusted M, mc for the loess correction factor, and A for the average
+   expression value between adj.IF1 and adj.IF2.
 }
 \description{
 Perform joint loess normalization on two Hi-C datasets
