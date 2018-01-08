@@ -123,6 +123,8 @@ hic_compare <- function(hic.table, A.quantile = 0.1, adjust.dist = TRUE, p.metho
   Z1 <- (hic.table$adj.M - mean(hic.table$adj.M)) / sd(hic.table$adj.M)
   # set z-scores where A < threshold to 0
   Z1[hic.table$A < threshold] <- 0
+  # set z-score to 0 if either adj.IF1 or adj.IF2 < 1
+  Z1[hic.table$adj.IF1 < 1 | hic.table$adj.IF2 < 1] <- 0
   hic.table[, Z := Z1]
   hic.table[, p.value := 2*pnorm(abs(Z), lower.tail = FALSE)]
   # if (Plot) MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.value)
@@ -140,6 +142,8 @@ hic_compare <- function(hic.table, A.quantile = 0.1, adjust.dist = TRUE, p.metho
   new_M <- hic.table$adj.M
   new_M[hic.table$A < threshold] <- NA
   Z1 <- (new_M - mean(new_M, na.rm = TRUE)) / sd(new_M, na.rm = TRUE)
+  # set z-score to 0 if either adj.IF1 or adj.IF2 < 1
+  Z1[hic.table$adj.IF1 < 1 | hic.table$adj.IF2 < 1] <- 0
   hic.table[, Z := Z1]
   hic.table[, p.value := 2*pnorm(abs(Z), lower.tail = FALSE)]
   # if (Plot) MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.value)
