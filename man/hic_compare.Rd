@@ -20,7 +20,9 @@ out. Defaults to 0.1. Typically should be between 0.05-0.2.}
 considered. This is an alternate option to A.quantile. All Z-scores
 where the corresponding A value is < A.min will be set to 0. 
 Defaults to NA. If NA, only A.quantile will be used for filtering
-low reads.}
+low reads. Note that if A.min is set to a value then no filtering 
+will be performed based on A.quantile. Filtering will only be based
+on A.min.}
 
 \item{adjust.dist}{Logical, should the p-value adjustment be performed
 on a per distance basis. i.e. The p-values at distance 1 will be grouped

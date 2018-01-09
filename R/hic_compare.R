@@ -10,7 +10,9 @@
 #'     considered. This is an alternate option to A.quantile. All Z-scores
 #'     where the corresponding A value is < A.min will be set to 0. 
 #'     Defaults to NA. If NA, only A.quantile will be used for filtering
-#'     low reads.
+#'     low reads. Note that if A.min is set to a value then no filtering 
+#'     will be performed based on A.quantile. Filtering will only be based
+#'     on A.min.
 #' @param adjust.dist Logical, should the p-value adjustment be performed
 #'     on a per distance basis. i.e. The p-values at distance 1 will be grouped
 #'     and the p-value adjustment will be applied. This process is repeated for
@@ -142,6 +144,7 @@ hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = T
     # set z-score to 0 if either adj.IF1 or adj.IF2 < 1
     Z1[hic.table$adj.IF1 < 1 | hic.table$adj.IF2 < 1] <- 0
   } else {
+    # Set Z scores where A < A.min to 0
     Z1[hic.table$A < A.min] <- 0
   }
   
@@ -161,16 +164,19 @@ hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = T
   threshold <- quantile((hic.table$A), quant, na.rm = TRUE)
   new_M <- hic.table$adj.M
   if (is.na(A.min)) {
+    # set M to NA to be ignored if A < quantile or IF1 < 1 or IF2 < 1
     new_M[hic.table$A < threshold | hic.table$adj.IF1 < 1 | hic.table$adj.IF2 < 1] <- NA
   } else {
+    # set M to be NA to be ignored if A < A.min or IF1 < 1 or IF2 < 1
     new_M[hic.table$A < A.min | hic.table$adj.IF1 < 1 | hic.table$adj.IF2 < 1] <- NA
   }
   
   Z1 <- (new_M - mean(new_M, na.rm = TRUE)) / sd(new_M, na.rm = TRUE)
-  # set z-score to 0 if either adj.IF1 or adj.IF2 < 1
-  Z1[hic.table$adj.IF1 < 1 | hic.table$adj.IF2 < 1] <- 0
+  # # set z-score to 0 if either adj.IF1 or adj.IF2 < 1
+  # Z1[hic.table$adj.IF1 < 1 | hic.table$adj.IF2 < 1] <- 0
   hic.table[, Z := Z1]
   p.val <- 2*pnorm(abs(hic.table$Z), lower.tail = FALSE)
+  # set P-values with NA value to 1
   p.val[is.na(p.val)] <- 1
   hic.table[, p.value := p.val]
 
@@ -180,6 +186,7 @@ hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = T
 }
 
 
+# adjust p-values in distance dependent manner
 .adjust_pval <- function(hic.table, Plot, p.method) {
   # apply distance wise FDR p-value correction
   # split table up for each distance

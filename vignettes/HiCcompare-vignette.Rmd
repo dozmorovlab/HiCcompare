@@ -205,7 +205,7 @@ If you wish to detect differences between the two Hi-C datasets immediately foll
 ```{r, fig.width=7, fig.height=4}
 # Jointly normalize data for a single chromosome
 hic.table <- hic_loess(chr22.table, Plot = TRUE, Plot.smooth = FALSE)
-head(hic.table)
+knitr::kable(head(hic.table))
 ```
 
 ```{r, message=FALSE}
@@ -213,7 +213,7 @@ head(hic.table)
 hic.list <- hic_loess(hic.list, parallel = TRUE)
 ```
 
-The `hic_loess` joint normalization function extends the `hic.table` with the adjusted interaction frequencies, adjusted "M", and the "mc" correction factor.
+The `hic_loess` joint normalization function extends the `hic.table` with the adjusted interaction frequencies, adjusted "M", the "mc" correction factor, and the average expression "A".
 
 <!-- ## Weighting of M values -->
 
@@ -270,19 +270,34 @@ The `hic_loess` joint normalization function extends the `hic.table` with the ad
 
 the MD plot is used to represent the differences $M$ between two normalized datasets at a distance $D$. Normalized $M$ values are centered around 0 and the distribution at each distance remains fairly consistent. The $M$ values are approximately normally distributed [!!! supplemental XX]. $M$ values are converted to Z-scores using the standard approach:
 
+
 $$
 Z_i = \frac{M_i - \bar{M}}{\sigma_M}
 $$
-where $\bar{M}$ is the mean value of all $M$'s on the chromosome and $\simga_M$ is the standard deviation of all $M$ values on the chromosome and $i$ is the $i$th interacting pair on the chromosome. 
+where $\bar{M}$ is the mean value of all $M$'s on the chromosome and $\sigma_M$ is the standard deviation of all $M$ values on the chromosome and $i$ is the $i$th interacting pair on the chromosome. 
 
-Next, the average expression of each interacting pair is considered. Due to the nature of $M$, a difference represented by an interacting pair with IFs 1 and 10 is equivalent to an interacting pair of IFs 10 and 100 with both differences having an $M$ value of 3.32. However the average expression of these two differences is 5.5 and 55, respectively. Differences with higher average expression are more trustworthy than those with low average expression due to the fact that a relatively small difference on the raw scale can lead to a large log2 fold change. Additionally since the IFs represent Hi-C sequencing reads, lower average numbers of reads are also less trustworthy. Thus we filter out differences with low average expression by setting the Z-scores to 0 when average expression (A) is less than a user set quantile (typically 5-20%). After filtering, Z-scores can be converted to p-values using the standard normal distribution.
+During Z-score conversion the average expression of each interacting pair is considered. Due to the nature of $M$, a difference represented by an interacting pair with IFs 1 and 10 is equivalent to an interacting pair of IFs 10 and 100 with both differences having an $M$ value of 3.32. However the average expression of these two differences is 5.5 and 55, respectively. Differences with higher average expression are more trustworthy than those with low average expression due to the fact that a relatively small difference on the raw scale can lead to a large log2 fold change. Additionally since the IFs represent Hi-C sequencing reads, lower average numbers of reads are also less trustworthy. Thus we filter out differences with low average expression by setting the Z-scores to 0 when average expression ($A$) is less than a user set quantile (typically 5-20%) or a user set specific value of $A$. Filtering takes place such that the $\bar{M}$ and $\sigma_M$ are calculated using only the $M$ values remaining after filtering. The Z-scores can then be converted to p-values using the standard normal distribution.
 
-Difference detection can be performed using the `hic_compare()` function. Once you have a normalized `hic.table` or list of `hic.tables` detect differences as follows:
+
+Difference detection can be performed using the `hic_compare()` function. Before difference detection you will need to decide how you would like to filter out interactions with low average expression. You can either filter based on the quantile of A or by a specific value of A. Quantile filtering is recommended for lower resolution data (1MB or 500KB). Picking a minimum value of A would like to filter is recommend for higher resolution data (<= 100KB). Once you have a normalized `hic.table` or list of `hic.tables` detect differences with an A quantile filter as follows:
 
 ```{r}
-
+hic.table <- hic_compare(hic.table, A.quantile = 0.1, adjust.dist = TRUE, p.method = 'fdr', Plot = TRUE)
 ```
 
+Or with a minimum A value as follows:
+
+```{r}
+hic.table <- hic_compare(hic.table, A.min = 15, adjust.dist = TRUE, p.method = 'fdr', Plot = FALSE)
+```
+
+The resulting table will display the results as shown below:
+
+```{r}
+knitr::kable(head(hic.table))
+```
+
+Where `Z` is the Z-score calculated for the interaction (Z-scores with NA values result from filtering based on A), `p.value` is the un-adjusted p-value based on the standard normal distribution, and `p.adj` is the p-value after the multiple testing correction specified was applied.
 
 ## Converting `HiCcompare` results to `InteractionSet` objects
 
