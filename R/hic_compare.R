@@ -44,7 +44,8 @@
 #'     difference detection. Difference detection is performed by converting adjusted M 
 #'     values to Z-scores. Any M value with a corresponding average expression level (A;
 #'     mean of IF1 and IF2)
-#'     less than the specified A.quantile has it's Z-score set to 0. This throws out the
+#'     less than the specified A.quantile is not considered for Z-score calculation. 
+#'     This throws out the
 #'     untrustworthy interactions that tend to produce false positives.
 #'     The Z-scores are assumed to follow a roughly standard normal
 #'     distribution and p-values are obtained. P-value adjustment for multiple testing 
@@ -92,6 +93,16 @@ hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = T
       if (A.min < 1) {
         stop("Enter either NA or a numeric value > 1 for A.min")
       }
+    }
+  }
+  
+  # check A.quantile
+  if (is.na(A.min) & !is.numeric(A.quantile)) {
+    stop('Enter a numeric value for A.quantile or A.min')
+  }
+  if (is.na(A.min) & is.numeric(A.quantile)) {
+    if (A.quantile <= 0 | A.quantile >= 1) {
+      stop('Enter a value between 0 and 1 for A.quantile')
     }
   }
   

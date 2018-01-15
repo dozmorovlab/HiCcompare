@@ -2,7 +2,7 @@
 % Please edit documentation in R/hic_simulate.R
 \name{hic_simulate}
 \alias{hic_simulate}
-\title{Simulate a Hi-C matrix and perform hic_diff analysis on it}
+\title{Simulate a Hi-C matrix and perform HiCcompare analysis on it}
 \usage{
 hic_simulate(nrow = 100, medianIF = 50000, sdIF = 14000,
   powerlaw.alpha = 1.8, sd.alpha = 1.9, prop.zero.slope = 0.001,
@@ -100,10 +100,10 @@ A list containing the true positive rate (TPR), the specificity (SPC),
     of the rows of the hic.table where a true difference was applied, the truth
     vector - a vector of 0's and 1's where 1 indicates a true
     difference was applied to that cell, sim.table - the hic.table object for
-    the simulate matrices before hic_loess and hic_diff was run on it.
+    the simulate matrices before hic_loess and hic_compare was run on it.
 }
 \description{
-Simulate a Hi-C matrix and perform hic_diff analysis on it
+Simulate a Hi-C matrix and perform HiCcompare analysis on it
 }
 \examples{
 # simulate two matrices with no fold changes introduced using default values

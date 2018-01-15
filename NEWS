@@ -1,11 +1,4 @@
 NEWS for HiCcompare
 ----------------
 
-* Preparing for official release.
-* New features added
-  - get_CNV function to check for copy number variations
-  - smooth MD plot as an option
-  - option to exclude regions in create.hic.table()
-  - blacklisted locations added to data
-  - weighting of M values based on average expression
-  - updated vignette
+* New method for comparison, hic_compare()

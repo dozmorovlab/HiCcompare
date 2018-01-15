@@ -2,7 +2,7 @@
 % Please edit documentation in R/hic_diff.R
 \name{hic_diff}
 \alias{hic_diff}
-\title{Detect differences between two jointly normalized Hi-C datasets. OLD METHOD; USE hic_compare()}
+\title{Detect differences between two jointly normalized Hi-C datasets. OLD METHOD; USE hic_compare() instead}
 \usage{
 hic_diff(hic.table, diff.thresh = "auto", iterations = 10000,
   Plot = FALSE, Plot.smooth = TRUE, parallel = FALSE,
@@ -46,11 +46,12 @@ A hic.table with additional columns containing a p-value for the significance
     of the difference and the raw fold change between the IFs of the two datasets.
 }
 \description{
-Detect differences between two jointly normalized Hi-C datasets. OLD METHOD; USE hic_compare()
+Detect differences between two jointly normalized Hi-C datasets. OLD METHOD; USE hic_compare() instead
 }
 \details{
-This is the old method for detecting difference. The function is left in for legacy
-    however it is recommended to use the new function hic_compare() instead.
+This is the old method for detecting difference. The function is left in for 
+    legacy reasons and 
+    it is recommended to use the new function, hic_compare(), instead.
     The function takes in a hic.table or a list of hic.table objects created
     with the \code{hic_loess} function. If you wish to perform difference
     detection on Hi-C data for multiple chromosomes use a list of hic.tables. The process

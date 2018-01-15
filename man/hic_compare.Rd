@@ -67,7 +67,8 @@ The function takes in a hic.table or a list of hic.table objects created
     difference detection. Difference detection is performed by converting adjusted M 
     values to Z-scores. Any M value with a corresponding average expression level (A;
     mean of IF1 and IF2)
-    less than the specified A.quantile has it's Z-score set to 0. This throws out the
+    less than the specified A.quantile is not considered for Z-score calculation. 
+    This throws out the
     untrustworthy interactions that tend to produce false positives.
     The Z-scores are assumed to follow a roughly standard normal
     distribution and p-values are obtained. P-value adjustment for multiple testing 

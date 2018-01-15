@@ -52,7 +52,7 @@ library(HiCcompare)
 
 First you will need to obtain some Hi-C data. Data is available from the sources listed in the overview along with many others. You will need to extract the data and read it into R as either a 3 column sparse upper triangular matrix or a 7 column BEDPE file. For more details on data extraction see the vignette included with `HiCcompare`.
 
-Below is an example analysis using `HiCcompare`. The data in 3 column sparse upper triangular matrix format is loaded and the first step is to create a `hic.table` object using the `create.hic.table()` function. Next, the two Hi-C matrices are jointly normalized using the `hic_loess()` function. Finally, difference detection can be performed using the `hic_diff()` function. The `hic_loess()` and `hic_diff()` functions will also produce an MD plot for visualizing the differences between the datasets. 
+Below is an example analysis using `HiCcompare`. The data in 3 column sparse upper triangular matrix format is loaded and the first step is to create a `hic.table` object using the `create.hic.table()` function. Next, the two Hi-C matrices are jointly normalized using the `hic_loess()` function. Finally, difference detection can be performed using the `hic_compare()` function. The `hic_loess()` and `hic_compare()` functions will also produce an MD plot for visualizing the differences between the datasets. 
 
 ```
 # load data
@@ -68,8 +68,8 @@ head(chr22.table)
 hic.table = hic_loess(chr22.table, Plot = TRUE)
 head(hic.table)
 
-# input hic.table object into hic_diff
-hic.table = hic_diff(hic.table, Plot = TRUE)
+# input hic.table object into hic_compare
+hic.table = hic_compare(hic.table, Plot = TRUE)
 head(hic.table)
 ```
 

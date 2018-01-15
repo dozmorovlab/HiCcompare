@@ -1,4 +1,4 @@
-#' Detect differences between two jointly normalized Hi-C datasets. OLD METHOD; USE hic_compare()
+#' Detect differences between two jointly normalized Hi-C datasets. OLD METHOD; USE hic_compare() instead
 #'
 #' @export
 #' @param hic.table A hic.table or list of hic.tables output from the
@@ -28,8 +28,9 @@
 #'     inst/doc/Introduction_To_BiocParallel.pdf}
 #'
 #'
-#' @details  This is the old method for detecting difference. The function is left in for legacy
-#'     however it is recommended to use the new function hic_compare() instead.
+#' @details  This is the old method for detecting difference. The function is left in for 
+#'     legacy reasons and 
+#'     it is recommended to use the new function, hic_compare(), instead.
 #'     The function takes in a hic.table or a list of hic.table objects created
 #'     with the \code{hic_loess} function. If you wish to perform difference
 #'     detection on Hi-C data for multiple chromosomes use a list of hic.tables. The process

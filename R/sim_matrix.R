@@ -113,8 +113,7 @@
   return(mat)
 }
 
-# wrapper function for simulation studies will generate the matrices
-# and perform HiCdiff analysis on them
+
 
 #' Simulate 2 Hi-C matrices with differences
 #'
@@ -198,7 +197,7 @@
 #'                      i.range = i.range, j.range = j.range)
 #'
 #'
-hic_sim_matrix <- function(nrow = 100, medianIF = 50000, sdIF = 14000,
+sim_matrix <- function(nrow = 100, medianIF = 50000, sdIF = 14000,
                          powerlaw.alpha = 1.8,
                          sd.alpha = 1.9, prop.zero.slope = 0.001,
                          centromere.location = NA,

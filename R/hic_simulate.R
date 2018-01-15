@@ -116,7 +116,7 @@
 # wrapper function for simulation studies will generate the matrices
 # and perform HiCcompare analysis on them
 
-#' Simulate a Hi-C matrix and perform hic_diff analysis on it
+#' Simulate a Hi-C matrix and perform HiCcompare analysis on it
 #'
 #' @export
 #' @param nrow Number of rows and columns of the full matrix
@@ -188,7 +188,7 @@
 #'     of the rows of the hic.table where a true difference was applied, the truth
 #'     vector - a vector of 0's and 1's where 1 indicates a true
 #'     difference was applied to that cell, sim.table - the hic.table object for
-#'     the simulate matrices before hic_loess and hic_diff was run on it.
+#'     the simulate matrices before hic_loess and hic_compare was run on it.
 #'
 #' @examples
 #' # simulate two matrices with no fold changes introduced using default values

@@ -14,6 +14,8 @@
 #'     be selected automatically using the setting of loess.criterion.
 #'     Defaults to NA so that
 #'     automatic span selection is performed.
+#'     If you know the span, setting it manually will significantly speed
+#'     up computational time.
 #' @param loess.criterion Automatic span selection criterion. Can use either
 #'     'gcv' for generalized cross-validation or 'aicc' for Akaike Information
 #'      Criterion.

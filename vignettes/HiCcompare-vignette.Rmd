@@ -18,7 +18,7 @@ options(width = 400)
 
 `HiCcompare` provides functions for the joint normalization and detection of differential chromatin interactions between two or multiple Hi-C datasets. `HiCcompare` operates on processed Hi-C data in the form of chromosome-specific chromatin interaction matrices. It accepts three-column tab-separated text files storing chromatin interaction matrices in a sparse matrix format (see [Creating the hic.table object](#hic_table)). Functions to convert popular Hi-C data formats (`.hic`, `.cool`) to sparse format are available (see ?cooler2sparse). `HiCcompare` differs from other packages that attempt to compare Hi-C data in that it works on processed data in chromatin interaction matrix format instead of pre-processed sequencing data. In addition, `HiCcompare` provides a non-parametric method for the joint normalization and removal of biases between two Hi-C datasets for the purpose of comparative analysis. `HiCcompare` also provides a simple yet robust permutation method for detecting differences between Hi-C datasets. 
 
-The `hic_loess` function outputs normalized chromatin interactions for both matrices ready for the comparative analysis. The `hic_diff` function performs the comparative analysis and outputs genomic coordinates of pairs of regions detected as differentially interacting, interaction frequencies, the difference and the corresponding permutation p-value.
+The `hic_loess` function outputs normalized chromatin interactions for both matrices ready for the comparative analysis. The `hic_compare` function performs the comparative analysis and outputs genomic coordinates of pairs of regions detected as differentially interacting, interaction frequencies, the difference and the corresponding permutation p-value.
 
 # How to use `HiCcompare`
 
@@ -194,7 +194,7 @@ It is recommended to use total sum scaling when performing a `HiCcompare` analys
 
 Now that you have created a `hic.table` object you can jointly normalize your two Hi-C matrices. The `hic_loess` function has many options and can accept a single `hic.table` or a list of hic.tables. If for example you wish to perform joint normalization for every chromosome on two cell lines while utilizing parallel computing you can create a list containing the hic.tables for each chromosome. 
 
-To change the degree of the polynomial for the loess joint normalization you can utilize the `degree` option, default is 1 (linear regression). A user-defined span, or the amount of data used to build the loess model, can also be set with the `span` option. However if `span = NA` (the default) the automatic smoothing parameter selection process will run and determine the optimal span for the data. The type of selection process can be changed using the `loess.criterion` option. Available settings are `gcv` (the default) for generalized cross-validation or `aicc` for Akaike information criterion. The loess automatic smoothing parameter selection uses a customized version of the `fANCOVA::loess.as` function. For more information on parameter selection please see the `fANCOVA` reference manual. It is recommended to use the default settings.
+To change the degree of the polynomial for the loess joint normalization you can utilize the `degree` option, default is 1 (linear regression). A user-defined span, or the amount of data used to build the loess model, can also be set with the `span` option. However if `span = NA` (the default) the automatic smoothing parameter selection process will run and determine the optimal span for the data. The type of selection process can be changed using the `loess.criterion` option. Available settings are `gcv` (the default) for generalized cross-validation or `aicc` for Akaike information criterion. The loess automatic smoothing parameter selection uses a customized version of the `fANCOVA::loess.as` function. For more information on parameter selection please see the `fANCOVA` reference manual. It is recommended to use the default settings. If you have already run `hic_loess` on a dataset and know the span or would like to use a specific span then manually setting the span to a value can significantly reduce computation time especially for high resolution data.
 
 `hic_loess` can utilize the `BiocParallel` package to perform parallel computing and lower computation time. The `parallel` option (FALSE by default) will only speed up computation if a list of hic.tables is entered into the function, i.e., it parallelizes processing of several chromosome-specific matrices. This is useful for performing joint normalization for every chromosome between two Hi-C datasets. For more information on `BiocParallel` see the reference manual [here.](http://bioconductor.org/packages/release/bioc/vignettes/BiocParallel/inst/doc/Introduction_To_BiocParallel.pdf)
 
@@ -268,7 +268,7 @@ The `hic_loess` joint normalization function extends the `hic.table` with the ad
 <!-- visualize_pvals(hic.table) -->
 <!-- ``` -->
 
-the MD plot is used to represent the differences $M$ between two normalized datasets at a distance $D$. Normalized $M$ values are centered around 0 and the distribution at each distance remains fairly consistent. The $M$ values are approximately normally distributed [!!! supplemental XX]. $M$ values are converted to Z-scores using the standard approach:
+the MD plot is used to represent the differences $M$ between two normalized datasets at a distance $D$. Normalized $M$ values are centered around 0 and the distribution at each distance remains fairly consistent. The $M$ values are approximately normally distributed. $M$ values are converted to Z-scores using the standard approach:
 
 
 $$
@@ -276,7 +276,7 @@ Z_i = \frac{M_i - \bar{M}}{\sigma_M}
 $$
 where $\bar{M}$ is the mean value of all $M$'s on the chromosome and $\sigma_M$ is the standard deviation of all $M$ values on the chromosome and $i$ is the $i$th interacting pair on the chromosome. 
 
-During Z-score conversion the average expression of each interacting pair is considered. Due to the nature of $M$, a difference represented by an interacting pair with IFs 1 and 10 is equivalent to an interacting pair of IFs 10 and 100 with both differences having an $M$ value of 3.32. However the average expression of these two differences is 5.5 and 55, respectively. Differences with higher average expression are more trustworthy than those with low average expression due to the fact that a relatively small difference on the raw scale can lead to a large log2 fold change. Additionally since the IFs represent Hi-C sequencing reads, lower average numbers of reads are also less trustworthy. Thus we filter out differences with low average expression by setting the Z-scores to 0 when average expression ($A$) is less than a user set quantile (typically 5-20%) or a user set specific value of $A$. Filtering takes place such that the $\bar{M}$ and $\sigma_M$ are calculated using only the $M$ values remaining after filtering. The Z-scores can then be converted to p-values using the standard normal distribution.
+During Z-score conversion the average expression of each interacting pair is considered. Due to the nature of $M$, a difference represented by an interacting pair with IFs 1 and 10 is equivalent to an interacting pair of IFs 10 and 100 with both differences having an $M$ value of 3.32. However the average expression of these two differences is 5.5 and 55, respectively. Differences with higher average expression are more trustworthy than those with low average expression due to the fact that a relatively small difference on the raw scale can lead to a large log2 fold change. Additionally since the IFs represent Hi-C sequencing reads, lower average numbers of reads are also less trustworthy. Thus we filter out differences with low average expression by before calculating Z-scores when average expression ($A$) is less than a user set quantile (typically 5-20%) or a user set specific value of $A$. The Z-scores can then be converted to p-values using the standard normal distribution.
 
 
 Difference detection can be performed using the `hic_compare()` function. Before difference detection you will need to decide how you would like to filter out interactions with low average expression. You can either filter based on the quantile of A or by a specific value of A. Quantile filtering is recommended for lower resolution data (1MB or 500KB). Picking a minimum value of A would like to filter is recommend for higher resolution data (<= 100KB). Once you have a normalized `hic.table` or list of `hic.tables` detect differences with an A quantile filter as follows:
@@ -301,7 +301,7 @@ Where `Z` is the Z-score calculated for the interaction (Z-scores with NA values
 
 ## Converting `HiCcompare` results to `InteractionSet` objects
 
-If after running `hic_loess` or `hic_diff` on your data you wish to perform additional analyses which require the `GRanges` object class you can convert the results using the `make_InteractionSet` function. This function will produce an `InteractionSet` object with the genomic ranges contained in the `hic.table` along with several metadata files containing the additional information produced by `hic_loess` or `hic_diff`.
+If after running `hic_loess` or `hic_compare` on your data you wish to perform additional analyses which require the `GRanges` object class you can convert the results using the `make_InteractionSet` function. This function will produce an `InteractionSet` object with the genomic ranges contained in the `hic.table` along with several metadata files containing the additional information produced by `hic_loess` or `hic_compare`.
 
 ```{r}
 IntSet <- make_InteractionSet(hic.table)
@@ -328,13 +328,21 @@ The results of the simulation are saved in a list.
 names(sim_results)
 ```
 
-TPR is the true positive rate, SPC is the specificity, pvals is a vector of the p-values for every cell in the matrices, hic.table is the resulting hic.table object after `hic_loess` and `hic_diff` have been applied to the simulated data, true.diff is a table for the cells that had the specified fold change applied to them, truth is a vector of 0's and 1's indicating if a cell had a true difference applied - this is useful for input into ROC packages, sim.table is the simulated data in a hic.table object before being scaled, normalized, and analyzed for differences.
+TPR is the true positive rate, SPC is the specificity, pvals is a vector of the p-values for every cell in the matrices, hic.table is the resulting hic.table object after `hic_loess` and `hic_compare` have been applied to the simulated data, true.diff is a table for the cells that had the specified fold change applied to them, truth is a vector of 0's and 1's indicating if a cell had a true difference applied - this is useful for input into ROC packages, sim.table is the simulated data in a hic.table object before being scaled, normalized, and analyzed for differences.
+
+The `sim_matrix` function will produce two simulated Hi-C matrices without performing any analysis.
+
+```{r}
+sims <- sim_matrix(nrow = number_of_unitdistances, medianIF = 50000, sdIF = 14000, powerlaw.alpha = 1.8, fold.change = 4, 
+                   i.range = i.range, j.range = j.range)
+```
+
 
 ## Additional Functions {#addfunc}
 
 `HiCcompare` contains some additional functions that may be useful. 
 
-If you do not choose to show the MD plots when you initially run `hic_loess` or `hic_diff` you can use the `MD.plot1` or `MD.plot2` functions. `MD.plot1` will create a side by side MD plot showing before and after loess normalization. Enter your original M and D vectors along with the M correction factor, `mc`, calculated by `hic_loess`. The `smooth` option controls if the plot is plotted using `smoothScatter` or as a `ggplot2` scatter plot.
+If you do not choose to show the MD plots when you initially run `hic_loess` or `hic_compare` you can use the `MD.plot1` or `MD.plot2` functions. `MD.plot1` will create a side by side MD plot showing before and after loess normalization. Enter your original M and D vectors along with the M correction factor, `mc`, calculated by `hic_loess`. The `smooth` option controls if the plot is plotted using `smoothScatter` or as a `ggplot2` scatter plot.
 
 ```{r, fig.height=4, fig.width=7}
 MD.plot1(M = hic.table$M, D = hic.table$D, mc = hic.table$mc, smooth = TRUE)
