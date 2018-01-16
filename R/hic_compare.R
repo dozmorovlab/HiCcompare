@@ -101,7 +101,7 @@ hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = T
     stop('Enter a numeric value for A.quantile or A.min')
   }
   if (is.na(A.min) & is.numeric(A.quantile)) {
-    if (A.quantile <= 0 | A.quantile >= 1) {
+    if (A.quantile < 0 | A.quantile >= 1) {
       stop('Enter a value between 0 and 1 for A.quantile')
     }
   }
