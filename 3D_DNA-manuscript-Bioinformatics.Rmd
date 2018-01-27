@@ -26,7 +26,7 @@ John C. Stansfield^1,3^, Kellen G. Cresswell^1^, Vladimir I. Vladimirov^2^, Mikh
 **Contact:** mikhail.dozmorov@vcuhealth.org  
 **Supplementary information:** Supplementary data are available at _Bioinformatics_ online.
 
-# Introduction
+# 1 Introduction
 
 The 3D chromatin structure of the genome is emerging as a unifying regulatory framework orchestrating gene expression by bringing transcription factors, enhancers and co-activators in spatial proximity to the promoters of genes [@Franke:2016aa; @Symmons:2014aa; @Sexton:2015aa; @Li:2012aa; @Papantonis:2013aa; @Laat:2003aa; @Mora:2016aa; @Mifsud:2015aa; @Shavit:2014aa; @Osborne:2004aa]. Together with epigenomic profiles, changes in chromatin interactions shape cell type-specific gene expression [@Fernandez:2012aa; @Liu:2008aa; @Jin:2013aa; @Lieberman-Aiden:2009aa; @Sanyal:2012aa; @Schmitt:2016aa; @Nora:2012aa], as well as misregulation of oncogenes and tumor suppressors in cancer [@Taberlay:2016aa; @Hnisz:2016aa; @Franke:2016aa; @Lupianez:2016aa]. Identifying changes in chromatin interactions is the next logical step in understanding genomic regulation.
 
@@ -36,20 +36,19 @@ Accounting for the between-dataset biases is critical for the correct identifica
 
 We developed an R package, `HiCcompare`, for the joint normalization and comparative analysis of multiple Hi-C datasets, summarized as chromatin interaction matrices. Our method is based on the observation that chromatin interactions are highly stable [@Dixon:2012aa; @Fudenberg:2016aa; @Rao:2014aa; @Parada:2002aa], suggesting that the majority of them, excluding large genomic rearrangement of regions, can serve as a reference to build a rescaling model. We present the novel concept of the MD plot (difference vs. distance plot), a modification of the MA plot [@dudoit2002statistical], visualizing the distance-centric differences between interacting chromatin regions, where distance is expressed in terms of unit-length size of the regions. The MD plot concept naturally allows for fitting the local regression model, a procedure termed `loess`, and jointly normalizing the two datasets by balancing biases between them. The distance-centric view of chromatin interaction differences allows for detecting statistically significant differential chromatin interactions between two Hi-C datasets using a simple but robust permutation method. We show improved performance of differential chromatin interaction detection when using the jointly vs. individually normalized simulated and real Hi-C datasets. Our method is broadly applicable to a range of biological problems, such as identifying differential chromatin interactions between tumor and normal cells, immune cell types, and normal tissues.
 
-# Design and implementation
+# 2 Methods
 
-## Visualization of the differences between two Hi-C datasets using an MD plot
+## 2.1 Visualization of the differences between two Hi-C datasets using an MD plot
 
-A chromosome-specific Hi-C matrix is a square matrix of size $NxN$, where $N$ is the number of genomic regions of size $X$ on a chromosome. The size $X$ of the9 genomic regions defines the resolution of the Hi-C data. Each cell in the matrix contains an interaction frequency $IF_{i,j}$, where $i$ and $j$ are the indices of the interacting regions. For this study, data in the sparse upper triangular format from the GM12878, K562, IMR90, HMEC, NHEK, and RWPE1 cell lines were used (S1 Table).
+A chromosome-specific Hi-C matrix is a square matrix of size $NxN$, where $N$ is the number of genomic regions of size $X$ on a chromosome. The size $X$ of the genomic regions defines the resolution of the Hi-C data. Each cell in the matrix contains an interaction frequency $IF_{i,j}$, where $i$ and $j$ are the indices of the interacting regions. For this study, data in the sparse upper triangular format from the GM12878, K562, IMR90, HMEC, NHEK, and RWPE1 cell lines were used (???).
 
 The first step of the `HiCcompare` procedure is to convert the data into what we refer to as an MD plot. The MD plot is similar to the MA plot (Bland-Altman plot) commonly used to visualize gene expression differences [@dudoit2002statistical]. $M$ is defined as the log difference between the two data sets $M = log_2(IF_2/IF_1)$, where $IF_1$ and $IF_2$ are interaction frequencies of the first and the second Hi-C datasets, respectively. $D$ is defined as the distance between two interacting regions, expressed in unit-length of the $X$ resolution of the Hi-C data. In terms of chromatin interaction matrices, $D$ corresponds to the off-diagonal traces of interaction frequencies (Fig 1A). Because chromatin interaction matrices are sparse, i.e. contain an excess of zero interaction frequencies, by default only the non-zero pairwise interaction are used for the construction of the MD plot with an option to use partial interactions, i.e. with a zero value in one of the matrices and a non-zero IF in the other.
 
-
-## Accounting for the effect of copy number variations
+## 2.2 Accounting for the effect of copy number variations
 
 Copy number variations (CNVs) can potentially cause issues for normalization and difference detection. The `QDNAseq` [@Scheinin:2014aa] R package's functionality is used to detect and exclude CNVs from any further analysis. Alternatively, CNV regions can be detected separately and provided to `HiCcompare` as a BED file. Additionally, the `HiCcompare` package includes the ENCODE blacklisted regions for hg19 and hg38 genome assemblies, which can be excluded from further analysis. 
 
-## Joint normalization of multiple Hi-C data using `loess` regression
+## 2.3 Joint normalization of multiple Hi-C data using `loess` regression
 
 After the transformation of the data into an MD plot, `loess` regression [@cleveland1979robust] is performed with $D$ as the predictor for $M$. The fitted values are then used to normalize the original IFs. 
 
@@ -57,9 +56,9 @@ $$\begin{cases} log_2(\hat{IF}_{1D}) = log_2(IF_{1D}) + f(D)/2 \\
 log_2(\hat{IF}_{2D}) = log_2(IF_{2D}) - f(D)/2
 \end{cases}  $$
 
-where $f(D)$ is the predicted value from the `loess` regression at a distance $D$. The $log_2(\hat{IF})$ values are then anti-logged to obtain the normalized IFs. Note that for both Hi-C datasets the average interaction frequency remains unchanged, as the one set is increased by the factor of $f(D)/2$ while the other is decreased by the same amount. Any normalized IFs with values less than 1 are not considered in further analyses. The joint normalization was tested against five methods for normalizing individual Hi-C matrices, `ChromoR` [@Shavit:2014aa], `ICE` [@Imakaev:2012aa], `KR` [@knight2012fast], `SCN` [@Cournac:2012aa], `MA` [@Lun:2015aa] normalizations (S1 Methods).
+where $f(D)$ is the predicted value from the `loess` regression at a distance $D$. The $log_2(\hat{IF})$ values are then anti-logged to obtain the normalized IFs. Note that for both Hi-C datasets the average interaction frequency remains unchanged, as the one set is increased by the factor of $f(D)/2$ while the other is decreased by the same amount. Any normalized IFs with values less than 1 are not considered in further analyses. The joint normalization was tested against five methods for normalizing individual Hi-C matrices, `ChromoR` [@Shavit:2014aa], `ICE` [@Imakaev:2012aa], `KR` [@knight2012fast], `SCN` [@Cournac:2012aa], `MA` [@Lun:2015aa] normalizations (???).
 
-## Detection of differential chromatin interactions
+## 2.4 Detection of differential chromatin interactions
 
 <!-- After joint normalization, the normalized chromatin interaction matrices are ready to be compared for differences. Again, the MD plot is used to represent the differences $M$ between two normalized datasets at a distance $D$. At a given distance $d$, each difference $M_{id}$ is tested for significance using a permutation test: -->
 
@@ -68,36 +67,28 @@ where $f(D)$ is the predicted value from the `loess` regression at a distance $D
 
 <!-- where $S$ is a sample of size $n$, taken with replacement, of differences sampled from a vector of $M_d$, and $M_{id}$ is the $i^{th}$ difference tested for significance. $I$ is the identity function. Since the number of differences diminishes with the increasing genomic distance (less off-diagonal IFs in the upper right corner of interaction matrices), differences for the top 15% of farther distances are combined to have a pool of variables for permutation purposes. Note that the permutation framework also accounts for multiple testing correction. A user-specified significance threshold $\alpha$ (typically, 0.05) is used to define significant differential chromatin interaction frequencies. To reduce the number of false positives, we provide the option to filter the final p-values $p_{M_{id}}$ by a user-specified or automatically calculated $M' = 2 * \sqrt{Var(M)}$. This option allows for the user to pre-specify the meaningful difference between the two Hi-C datasets that must be reached in order to call a difference truly significant. -->
 
-After joint normalization, the chromatin interaction matrices are ready to be compared for differences. Again, the MD plot is used to represent the differences $M$ between two normalized datasets at a distance $D$. Normalized $M$ values are centered around 0 and are approximately normally distributed across all distances [!!! supplemental XX]. $M$ values can be converted to Z-scores using the standard approach:
+After joint normalization, the chromatin interaction matrices are ready to be compared for differences. Again, the MD plot is used to represent the differences $M$ between two normalized datasets at a distance $D$. Normalized $M$ values are centered around 0 and are approximately normally distributed across all distances (???). $M$ values can be converted to Z-scores using the standard approach:
 
 $$
 Z_i = \frac{M_i - \bar{M}}{\sigma_M}
 $$
 where $\bar{M}$ is the mean value of all $M$'s on the chromosome and $\sigma_M$ is the standard deviation of all $M$ values on the chromosome and $i$ is the $i$th interacting pair on the chromosome. 
 
-## Filtering low-abundance interaction pairs
+## 2.5 Filtering low-abundance interaction pairs
 
-During Z-score conversion the average expression of each interacting pair is considered. Due to the nature of $M$, a difference represented by an interacting pair with IFs 1 and 10 is equivalent to an interacting pair of IFs 10 and 100 with both differences producing an $M$ value of 3.32. However the average expression of these two differences is 5.5 and 55, respectively. Differences with higher average expression are more trustworthy than those with low average expression due to the fact that a relatively small difference on the raw scale can lead to a large log2 fold change. Additionally since the IFs represent Hi-C sequencing reads, lower average numbers of reads are also less trustworthy. Thus we filter out differences with low average expression by setting the Z-scores to 0 when average expression ($A$) is less than a user set quantile (typically 5-20%) or a user set specific value of $A$. Filtering takes place such that the $\bar{M}$ and $\sigma_M$ are calculated using only the $M$ values remaining after filtering. The Z-scores can then be converted to p-values using the standard normal distribution.
+During Z-score conversion the average expression of each interacting pair is considered. Due to the nature of $M$, a difference represented by an interacting pair with IFs 1 and 10 is equivalent to an interacting pair of IFs 10 and 100 with both differences producing an $M$ value of 3.32. However the average expression of these two differences is 5.5 and 55, respectively. Differences with higher average expression are more trustworthy than those with low average expression due to the fact that a relatively small difference on the raw scale can lead to a large log2 fold change. Additionally since the IFs represent Hi-C sequencing reads, lower average numbers of reads are also less trustworthy. Thus we filter out differences with low average expression by setting the Z-scores to 0 when average expression ($A$) is less than a user set quantile (typically 5-20%) or a user set specific value of $A$ (???). Filtering takes place such that the $\bar{M}$ and $\sigma_M$ are calculated using only the $M$ values remaining after filtering. The Z-scores can then be converted to p-values using the standard normal distribution.
+
+## 2.6 Multiple testing correction
 
 Analyzing Hi-C data for differences necessarily requires multiple testing. Multiple testing correction is applied on a per-distance basis by default (with an option to apply it on a chromosomal basis). The per-distance multiple testing correction works by grouping the p-values by their distances. Then the desired multiple testing correction (FDR by default) can be applied to each distance group of p-values. 
 
-## Estimating power of the differential chromatin interaction detection
+## 2.7 Benchmarking the differential chromatin interaction detection
 
-The effect of individual vs. joint normalization methods on the power of detection of differential chromatin interactions must be estimated on _a priori_ known differences [@Dozmorov:2010aa]. As there is no "gold standard" for differential chromatin interactions, we created such _a priori_ known differences by introducing controlled changes to replicate Hi-C datasets. The benefit of using joint normalization vs. individually normalized datasets was quantified by the improvement in power of pre-defined chromatin interaction differences. Standard classifier performance measures (True Positive Rate (TPR), Matthews Correlation Coefficient (MCC), etc) were assessed.
+The effect of individual vs. joint normalization methods on the power of detection of differential chromatin interactions must be estimated on _a priori_ known differences [@Dozmorov:2010aa]. As there is no "gold standard" for differential chromatin interactions, we created such _a priori_ known differences by introducing controlled changes to replicate Hi-C datasets. The benefit of using joint normalization vs. individually normalized datasets was quantified by the improvement in power of pre-defined chromatin interaction differences. Standard classifier performance measures (???), summarized in Matthews Correlation Coefficient (MCC), were assessed. The results of `HiCcompare` analysis were compared with those obtained with `diffHiC` method [@Lun:2015aa].
 
-# A/B compartment stability analysis
- 
-## PC correlation and sign switch
+## 2.8 Concordance between principal components (PCs) defining A/B compartments
 
-To test the consistency of compartments on a bin-to-bin level, the 1st principal component was compared between normalized matrices. This was done by applying PCA to the contact matrix and creating a vector of principal component scores with each entry corresponding to the PC of a given bin. Pearson correlation was then calculated between vectors of principal components to determine the similarity of compartments. Another metric used to test consistency was the proportion of pairwise matching signs between each combination of normalization methods.
-
-## Jaccard overlap
-
-Jaccard statistics were calculated between compartments pulled from matrices normalized by each normalization method and the raw matrices. This was done by taking the total length of the intersection between compartments and dividing by the total compartment coverage. This was performed separately for A and B, comparing compartments of the same type across chromosomes.
-
-## Compartment score changes
-
-Compartment quality was tested using compartment score [@Nagano:2017aa]. Compartment score is a measure of how dissimilar inter-compartment contact profiles are as compared to intra-compartment profiles. A low compartment score indicates a weaker separation between A and B compartments and consequently implies weaker clustering.
+To assess the effect of normalization of the detection of A/B compartments, they were defined using the Principal Components Analysis (PCA) method introduced in [@Lieberman-Aiden:2009aa] using the raw, jointly and individually normalized Hi-C data. The consistency of compartments was evaluated using three metrics: 1) the Pearson correlation coefficient between vectors of principal components (PCs), 2) the overlap of signs of PCs defining A (positive) and B (negative) compartments, and 3) the Jaccard overlap statistics.
 
 # Results
 
