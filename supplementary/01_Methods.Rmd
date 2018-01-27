@@ -1,0 +1,55 @@
+---
+# author: "John C. Stansfield, Kellen G. Cresswell, Vladimir I. Vladimirov, Mikhail G. Dozmorov"
+output:
+  pdf_document:
+    toc: no
+csl: /Users/mdozmorov/Documents/Work/VCU_work/3D_DNA/HiCcompare/styles.ref/bioinformatics.csl
+bibliography: /Users/mdozmorov/Documents/Work/VCU_work/3D_DNA/manuscript/3D_DNA-references.bib
+---
+
+# 1 Supplementary Methods
+
+## 1.1 Data sources
+
+**Supplementary Table S1.** Hi-C data used in the current study.
+
+```{r, echo = FALSE, message=FALSE}
+S1_Table <- data.frame(File = c("GSE63525_GM12878_insitu_primary_30.hic.gz", "GSE63525_GM12878_insitu_DpnII_combined_30.hic.gz", "GSE63525_K562_combined_30.hic.gz",
+                       "GSE63525_IMR90_intrachromosomal_contact_matrices.tar.gz", "GSE63525_HMEC_intrachromosomal_contact_matrices.tar.gz", 
+                       "GSE63525_NHEK_intrachromosomal_contact_matrices.tar.gz", "Dixon2012-H1hESC-HindIII-allreps-filtered.1000kb.cool", 
+                       "GSM927075 & GSM927076"),
+                       "Cell line" = c("GM12878", "GM12878", "K562", "IMR90", "HMEC", "NHEK", "hESC", "RWPE1"),
+                       Resolution = c("1kb - 1mb", "1kb - 1mb", "1kb - 1mb", "1kb - 1mb", "1kb - 1mb", "1kb - 1mb", "1mb", "1mb"),
+                       "Cutting enzyme" = c("MboI", "DpnII", "MboI", "MboI", "MboI", "MboI", "HindIII", "HindIII"),
+                       URL = c("ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE63nnn/GSE63525/suppl/GSE63525_GM12878_insitu_primary_30.hic.gz",
+                               "ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE63nnn/GSE63525/suppl/GSE63525_GM12878_insitu_DpnII_combined_30.hic.gz",
+                               "ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE63nnn/GSE63525/suppl/GSE63525_K562_combined_30.hic.gz",
+                               "ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE63nnn/GSE63525/suppl/GSE63525_IMR90_intrachromosomal_contact_matrices.tar.gz",
+                               "ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE63nnn/GSE63525/suppl/GSE63525_HMEC_intrachromosomal_contact_matrices.tar.gz",
+                               "ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE63nnn/GSE63525/suppl/GSE63525_NHEK_intrachromosomal_contact_matrices.tar.gz",
+                               "ftp://cooler.csail.mit.edu/coolers/hg19/Dixon2012-H1hESC-HindIII-allreps-filtered.1000kb.cool",
+                               "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE37752"),
+                       Reference = c("[@Rao:2014aa]", "[@Rao:2014aa]", "[@Rao:2014aa]", "[@Rao:2014aa]", "[@Rao:2014aa]", "[@Rao:2014aa]", "[@Dixon:2012aa]", "[@Rickman:2012aa]"),
+                       "Included in package" = c("", "", "", "", "*", "*", "*", ""))
+# MD fixes
+S1_Table <- S1_Table[, -1]
+S1_Table <- S1_Table[, -ncol(S1_Table)]
+S1_Table <- S1_Table[, -ncol(S1_Table)]
+S1_Table <- S1_Table[S1_Table$Cell.line %in% c("GM12878", "RWPE1"), ]
+S1_Table <- S1_Table[, c("Cell.line", "Resolution", "Cutting.enzyme", "URL")]
+knitr::kable(S1_Table)
+```
+
+## 1.2 Normalization methods for individual Hi-C datasets
+
+Four methods for normalizing individual Hi-C datasets were compared with the `loess` joint normalization method. Here, we briefly describe them.
+
+The `ChromoR` method [@Shavit:2014aa] applies the Haar-Fisz Transform (HFT) to decompose a Hi-C contact map. HFT assumes the IFs in the contact map are distributed as a Poisson random variable. After HFT decomposition, wavelet shrinkage methods for Gaussian noise are applied for de-noising. The contact map is then reconstructed with the inverse HFT. The `ChromoR` R package was used to normalize the matrices  with the `correctCIM` function.   
+
+`ICE` (iterative correction and eigenvector decomposition) normalization [@Imakaev:2012aa] functions by modeling the expected $IF_{ij}$ for every pair of regions *(i,j)* as $E_{ij} = B_i B_j T_{ij}$, where $B_i$ and $B_j$ are the biases and $T_{ij}$ is the true matrix of normalized IFs. The maximum likelihood solution for the biases $B_i$ is obtained by iterative correction. It attempts to make all regions equally visible, and was shown to perform as well as the explicit bias correction method by Yaffe and Tanay [@Belton:2012aa]. `ICE` normalization was performed using the `HiTC` R package's `normICE` function.
+
+`KR` (Knight-Ruiz) normalization [@knight2012fast] is another "equal visibility" algorithm that balances a square non-negative matrix $A$ by finding a diagonal scaling of $A$ such that $P = D_1AD_2$ sums to one. The `KR` algorithm uses an iterative process to find $D_1$ and $D_2$ scaling matrices by alternately normalizing columns and rows in a sequence of matrices using an approximation of Newton's method. The `KR` normalization method was re-implemented in R using the published `matlab` code [@knight2012fast] and is included in the `HiCcompare` package as the `KRnorm` function.
+
+`SCN` (Sequential Component Normalization) [@Cournac:2012aa] is a method that is broadly generalizable to many Hi-C experimental protocols. It attempts to smooth out biases due to GC content and circularization. `SCN` works by first normalizing each column vector of a Hi-C contact matrix to one using the Euclidean norm. Then each row of the resulting matrix is normalized to one using the row Euclidean norm. This process is repeated until convergence (usually 2 to 3 iterations). The SCN method was re-implemented in R and included in the `HiCcompare` package as the `SCN` function.
+
+`MA` (Minus Average normalization) [@Lun:2015aa] is a commonly used normalization method for genomic data. It is based on the MA plot where the data is plotted according to the Average log counts (or counts per million) and the log Minus (difference) between the two data sets. A loess model is then fit to this plot and the residuals for the fit can be used to smooth the data sets. MA normalization was implemented in R and included in the `HiCcompare` packages as the `MA_norm` function.

@@ -1,0 +1,1090 @@
+---
+title: "Supplementary material"
+author: "John Stansfield"
+date: "January 26, 2018"
+output:
+  pdf_document: 
+    toc: true
+    toc_depth: 4
+---
+
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE}
+# Set up the environment
+library(knitr)
+opts_chunk$set(cache.path='cache/', fig.path='img/', cache=F, tidy=T, fig.keep='high', echo=F, dpi=100, warnings=F, message=F, comment=NA, warning=F, results='as.is', fig.width = 4, fig.height = 3) #out.width=700, 
+library(pander)
+panderOptions('table.split.table', Inf)
+set.seed(1)
+library(dplyr)
+options(stringsAsFactors = FALSE)
+```
+
+
+# Supplemental Methods
+
+
+
+
+## Persistence of bias in individually normalized chromatin interaction matrices 
+
+To assess the between-dataset biases, we use the MD plot to visualize two Hi-C datasets on one plot. Briefly, differences in chromatin interaction frequencies (**M**inus) are visualized on a per-unit-length distance basis (Fig 2A). Owing to the fact that chromatin interactions are highly conserved [@Dixon:2012aa; @Fudenberg:2016aa; @Rao:2014aa], we expect that the majority of the **M** differences should be centered around zero. The MD plot visualization allows us to identify systematic biases appearing as the offset of the cloud of **M** differences from zero. Visualizing replicates of Hi-C data (Gm12878 cell line) showed the presence of biases (Fig 2A). Importantly, these biases persisted in the individually normalized datasets (Fig 2C-F), suggesting that the performance of individual normalization methods may be sub-optimal when comparing multiple Hi-C datasets.
+
+![](D:/3D_DNA/manuscript/figures/fig2.tif)
+
+**S1 Fig. MD plot data visualization and the effects of different normalization techniques.** 
+MD plots of the differences $M$ between two replicated Hi-C datasets (GM12878 cell line, chromosome 11, 1MB resolution, DpnII and MboI restriction enzymes) plotted vs. distance $D$ between interacting regions. (A) Before normalization, (B) after `loess` joint normalization, (C) `ChromoR`, (D) Iterative Correction and Eigenvector decomposition (`ICE`), (E) Knight-Ruiz (`KR`), (F) Sequential Component Normalization (`SCN`).
+
+
+
+
+```{r libraries}
+library(HiCcompare)
+library(chromoR)
+library(pROC)
+library(MLmetrics)
+library(HiTC)
+library(Matrix)
+library(GenomicRanges)
+library(ggplot2)
+library(gridExtra)
+library(data.table)
+
+```
+
+
+```{r}
+# load data
+githubURL <- "https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_data/S1_File_data.RData"
+load(url(githubURL))
+```
+
+
+```{r}
+## `hic.table` format
+
+chr1.tab      <- create.hic.table(S1.dpnii.chr1,   S1.mbol.chr1,        chr = 'chr1')
+chr11.tab     <- create.hic.table(S1.dpnii.chr11,  S1.mbol.chr11,       chr = 'chr11')
+chr18.tab     <- create.hic.table(S1.dpnii.chr18,  S1.mbol.chr18,       chr = 'chr18')
+chr19.tab     <- create.hic.table(S1.dpnii.chr19,  S1.mbol.chr19,       chr = 'chr19')
+replicate.tab <- create.hic.table(S1.primary.chr1, S1.replicate.chr1,   chr = 'chr1')
+rep.chr11.tab <- create.hic.table(S1.primary.chr11, S1.replicate.chr11, chr = 'chr1')
+rep.chr18.tab <- create.hic.table(S1.primary.chr18, S1.replicate.chr18, chr = 'chr1')
+rep.chr19.tab <- create.hic.table(S1.primary.chr19, S1.replicate.chr19, chr = 'chr1')
+
+unscaled.tab       <- create.hic.table(S1.dpnii.chr1,  S1.mbol.chr1,  chr='chr1',  scale=T)
+chr11.unscaled.tab <- create.hic.table(S1.dpnii.chr11, S1.mbol.chr11, chr='chr11', scale=T)
+
+# BEDPE-like hic.table object
+#head(chr1.tab)
+```
+
+
+
+## Comparison of `HiCcompare` vs. `ChromoR` in detecting differential chromatin interactions
+
+`ChromoR` includes a function for detecting differences between two Hi-C datasets. Using the data for chromosome 11 from GM12878 as used in the above normalization comparison we add 200 _a priori_ known differences to the matrix at a 5 fold change and attempt to detect them using `ChromoR` and `loess`
+
+```{r}
+# add differences 
+changes = sample(1:nrow(chr11.unscaled.tab), 200)
+whichIF = ifelse(chr11.unscaled.tab[changes, ]$M < 0, -1, 1)
+newIF1 = 5^whichIF * chr11.unscaled.tab[changes,]$IF1
+newIF1 = as.integer(round(newIF1))
+chr11.unscaled.tab[changes,]$IF1 = newIF1
+chr11.unscaled.tab = chr11.unscaled.tab[, M := log2(IF2/IF1)]
+
+mat1 = chr11.unscaled.tab[, c('start1', 'start2', 'IF1'), with=F] %>% sparse2full()
+mat2 = chr11.unscaled.tab[, c('start1', 'start2', 'IF2'), with=F] %>% sparse2full()
+start = as.numeric(colnames(mat1))
+end = as.numeric(colnames(mat1))
+seg = data.frame(chr = chr11.tab$chr1[1], start = start, end = end)
+sim1.chromor = correctCIM(mat1, seg)
+sim2.chromor = correctCIM(mat2, seg)
+colnames(sim1.chromor$mCorrected) = seg$start
+colnames(sim2.chromor$mCorrected) = seg$start
+
+chromoR.result = compareCIM(sim1.chromor$mCorrected, sim2.chromor$mCorrected, seg)
+num.diffs = nrow(chromoR.result$sigChanges)
+
+cr1 = sim1.chromor$mCorrected %>% full2sparse()
+cr2 = sim2.chromor$mCorrected %>% full2sparse()
+chromoR.result = create.hic.table(cr1, cr2, chr='chr11')
+```
+
+The MD plot of the `ChromoR` normalized matrices:
+   
+```{r}
+p1 = MD.plot2(chr11.unscaled.tab$M, chr11.unscaled.tab$D, smooth = FALSE) + ggtitle('Before Normalization')
+p2 = MD.plot2(chromoR.result$M, chromoR.result$D, smooth = FALSE) + ggtitle('After Normalization')
+grid.arrange(p1, p2, ncol = 2)
+```
+
+
+```{r}
+MD.plot2(chromoR.result$M, chromoR.result$D, p.val = 1, smooth = FALSE)
+```
+
+`ChromoR` found `r num.diffs` differences between the two matrices. Compared to `hic_loess` below:
+
+```{r}
+loess.diffs = hic_loess(chr11.unscaled.tab, Plot = T , Plot.smooth = FALSE)
+```
+
+
+```{r}
+loess.diffs = hic_compare(loess.diffs, Plot = T, adjust.dist = FALSE, Plot.smooth = T) # !!!! should switch this to false but plot.smooth not working right
+loess.diffs = sum(loess.diffs$p.adj < 0.05)
+```
+
+`HiCcompare` found `r loess.diffs` differences between the matrices.
+
+`ChromoR`'s normalization technique fails to remove bias between Hi-C datasets and it's difference detection method also fails to detect any differences when true differences are added at a 5 fold change. `Loess` was capable of normalizing these datasets and detecting the majority of the true differences added to the matrices.
+
+## Extended evaluation of differential chromatin interaction detection analysis using real Hi-C data
+
+Here we evaluate the performance of the difference detection method of `HiCcompare` using replicate Hi-C data. The power of differential chromatin interaction detection was assessed using replicate GM12878 Hi-C matrices with varying fold change controlled differences added. The matrices were normalized using the `loess` and `MA` joint normalization methods, and each of the four individual normalization methods. After normalization, HiCcompare was used to detect differences between the datasets. The performance of each normalization method's effect on difference detection was evaluated using several metrics displayed in the below tables. `loess`joint normalization was found to be superior in improving the power of detecting differential chromatin interactions accross the range of controlled fold changes (supplemental XX). The benefits of `loess` joint normalization were the most pronounced at detecting lower fold changes. Notably, `MA` normalization was second in performance to `loess` joint normalization, strengthening the need to normalize Hi-C datasets jointly. Expectedly, fold changes $\ge4$ were easier to detect, as reflected by the relatively good performance of all but `ChromoR` normalization.
+
+```{r}
+library(pROC)
+library(MLmetrics)
+
+```
+
+```{r}
+githubURL <- "https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_data/S6_File_data.RData"
+load(url(githubURL))
+
+chr1.tab  = create.hic.table(S6.dpnii.chr1,  S6.mbol.chr1,  chr = 'chr1',  scale = FALSE)
+
+raw1 <- S6.dpnii.chr1
+raw2 <- S6.mbol.chr1
+```
+
+
+```{r}
+chr1.primary <- read.table("D:/3D_DNA/GM12878_replicates/GM12878_primary_1000000/primary.chr1.1000000.txt")
+chr1.replicate <- read.table("D:/3D_DNA/GM12878_replicates/GM12878_replicate_1000000/replicate.chr1.1000000.txt")
+
+chr1.table <- create.hic.table(chr1.primary, chr1.replicate, chr = 'chr1', scale = TRUE)
+backup.table <- create.hic.table(chr1.primary, chr1.replicate, chr = 'chr1', scale = TRUE)
+```
+
+
+```{r, warning=FALSE, message=FALSE}
+ROC_on_replicate <- function(raw1, raw2, FC, plot.roc = TRUE, plot.MD = TRUE, numChanges = 10, dist = 1, alpha = 0.05, A.quantile = 0.1, 
+                             adjust.dist = TRUE,
+                             p.method = 'holm') {
+  
+  # create hic.table
+  hic.table <- create.hic.table(raw1, raw2, scale = TRUE, chr = 'chr1')
+  
+  ## ADD in true differences
+  # spike in differences
+  # get which interactions at distance
+  # sample_space <- which(hic.table$D == dist)
+  sample_space <- 1:nrow(hic.table)
+  changes <- sample(sample_space, numChanges)
+  # set IFs to mean IF then multiply one by FC
+  meanIF <- ((hic.table[changes,]$IF1 + hic.table[changes,]$IF2) / 2) %>% round() %>% as.integer()
+  hic.table[changes, IF1 := meanIF ]
+  hic.table[changes, IF2 := meanIF]
+  midpoint <- floor(numChanges/2)
+  newIF1 <- hic.table[changes[1:midpoint],]$IF1 * FC %>% as.integer()
+  newIF2 <- hic.table[changes[(midpoint+1):numChanges],]$IF2 * FC %>% as.integer()
+  hic.table[changes[1:midpoint], IF1 :=  newIF1]
+  hic.table[changes[(midpoint+1):numChanges], IF2 :=  newIF2]
+  hic.table = hic.table[, M := log2(IF2/IF1)]
+  truth <- rep(0, nrow(hic.table))
+  truth[changes] <- 1
+  hic.table[, truth := truth]
+  
+  # make data.table for truth coordinates
+  truth.coords <- hic.table[truth == 1, c('start1', 'start2', 'truth')]
+  
+  ### normalize with other methods
+  # convert hic.table to full matrices for other methods to work
+  mat1 = sparse2full(hic.table[, c('start1', 'start2', 'IF1'), with=F])
+  mat2 = sparse2full(hic.table[, c('start1', 'start2', 'IF2'), with=F])
+  
+  # chromoR
+  start = as.numeric(colnames(mat1))
+  end = as.numeric(colnames(mat1))
+  seg = data.frame(chr = hic.table$chr1[1], start = start, end = end)
+  # correct simulated matrices using chromoR's methods
+  sim1.chromor = correctCIM(mat1, seg)
+  sim2.chromor = correctCIM(mat2, seg)
+  colnames(sim1.chromor$mCorrected) = seg$start
+  colnames(sim2.chromor$mCorrected) = seg$start
+  sim1.chromor = full2sparse(sim1.chromor$mCorrected)
+  sim2.chromor = full2sparse(sim2.chromor$mCorrected)
+  chromoR.table = create.hic.table(sim1.chromor, sim2.chromor, scale = FALSE, chr = hic.table$chr1[1])
+  
+  # ICE 
+  
+  sim1.ice = Matrix(mat1)
+  sim2.ice = Matrix(mat2)
+  # create HTCexp object for simulated data
+  xgi = GRanges(seqnames = 'chr11', ranges = IRanges(start = start, end  = end, names = paste('a', 1:length(start), sep='')))
+  ygi = GRanges(seqnames = 'chr11', ranges = IRanges(start = start, end  = end, names = paste('b', 1:length(start), sep='')))
+  colnames(sim1.ice) <- paste('a', 1:length(start), sep='')
+  rownames(sim1.ice) <- paste('b', 1:length(start), sep='')
+  sim1.ice = new('HTCexp', sim1.ice, xgi, ygi)
+  colnames(sim2.ice) <- paste('a', 1:length(start), sep='')
+  rownames(sim2.ice) <- paste('b', 1:length(start), sep='')
+  sim2.ice = new('HTCexp', sim2.ice, xgi, ygi)
+  # normalize with ICE
+  sim1.ice = normICE(sim1.ice, max_iter = 100)
+  sim2.ice = normICE(sim2.ice, max_iter = 100)
+  colnames(sim1.ice@intdata) = start
+  colnames(sim2.ice@intdata) = start
+  sim1.ice = full2sparse(as.matrix(sim1.ice@intdata))
+  sim2.ice = full2sparse(as.matrix(sim2.ice@intdata))
+  ice.table = create.hic.table(sim1.ice, sim2.ice, scale = FALSE, chr = hic.table$chr1[1])
+  
+  # KR
+
+  # remove any columns of 0's
+  zeros1 = which(colSums(mat1) == 0)
+  zeros2 = which(colSums(mat2) == 0)
+  # get sum of matrices
+  kr.sum1 <- sum(mat1)
+  kr.sum2 <- sum(mat2)
+  if (length(zeros1) > 0) {
+    cr.mat1 = mat1[-zeros1, -zeros1]
+  } else {
+    cr.mat1 = mat1
+  }
+  if (length(zeros2) > 0) {
+    cr.mat2 = mat2[-zeros2, -zeros2]
+  } else {
+    cr.mat2 = mat2
+  }
+  sim1.kr = KRnorm(cr.mat1)
+  sim2.kr = KRnorm(cr.mat2)
+  colnames(sim1.kr) = colnames(cr.mat1)
+  colnames(sim2.kr) = colnames(cr.mat2)
+  sim1.kr = full2sparse(sim1.kr)
+  sim2.kr = full2sparse(sim2.kr)
+  # multiple matrix sums back to KR
+  sim1.kr$IF <- sim1.kr$IF * kr.sum1
+  sim2.kr$IF <- sim2.kr$IF * kr.sum2
+  kr.table = create.hic.table(sim1.kr, sim2.kr, scale = FALSE, chr = hic.table$chr1[1])
+  
+  # SCN
+  sim1.scn = SCN(mat1)
+  sim2.scn = SCN(mat2)
+  sim1.scn = full2sparse(sim1.scn)
+  sim2.scn = full2sparse(sim2.scn)
+  # multiple matrix sums back to KR
+  sim1.scn$IF <- sim1.scn$IF * kr.sum1
+  sim2.scn$IF <- sim2.scn$IF * kr.sum2
+  scn.table = create.hic.table(sim1.scn, sim2.scn, chr=hic.table$chr1[1], scale=TRUE)
+  
+  # MA
+  ma.table = create.hic.table(full2sparse(mat1), full2sparse(mat2), chr = hic.table$chr1[1], scale = FALSE)
+  ma.table = MA_norm(ma.table)
+  
+  # detect differences
+  chromoR.table[, ':=' (adj.IF1 = IF1, adj.IF2 = IF2, adj.M = M, A = (IF1 + IF2)/2)]
+  ice.table[, ':=' (adj.IF1 = IF1, adj.IF2 = IF2, adj.M = M, A = (IF1 + IF2)/2)]
+  kr.table[, ':=' (adj.IF1 = IF1, adj.IF2 = IF2, adj.M = M, A = (IF1 + IF2)/2)]
+  scn.table[, ':=' (adj.IF1 = IF1, adj.IF2 = IF2, adj.M = M, A = (IF1 + IF2)/2)]
+  
+  loess.result = hic_loess(hic.table, Plot = plot.MD)
+  loess.result <- hic_compare(loess.result, Plot = plot.MD, A.quantile = A.quantile, p.method = p.method, adjust.dist = adjust.dist)
+  chromoR.result = hic_compare(chromoR.table, Plot = plot.MD, A.quantile = A.quantile, p.method = p.method, adjust.dist = adjust.dist)
+  ice.result = hic_compare(ice.table, Plot = plot.MD, A.quantile = A.quantile, p.method = p.method, adjust.dist = adjust.dist)
+  kr.result = hic_compare(kr.table, Plot = plot.MD, A.quantile = A.quantile, p.method = p.method, adjust.dist = adjust.dist)
+  scn.result = hic_compare(scn.table, Plot = plot.MD, A.quantile = A.quantile, p.method = p.method, adjust.dist = adjust.dist)
+  ma.result = hic_compare(ma.table, Plot = plot.MD, A.quantile = A.quantile, p.method = p.method, adjust.dist = adjust.dist)
+  
+  # combine truth vector back to other tables
+  chromoR.result <- left_join(chromoR.result, truth.coords, by = c('start1' = 'start1' , 'start2' = 'start2')) %>% as.data.table()
+  chromoR.result$truth[is.na(chromoR.result$truth)] <- 0
+  ice.result <- left_join(ice.result, truth.coords, by = c('start1' = 'start1' , 'start2' = 'start2')) %>% as.data.table()
+  ice.result$truth[is.na(ice.result$truth)] <- 0
+  kr.result <- left_join(kr.result, truth.coords, by = c('start1' = 'start1' , 'start2' = 'start2')) %>% as.data.table()
+  kr.result$truth[is.na(kr.result$truth)] <- 0
+  scn.result <- left_join(scn.result, truth.coords, by = c('start1' = 'start1' , 'start2' = 'start2')) %>% as.data.table()
+  scn.result$truth[is.na(scn.result$truth)] <- 0
+  ma.result <- left_join(ma.result, truth.coords, by = c('start1' = 'start1' , 'start2' = 'start2')) %>% as.data.table()
+  ma.result$truth[is.na(ma.result$truth)] <- 0
+  
+  # make pval and truth vectors
+  loess.p = loess.result$p.adj
+  chromoR.p = chromoR.result$p.adj
+  ice.p = ice.result$p.adj
+  kr.p = kr.result$p.adj
+  scn.p = scn.result$p.adj
+  ma.p = ma.result$p.adj
+  
+  loess.truth <- loess.result$truth
+  chromoR.truth <- chromoR.result$truth
+  ice.truth <- ice.result$truth
+  kr.truth <- kr.result$truth
+  scn.truth <- scn.result$truth
+  ma.truth <- ma.result$truth
+  
+  # roc
+  loess.roc = roc(response = loess.result$truth, predictor = loess.p)
+  chromoR.roc = roc(response = chromoR.result$truth, predictor = chromoR.p)
+  ice.roc = roc(response = ice.result$truth, predictor = ice.p)
+  kr.roc = roc(response = kr.result$truth, predictor = kr.p)
+  scn.roc = roc(response = scn.result$truth, predictor = scn.p)
+  ma.roc = roc(response = ma.result$truth, predictor = ma.p)
+  
+  # F1
+  loess.F1 = F1_Score(loess.truth, ifelse(loess.p < alpha, 1, 0))
+  chromoR.F1 = F1_Score(chromoR.truth, ifelse(chromoR.p < alpha, 1, 0))
+  ice.F1 = F1_Score(ice.truth, ifelse(ice.p < alpha, 1, 0))
+  kr.F1 = F1_Score(kr.truth, ifelse(kr.p < alpha, 1, 0))
+  scn.F1 = F1_Score(scn.truth, ifelse(scn.p < alpha, 1, 0))
+  # kr.F1 <- 0
+  # scn.F1 <- 0
+  ma.F1 = F1_Score(ma.truth, ifelse(ma.p < alpha, 1, 0))
+  
+  
+  # AUC
+  loess.auc = auc(loess.roc)
+  chromoR.auc = auc(chromoR.roc)
+  ice.auc = auc(ice.roc)
+  kr.auc = auc(kr.roc)
+  scn.auc = auc(scn.roc)
+  ma.auc = auc(ma.roc)
+  
+   if (plot.roc) {
+    plot_colors = c('black', 'blue', 'red', 'green', 'purple', 'yellow')
+    plot(loess.roc, col = plot_colors[1], main = paste('Fold Change = ', FC, sep=''))
+    plot(chromoR.roc, col = plot_colors[2], add=T)
+    plot(ice.roc, col = plot_colors[3], add=T)
+    plot(kr.roc, col = plot_colors[4], add=T)
+    plot(scn.roc, col = plot_colors[5], add=T)
+    plot(ma.roc, col = plot_colors[6], add = T)
+    legend('bottomright', inset = 0, legend = c('loess', 'chromoR', 'ICE', 'KR', 'SCN', 'MA'), title = 'Normalization Method', fill = plot_colors, horiz = F) #, cex=1.5)
+   }
+  
+  loess.true.pos = sum(loess.p[loess.truth == 1] < alpha)
+  loess.false.pos = sum(loess.p[loess.truth == 0] < alpha)
+  loess.false.neg = sum(loess.p[loess.truth == 1] >= alpha)
+  loess.true.neg = length(loess.p) - loess.true.pos - loess.false.pos - loess.false.neg
+  chromoR.true.pos = sum(chromoR.p[chromoR.truth == 1] < alpha)
+  chromoR.false.pos = sum(chromoR.p[chromoR.truth == 0] < alpha)
+  chromoR.false.neg = sum(chromoR.p[chromoR.truth == 1] >= alpha)
+  chromoR.true.neg = length(chromoR.p) - chromoR.true.pos - chromoR.false.pos - chromoR.false.neg
+  ice.true.pos = sum(ice.p[ice.truth == 1] < alpha)
+  ice.false.pos = sum(ice.p[ice.truth == 0] < alpha)
+  ice.false.neg = sum(ice.p[ice.truth == 1] >= alpha)
+  ice.true.neg = length(ice.p) - ice.true.pos - ice.false.pos - ice.false.neg
+  kr.true.pos = sum(kr.p[kr.truth == 1] < alpha)
+  kr.false.pos = sum(kr.p[kr.truth == 0] < alpha)
+  kr.false.neg = sum(kr.p[kr.truth == 1] >= alpha)
+  kr.true.neg = length(kr.p) - kr.true.pos - kr.false.pos - kr.false.neg
+  scn.true.pos = sum(scn.p[scn.truth == 1] < alpha)
+  scn.false.pos = sum(scn.p[scn.truth == 0] < alpha)
+  scn.false.neg = sum(scn.p[scn.truth == 1] >= alpha)
+  scn.true.neg = length(scn.p) - scn.true.pos - scn.false.pos - scn.false.neg
+  ma.true.pos = sum(ma.p[ma.truth == 1] < alpha)
+  ma.false.pos = sum(ma.p[ma.truth == 0] < alpha)
+  ma.false.neg = sum(ma.p[ma.truth == 1] >= alpha)
+  ma.true.neg = length(ma.p) - ma.true.pos - ma.false.pos - ma.false.neg
+  
+  # FDR
+  loess.fdr = loess.false.pos / (loess.false.pos + loess.true.pos)
+  chromoR.fdr = chromoR.false.pos / (chromoR.false.pos + chromoR.true.pos)
+  ice.fdr = ice.false.pos / (ice.false.pos + ice.true.pos)
+  kr.fdr = kr.false.pos / (kr.false.pos + kr.true.pos)
+  scn.fdr = scn.false.pos / (scn.false.pos + scn.true.pos)
+  ma.fdr = ma.false.pos / (ma.false.pos + ma.true.pos)
+  
+  # accuracy
+  loess.acc = (loess.true.pos + loess.true.neg) / (length(loess.p))
+  chromoR.acc = (chromoR.true.pos + chromoR.true.neg) / (length(chromoR.p))
+  ice.acc = (ice.true.pos + ice.true.neg) / (length(ice.p))
+  kr.acc = (kr.true.pos + kr.true.neg) / (length(kr.p))
+  scn.acc = (scn.true.pos + scn.true.neg) / (length(scn.p))
+  ma.acc = (ma.true.pos + ma.true.neg) / (length(ma.p))
+  
+  # Precision
+  loess.pre = loess.true.pos / (loess.true.pos + loess.false.pos)
+  chromoR.pre = chromoR.true.pos / (chromoR.true.pos + chromoR.false.pos)
+  kr.pre = kr.true.pos / (kr.true.pos + kr.false.pos)
+  ice.pre = ice.true.pos / (ice.true.pos + ice.false.pos)
+  scn.pre = scn.true.pos / (scn.true.pos + scn.false.pos)
+  ma.pre = ma.true.pos / (ma.true.pos + ma.false.pos)
+  
+  # FPR
+  loess.fpr = loess.false.pos / (loess.false.pos + loess.true.neg)
+  chromoR.fpr = chromoR.false.pos / (chromoR.false.pos + chromoR.true.neg)
+  ice.fpr = ice.false.pos / (ice.false.pos + ice.true.neg)
+  kr.fpr = kr.false.pos / (kr.false.pos + kr.true.neg)
+  scn.fpr = scn.false.pos / (scn.false.pos + scn.true.neg)
+  ma.fpr = ma.false.pos / (ma.false.pos + ma.true.neg)
+  
+  # FNR
+  loess.fnr = loess.false.neg / (loess.true.pos + loess.false.neg)
+  chromoR.fnr = chromoR.false.neg / (chromoR.true.pos + chromoR.false.neg)
+  ice.fnr = ice.false.neg / (ice.true.pos + ice.false.neg)
+  kr.fnr = kr.false.neg / (kr.true.pos + kr.false.neg)
+  scn.fnr = scn.false.neg / (scn.true.pos + scn.false.neg)
+  ma.fnr = ma.false.neg / (ma.true.pos + ma.false.neg)
+  
+  # FOR
+  loess.for = loess.false.neg / (loess.false.neg + loess.true.neg)
+  chromoR.for = chromoR.false.neg / (chromoR.false.neg + chromoR.true.neg)
+  ice.for = ice.false.neg / (ice.false.neg + ice.true.neg)
+  kr.for = kr.false.neg / (kr.false.neg + kr.true.neg)
+  scn.for = scn.false.neg / (scn.false.neg + scn.true.neg)
+  ma.for = ma.false.neg / (ma.false.neg + ma.true.neg)
+  
+  # NPV
+  loess.npv = loess.true.neg / (loess.false.neg + loess.true.neg)
+  chromoR.npv = chromoR.true.neg / (chromoR.false.neg + chromoR.true.neg)
+  ice.npv = ice.true.neg / (ice.false.neg + ice.true.neg)
+  kr.npv = kr.true.neg / (kr.false.neg + kr.true.neg)
+  scn.npv = scn.true.neg / (scn.false.neg + scn.true.neg)
+  ma.npv = ma.true.neg / (ma.false.neg + ma.true.neg)
+  
+  # MCC
+  loess.mcc <- ((loess.true.pos * loess.true.neg) - (loess.false.pos * loess.false.neg)) / 
+    (sqrt((loess.true.pos + loess.false.pos)) * sqrt((loess.true.pos + loess.false.neg)) * sqrt((loess.true.neg + loess.false.pos)) *
+    sqrt((loess.true.neg + loess.false.neg)))
+  chromoR.mcc <- ((chromoR.true.pos * chromoR.true.neg) - (chromoR.false.pos * chromoR.false.neg)) / 
+    (sqrt((chromoR.true.pos + chromoR.false.pos)) * sqrt((chromoR.true.pos + chromoR.false.neg)) * sqrt((chromoR.true.neg + chromoR.false.pos)) * 
+           sqrt((chromoR.true.neg + chromoR.false.neg)))
+  ice.mcc <- ((ice.true.pos * ice.true.neg) - (ice.false.pos * ice.false.neg)) / 
+    (sqrt((ice.true.pos + ice.false.pos)) * sqrt((ice.true.pos + ice.false.neg)) * sqrt((ice.true.neg + ice.false.pos)) * 
+       sqrt((ice.true.neg + ice.false.neg)))
+  kr.mcc <- ((kr.true.pos * kr.true.neg) - (kr.false.pos * kr.false.neg)) / 
+    (sqrt((kr.true.pos + kr.false.pos)) * sqrt((kr.true.pos + kr.false.neg)) * sqrt((kr.true.neg + kr.false.pos)) * sqrt((kr.true.neg + kr.false.neg)))
+  scn.mcc <- ((scn.true.pos * scn.true.neg) - (scn.false.pos * scn.false.neg)) / 
+    (sqrt((scn.true.pos + scn.false.pos)) * sqrt((scn.true.pos + scn.false.neg)) * sqrt((scn.true.neg + scn.false.pos)) * 
+       sqrt((scn.true.neg + scn.false.neg)))
+  ma.mcc <- ((ma.true.pos * ma.true.neg) - (ma.false.pos * ma.false.neg)) / 
+    (sqrt((ma.true.pos + ma.false.pos)) * sqrt((ma.true.pos + ma.false.neg)) * sqrt((ma.true.neg + ma.false.pos)) * sqrt((ma.true.neg + ma.false.neg)))
+  
+  
+  rates = data.frame(loess = c(loess.true.pos, loess.false.pos, loess.true.neg, loess.false.neg), 
+                     chromoR = c(chromoR.true.pos, chromoR.false.pos, chromoR.true.neg, chromoR.false.neg),
+                     ice = c(ice.true.pos, ice.false.pos, ice.true.neg, ice.false.neg),
+                     kr = c(kr.true.pos, kr.false.pos, kr.true.neg, kr.false.neg),
+                     scn = c(scn.true.pos, scn.false.pos, scn.true.neg, scn.false.neg),
+                     ma = c(ma.true.pos, ma.false.pos, ma.true.neg, ma.false.neg))
+  TPR = apply(rates, 2, function(x) {
+    x[1] / (x[1] + x[4])
+  })
+  SPC = apply(rates, 2, function(x) {
+    x[3] / (x[3] + x[2])
+  })
+  total = apply(rates, 2, sum)
+  rates = rbind(rates, total, TPR, SPC)
+  F1 = c(loess.F1, chromoR.F1, ice.F1, kr.F1, scn.F1, ma.F1)
+  AUC.row = c(loess.auc, chromoR.auc, ice.auc, kr.auc, scn.auc, ma.auc)
+  FDR = c(loess.fdr, chromoR.fdr, ice.fdr, kr.fdr, scn.fdr, ma.fdr)
+  Acc = c(loess.acc, chromoR.acc, ice.acc, kr.acc, scn.acc, ma.acc)
+  AUC20 = c(auc(loess.roc, partial.auc = c(0.8,1)), auc(chromoR.roc, partial.auc = c(0.8,1)), auc(ice.roc, partial.auc = c(0.8,1)), 
+            auc(kr.roc, partial.auc = c(0.8,1)), auc(scn.roc, partial.auc = c(0.8,1)), auc(ma.roc, partial.auc = c(0.8,1)))
+  precision = c(loess.pre, chromoR.pre, ice.pre, kr.pre, scn.pre, ma.pre)
+  FPR = c(loess.fpr, chromoR.fpr, ice.fpr, kr.fpr, scn.fpr, ma.fpr)
+  FNR = c(loess.fnr, chromoR.fnr, ice.fnr, kr.fnr, scn.fnr, ma.fnr)
+  FOR = c(loess.for, chromoR.for, ice.for, kr.for, scn.for, ma.for)
+  NPV = c(loess.npv, chromoR.npv, ice.npv, kr.npv, scn.npv, ma.npv)
+  MCC <- c(loess.mcc, chromoR.mcc, ice.mcc, kr.mcc, scn.mcc, ma.mcc)
+  
+  rates = rbind(rates, F1, AUC.row, AUC20, FDR, Acc, precision, FPR, FNR, FOR, NPV, MCC)
+  rates = format(rates, scientific = FALSE)
+  rownames(rates) = c('true positive', 'false positive', 'true negative', 'false negative', 'Total', 'TPR', 'SPC', 'F1', 'AUC', 'AUC 20%' , 'FDR', 'Accuracy',
+                    'Precision', 'FPR', 'FNR', 'FOR', 'NPV', 'MCC')
+  result = list(loess.roc = loess.roc, chromoR.roc = chromoR.roc, ice.roc = ice.roc, kr.roc = kr.roc, scn.roc = scn.roc, ma.roc = ma.roc,
+                rates = rates, loess.F1 = loess.F1,
+                chromoR.F1 = chromoR.F1, ice.F1 = ice.F1, kr.F1 = kr.F1, ma.F1 = ma.F1)
+  return(result)  
+}
+```
+
+
+
+### Fold change 2
+
+Here we introduce 200 true differences at a 2 fold change are added to replicates of GM12878 chr1 at 1MB resolution. The matrices are normalized with the specified normalization method and then differences are detected using `HiCcompare`. Many common performance metrics are calculated and displayed in the table below.
+
+```{r}
+chr1.roc4 <- ROC_on_replicate(chr1.primary, chr1.replicate, FC = 2, numChanges = 200, dist = 50, A.quantile = 0.1, p.method = 'fdr', plot.MD = FALSE, plot.roc = FALSE)
+```
+
+<!-- \newpage -->
+```{r}
+pander(signif(data.matrix(chr1.roc4$rates), digits = 3))
+```
+
+
+\newpage
+### Fold change 3
+
+Here we introduce 200 true differences at a 3 fold change are added to replicates of GM12878 chr1 at 1MB resolution. The matrices are normalized with the specified normalization method and then differences are detected using `HiCcompare`. Many common performance metrics are calculated and displayed in the table below.
+
+```{r}
+chr1.roc6 <- ROC_on_replicate(chr1.primary, chr1.replicate, FC = 3, numChanges = 200, dist = 50, A.quantile = 0.1, p.method = 'fdr', plot.MD = FALSE, plot.roc = FALSE)
+```
+
+<!-- \newpage -->
+```{r}
+pander(signif(data.matrix(chr1.roc6$rates), digits = 3))
+```
+
+\newpage
+### Fold change 4
+
+Here we introduce 200 true differences at a 4 fold change are added to replicates of GM12878 chr1 at 1MB resolution. The matrices are normalized with the specified normalization method and then differences are detected using `HiCcompare`. Many common performance metrics are calculated and displayed in the table below.
+
+```{r}
+chr1.roc7 <- ROC_on_replicate(chr1.primary, chr1.replicate, FC = 4, numChanges = 200, dist = 50, A.quantile = 0.1, p.method = 'fdr', plot.MD = FALSE, plot.roc = FALSE)
+```
+
+<!-- \newpage -->
+```{r}
+pander(signif(data.matrix(chr1.roc7$rates), digits = 3))
+```
+
+\newpage
+### Fold change 5
+
+Here we introduce 200 true differences at a 5 fold change are added to replicates of GM12878 chr1 at 1MB resolution. The matrices are normalized with the specified normalization method and then differences are detected using `HiCcompare`. Many common performance metrics are calculated and displayed in the table below.
+
+```{r}
+chr1.roc8 <- ROC_on_replicate(chr1.primary, chr1.replicate, FC = 5, numChanges = 200, dist = 50, A.quantile = 0.1, p.method = 'fdr', plot.MD = FALSE, plot.roc = FALSE)
+```
+
+<!-- \newpage -->
+```{r}
+pander(signif(data.matrix(chr1.roc8$rates), digits = 3))
+```
+
+
+\newpage
+### Comparing multiple testing correction types
+Here 500 true differences are added at a 2 fold change to chr1 of GM12878 replicates at 1MB resolution. The specified multiple testing correction method is applied to the results of `HiCcompare`.
+
+#### FDR
+
+FDR multiple testing correction adjusted by distance.
+
+```{r}
+chr1.roc9 <- ROC_on_replicate(chr1.primary, chr1.replicate, FC = 2, numChanges = 500, dist = 50, A.quantile = 0.1, p.method = 'fdr', plot.MD = FALSE, plot.roc = FALSE)
+```
+
+<!-- \newpage -->
+```{r}
+pander(signif(data.matrix(chr1.roc9$rates), digits = 3))
+```
+
+\newpage
+#### Holm
+
+Holm multiple testing correction adjusted by distance.
+
+```{r}
+chr1.roc10 <- ROC_on_replicate(chr1.primary, chr1.replicate, FC = 2, numChanges = 500, dist = 50, A.quantile = 0.1, p.method = 'holm', plot.MD = FALSE, plot.roc = FALSE)
+```
+
+<!-- \newpage -->
+```{r}
+pander(signif(data.matrix(chr1.roc10$rates), digits = 3))
+```
+
+\newpage
+
+#### Per chromosome FDR
+
+FDR multiple testing correction applied to pool of all p-values per chromosome.
+
+```{r}
+chr1.roc11 <- ROC_on_replicate(chr1.primary, chr1.replicate, FC = 2, numChanges = 500, dist = 50, A.quantile = 0.1, p.method = 'fdr', plot.MD = FALSE, plot.roc = FALSE, adjust.dist = FALSE)
+
+pander(signif(data.matrix(chr1.roc11$rates), digits = 3))
+```
+
+
+### MCC Summary Table
+
+Here we present a summary table of MCC values. Fold changes increase by row and normalization methods are by column. Data is GM12878 chr1 replicates at 1MB resolution.
+
+```{r}
+mcc.table <- rbind(chr1.roc4$rates[18,], chr1.roc6$rates[18,], chr1.roc7$rates[18,], chr1.roc8$rates[18,] )
+Fold.change <- c( '2',  '3', '4', '5')
+mcc.table <- cbind(Fold.change, mcc.table)
+rownames(mcc.table) <- NULL
+colnames(mcc.table)[1] <- 'Fold Change'
+mcc.table <- as.matrix(mcc.table) %>% apply(., 2, as.numeric) %>% round(., digits = 3) %>% as.data.frame()
+
+knitr::kable(mcc.table)
+```
+
+
+## Visualization of `loess` joint normalization over varying resolutions
+
+```{r}
+regenerate_figures <- FALSE # If the plots have been created, do not regenerate them
+```
+
+
+
+Hi-C data from Gm12878 cell line were used. The data used were from chromosome 1 cut either using the DpnII enzyme or MboI enzyme at varying resolutions of 1MB, 500KB, 100KB, 50KB, and 5KB. The increased resolution (smaller length of genomic region) is accompanied by the increased proportion of zero interaction frequencies and the overall smaller dynamic range of IFs. The goal of this section is to observe the effect of resolution on the performance of joint `loess` normalization.
+
+```{r}
+githubURL <- "https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_data/S7_File_data.RData"
+load(url(githubURL))
+```
+
+
+Here the `hic_loess` procedure is performed for the comparison of MboI and DpnII in GM12878 for chromosome 1 at varying resolutions.
+
+### 1MB
+
+```{r results='hide'}
+if (regenerate_figures) {
+  dir.create("manuscript/supplemental_zscores/img")
+  tab.1mb   = create.hic.table(S7.dpnii.1mb,   S7.mbol.1mb,   chr='chr1')
+  tiff(paste0("manuscript/supplemental_zscores/img/", "S7_File_fig1.tif"), width = 2500, height = 1500, units = 'px', res = 300)
+  hic_loess(tab.1mb, Plot=T)
+  dev.off()
+}
+```
+
+![](D:/3D_DNA/manuscript/supplemental_zscores/img/S7_File_fig1.pnd)
+
+### 500KB
+
+```{r results='hide'}
+if (regenerate_figures) {
+  tab.500kb = create.hic.table(S7.dpnii.500kb, S7.mbol.500kb, chr='chr1')
+  tiff(paste0("manuscript/supplemental_zscores/img/", "S7_File_fig2.tif"), width = 2500, height = 1500, units = 'px', res = 300)
+  hic_loess(tab.500kb, Plot=T)
+  dev.off()
+}
+```
+
+![](D:/3D_DNA/manuscript/supplemental_zscores/img/S7_File_fig2.png)
+
+\pagebreak
+
+### 100KB
+
+```{r results='hide'}
+if (regenerate_figures) {
+  tab.100kb = create.hic.table(S7.dpnii.100kb, S7.mbol.100kb, chr='chr1')
+  tiff(paste0("manuscript/supplemental_zscores/img/", "S7_File_fig3.tif"), width = 2500, height = 1500, units = 'px', res = 300)
+  hic_loess(tab.100kb, Plot=T)
+  dev.off()
+}
+```
+
+![](D:/3D_DNA/manuscript/supplemental_zscores/img/S7_File_fig3.png)
+
+\pagebreak
+
+### 50KB
+
+```{r results='hide'}
+if (regenerate_figures) {
+  tab.50kb  = create.hic.table(S7.dpnii.50kb,  S7.mbol.50kb,  chr='chr1')
+  tiff(paste0("manuscript/supplemental_zscores/img/", "S7_File_fig4.tif"), width = 2500, height = 1500, units = 'px', res = 300)
+  hic_loess(tab.50kb, Plot=T)
+  dev.off()
+}
+```
+
+![](D:/3D_DNA/manuscript/supplemental_zscores/img/S7_File_fig4.png)
+
+### Summary
+
+`loess` works well for removing biases at resolutions between 1MB and 100KB. Once the resolution is higher than 100KB, the procedure begins to fail due to the sparsity of the data. At high resolutions Hi-C data becomes very sparse with most values in the matrix being 0 or a small number. Thus when plotted on the MD plot the sparsity begins to show as the straight horizontal lines of points representing very small differences existing between the two datasets due to the sparsity of the sequencing coverage.
+
+
+
+## The distribution of Average Expression between interacting pairs
+
+
+Average expression ($A$) is the mean of IF1 and IF2 where IF1 and IF2 are the Hi-C interaction frequencies for a pair of interacting regions from datasets 1 and dataset 2. Higher values of $A$ indicate that the reads are more trustworthy due to better sequencing coverage. Differences found between interactions with low values of $A$ may not be trustworthy due to the possibility of larger effects of biases, random variation, sequencing errors, etc. Thus it is justifiable to not consider any differences found for interactions with low average expression. $A$ tends to have a very right skewed distribution. This is because interactions coming from closer to the diagonal of a Hi-C matrix tend to have very large IFs (short distance interactions) while the long range interactions tend to have smaller IFs.
+
+
+### The distribution of A over varying resolutions
+
+```{r}
+githubURL <- "https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_data/S7_File_data.RData"
+load(url(githubURL))
+```
+
+
+Here we display the distribution of the Log average expression between GM12878 chromosome 1 data cut with either DpnII or MBOI enzymes at 1MB resolution.
+
+
+```{r}
+q.1mb <- create.hic.table(S7.dpnii.1mb, S7.mbol.1mb, chr = 'chr1')
+q.1mb <- hic_loess(q.1mb, span = 0.034)
+# q.1mb <- hic_compare(q.1mb, A.quantile = 0.15, Plot = TRUE, adjust.dist = TRUE, p.method = 'fdr')
+# q.1mb <- hic_compare(q.1mb, A.quantile = 0.1, Plot = TRUE, adjust.dist = TRUE, p.method = 'fdr')
+# q.1mb <- hic_compare(q.1mb, A.quantile = 0.05, Plot = TRUE, adjust.dist = TRUE, p.method = 'fdr')
+
+hist(log2(q.1mb$A), main = 'Log2(A)', xlab = 'Log A')
+
+# quantile((q.1mb$A), 0.1, na.rm = TRUE)
+``` 
+
+\pagebreak
+
+Here we display the distribution of the average expression between GM12878 chromosome 1 data cut with either DpnII or MBOI enzymes at 1MB, 500KB, 100KB, and 50KB resolution.
+
+```{r}
+q.500kb <- create.hic.table(S7.dpnii.500kb, S7.mbol.500kb, chr = 'chr1')
+q.500kb <- hic_loess(q.500kb, span = 0.03)
+q.100kb <- create.hic.table(S7.dpnii.100kb, S7.mbol.100kb, chr = 'chr1')
+q.100kb <- hic_loess(q.500kb, span = 0.03)
+q.50kb <- create.hic.table(S7.dpnii.50kb, S7.mbol.50kb, chr = 'chr1')
+q.50kb <- hic_loess(q.50kb, span = 0.02)
+
+# make table of A distribution
+sum.1mb <- summary(q.1mb$A)
+sum.500kb <- summary(q.500kb$A)
+sum.100kb <- summary(q.100kb$A)
+sum.50kb <- summary(q.50kb$A)
+
+A.table <- cbind(sum.1mb, sum.500kb, sum.100kb, sum.50kb)
+colnames(A.table) <- c('1MB', '500KB', '100KB', '50KB')
+A.table <- round(A.table, digits = 3)
+
+ks.pval <- vector()
+ks.pval[1] <- ks.test(q.1mb$A, 'pnorm')$p.value
+ks.pval[2] <- ks.test(q.500kb$A, 'pnorm')$p.value
+ks.pval[3] <- ks.test(q.100kb$A, 'pnorm')$p.value
+ks.pval[4] <- ks.test(q.50kb$A, 'pnorm')$p.value
+
+A.table <- rbind(A.table, ks.pval)
+
+knitr::kable(A.table)
+``` 
+
+
+### Find distribution of A
+
+```{r, echo = TRUE}
+library(fitdistrplus)
+
+# descdist(q.1mb$A)
+# descdist(q.500kb$A)
+descdist(log2(q.100kb$A))
+# descdist(q.50kb$A)
+
+# fitdist(q.1mb$A, distr = 'beta')
+
+fitdist(abs(log2(q.1mb$A)), distr = 'lnorm')
+ks.test(abs(log2(q.1mb$A)), 'plnorm')
+```
+
+ 
+
+
+### Determining which A quantile to filter out
+
+Here we add differences to data from replicates of the GM12878 cell line. We then perform a HiCcompare analysis using a sequence of values for the A quantile or minimum A value to be filtered out. All differences with an A value less than the quantile (or minimum value) specified are filtered out and ignored. We then plot the number of true positives and false positives against the A quantile (or value) filtered. 
+
+```{r}
+determine_A <- function(raw1, raw2, FC = 2, numChanges = 100, alpha = 0.05, span = NA,
+                             adjust.dist = TRUE, A_seq = seq(0.01, 0.4, by = 0.01), A.min = NA,
+                             p.method = 'fdr') {
+  
+  # create hic.table
+  hic.table <- create.hic.table(raw1, raw2, scale = TRUE, chr = 'chr1')
+  
+  ## ADD in true differences
+  # spike in differences
+  # get which interactions at distance
+  # sample_space <- which(hic.table$D == dist)
+  sample_space <- 1:nrow(hic.table)
+  changes <- sample(sample_space, numChanges)
+  # set IFs to mean IF then multiply one by FC
+  meanIF <- ((hic.table[changes,]$IF1 + hic.table[changes,]$IF2) / 2) %>% round() %>% as.integer()
+  hic.table[changes, IF1 := meanIF ]
+  hic.table[changes, IF2 := meanIF]
+  midpoint <- floor(numChanges/2)
+  newIF1 <- hic.table[changes[1:midpoint],]$IF1 * FC %>% as.integer()
+  newIF2 <- hic.table[changes[(midpoint+1):numChanges],]$IF2 * FC %>% as.integer()
+  hic.table[changes[1:midpoint], IF1 :=  newIF1]
+  hic.table[changes[(midpoint+1):numChanges], IF2 :=  newIF2]
+  hic.table = hic.table[, M := log2(IF2/IF1)]
+  truth <- rep(0, nrow(hic.table))
+  truth[changes] <- 1
+  hic.table[, truth := truth]
+  
+  hic.table <- hic_loess(hic.table, span = span)
+  
+  roc_list <- list()
+  TP <- vector()
+  FP <- vector()
+  FN <- vector()
+  TN <- vector()
+  if (is.na(A.min)) {
+    for(i in 1:length(A_seq)) {
+      new.table <- hic_compare(hic.table, A.quantile = A_seq[i], adjust.dist = TRUE, A.min = A.min, p.method = 'fdr', Plot = FALSE)
+      # roc_list[[i]] <- roc(response = new.table$truth, predictor = new.table$p.adj)
+      TP[i] <- sum(new.table$p.adj < alpha & new.table$truth == 1)
+      FP[i] <- sum(new.table$p.adj < alpha & new.table$truth == 0)
+      FN[i] <- sum(new.table$p.adj >= alpha & new.table$truth == 1)
+      TN[i] <- sum(new.table$p.adj >= alpha & new.table$truth == 0)
+    }
+  } else {
+    for(i in 1:length(A_seq)) {
+      new.table <- hic_compare(hic.table, A.min = A_seq[i], adjust.dist = TRUE, p.method = 'fdr', Plot = FALSE)
+      # roc_list[[i]] <- roc(response = new.table$truth, predictor = new.table$p.adj)
+      TP[i] <- sum(new.table$p.adj < alpha & new.table$truth == 1)
+      FP[i] <- sum(new.table$p.adj < alpha & new.table$truth == 0)
+      FN[i] <- sum(new.table$p.adj >= alpha & new.table$truth == 1)
+      TN[i] <- sum(new.table$p.adj >= alpha & new.table$truth == 0)
+    }
+  }
+  
+  
+  # # get aucs
+  # auc <- sapply(roc_list, auc)
+  # plot(FP ~ TP)
+  # text(TP, FP, labels = names(TP))
+  
+  # # get TPR and FPR
+  # TPR <- TP/(TP + FN)
+  # FPR <- FP/(FP + TN)
+  
+  # Calculate MCC
+  MCC <- ((TP * TN) - (FP * FN)) / 
+    (sqrt((TP + FP)) * sqrt((TP + FN)) * sqrt((TN + FP)) *
+    sqrt((TN + FN)))
+  
+
+  # OLD; for plotting TP vs FP 
+  # if (is.na(A.min)) {
+  #   plot(FP ~ A_seq, type = 'l', col = 'red', main = 'Number TP and FP by A quantile filtered', ylab = 'Number TP or FP', xlab = 'A Quantile filtered', 
+  #      ylim = c(0, max(FP)))
+  # } else {
+  #   plot(FP ~ A_seq, type = 'l', col = 'red', main = 'Number TP and FP by A quantile filtered', ylab = 'Number TP or FP', xlab = 'A minimum filtered', 
+  #      ylim = c(0, max(FP)))
+  # }
+  # lines(TP ~ A_seq, col='black')
+  # legend('topright', legend = c('True Positives', 'False Positives'), fill = c('black', 'red'))
+  
+  
+  # PLOT MCC
+  if (is.na(A.min)) {
+    plot(MCC ~ A_seq, type = 'l', col = 'red', main = 'MCC by A quantile filtered', ylab = 'MCC', xlab = 'A Quantile filtered')
+  } else {
+    plot(MCC ~ A_seq, type = 'l', col = 'red', main = 'MCC by A quantile filtered', ylab = 'MCC', xlab = 'A minimum filtered')
+  }
+  
+ 
+}
+```
+
+#### 1MB Resolution
+
+Here we add 100 differences at a 2 fold change to data.
+At lower resolutions it is better to use the `A.quantile` option for controlling the differences with low average expression. This shows that filtering the 10-20% quantiles is a good range for this resolution.
+
+```{r}
+chr1.primary <- read.table("D:/3D_DNA/GM12878_replicates/GM12878_primary_1000000/primary.chr1.1000000.txt")
+chr1.replicate <- read.table("D:/3D_DNA/GM12878_replicates/GM12878_replicate_1000000/replicate.chr1.1000000.txt")
+
+determine_A(chr1.primary, chr1.replicate, span = 0.09)
+```
+
+
+#### 100KB Resolution
+
+At higher resolutions it is better to use the `A.min` option for controlling differences with low average expression. There is much greater variability in M at higher resolutions due to the generally lower levels of average expression. The data with no changes added to it looks like this on the MD plot after difference detection with no filtering:
+
+
+```{r}
+chr1.100kb.primary <- read.table("D:/3D_DNA/GM12878_replicates/GM12878_primary_100000/primary.chr1.100000.txt")
+chr1.100kb.replicate <- read.table("D:/3D_DNA/GM12878_replicates/GM12878_replicate_100000/replicate.chr1.100000.txt")
+
+tab <- create.hic.table(chr1.100kb.primary, chr1.100kb.replicate, 'chr1')
+tab <- hic_loess(tab, span = 0.025)
+tab <- hic_compare(tab, A.quantile = 0, Plot = TRUE)
+```
+
+Most of these detected differences have relatively low A values are not very trustworthy. 
+Varying the minimum A filtered and addng in 5,000 true differences at a 4 fold change we get: 
+
+```{r}
+
+# determine_A(chr1.100kb.primary, chr1.100kb.replicate, span = 0.025, A_seq = seq(0.01, 0.2, by = 0.02), numChanges = 1000, A.min = NA)
+
+determine_A(chr1.100kb.primary, chr1.100kb.replicate, FC = 4, span = 0.025, A_seq = seq(1, 30, by = 1), numChanges = 5000, A.min = 1)
+```
+
+Many of the differences with high M values are derived from interactions where one IF is close to 1 and the other is in the range of 15 to 30. Filtering out any differences where A < 15 gives the best results and allows the most true differences to be detected and the least number of false positives. This may require some tuning to different datasets and resolutions.
+
+
+```{r}
+determine_A(chr1.100kb.primary, chr1.100kb.replicate, FC = 4, span = 0.025, A_seq = seq(0, 0.5, by = 0.01), numChanges = 5000)
+```
+
+
+
+### Summary 
+
+A has a right skewed distribution. Many of the differencecs detected with low corresponding average expression are not as trustworhy as differences with large values of A. Filtering is required to remove these low A differences. Filtering can be accomplished either using the quantile of A or by setting a minimum acceptable value of A. These difference approaches may work better in some situations than others. Both options are available to the user in `HiCcompare`. 
+
+
+
+
+
+
+```{r}
+# load data
+githubURL <- "https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_data/S1_File_data.RData"
+load(url(githubURL))
+```
+
+
+
+## The distribution of M is approximately normal
+
+Here we show that the distribution of M is approximately normal and that this holds true for different genomic distances, chromosomes, and resolutions.
+
+### Chromosome 1
+
+Using GM12878 replicate datasets for chromosome 1 at 1MB resolution we fit a QQ plot for a normal distribution at distances of 5 and 50 showing that after loess normalization M is roughly normal at different distances.
+
+```{r}
+gm12878.chr1 <- create.hic.table(S1.replicate.chr1, S1.primary.chr1, chr = 'chr1')
+gm12878.chr1 <- hic_loess(gm12878.chr1)
+
+
+qqnorm(gm12878.chr1[D == 5, ]$adj.M, main = 'QQ Plot, D = 5')
+qqline(gm12878.chr1[D == 5, ]$adj.M)
+
+qqnorm(gm12878.chr1[D == 50, ]$adj.M, main = 'QQ Plot, D = 50')
+qqline(gm12878.chr1[D == 50, ]$adj.M)
+
+```
+
+
+### Chromosome 18
+
+Using GM12878 replicate datasets for chromosome 18 at 1MB resolution we fit a QQ plot for a normal distribution at distances of 5 and 50 showing that after loess normalization M is roughly normal at different distances and chromosomes.
+
+
+```{r}
+gm12878.chr18 <- create.hic.table(S1.replicate.chr18, S1.primary.chr1, chr = 'chr18')
+gm12878.chr18 <- hic_loess(gm12878.chr18)
+
+qqnorm(gm12878.chr18[D == 5, ]$adj.M, main = 'QQ Plot, D = 5')
+qqline(gm12878.chr18[D == 5, ]$adj.M)
+
+
+qqnorm(gm12878.chr18[D == 50, ]$adj.M, main = 'QQ Plot, D = 50')
+qqline(gm12878.chr18[D == 50, ]$adj.M)
+```
+
+
+
+### The distribution of M is approximately normal between resolutions
+
+Real Hi-C data from Gm12878 cell line were used. The data used were from chromosome 1 cut either using the DpnII enzyme or MboI enzyme at varying resolutions of 1MB, 500KB, 100KB, 50KB, and 5KB. The increased resolution (smaller length of genomic region) is accompanied by the increased proportion of zero interaction frequencies and the overall smaller dynamic range of IFs. 
+
+```{r}
+githubURL <- "https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_data/S7_File_data.RData"
+load(url(githubURL))
+```
+
+#### 500KB Resolution
+
+At 500KB resolution we fit a QQ plot for M at distances of 5 and 50.
+
+```{r}
+q.500kb <- create.hic.table(S7.dpnii.500kb, S7.mbol.500kb, chr = 'chr1')
+q.500kb <- hic_loess(q.500kb, span = 0.03)
+
+qqnorm(q.500kb[D == 5,]$adj.M, main = 'QQ Plot, D = 5')
+qqline(q.500kb[D == 5,]$adj.M)
+
+qqnorm(q.500kb[D == 50,]$adj.M, main = 'QQ Plot, D = 50')
+qqline(q.500kb[D == 50,]$adj.M)
+``` 
+
+
+
+#### 100KB Resolution
+
+At 100KB resolution we fit a QQ plot for M at distances of 5 and 50.
+
+```{r}
+q.100kb <- create.hic.table(S7.dpnii.100kb, S7.mbol.100kb, chr = 'chr1')
+q.100kb <- hic_loess(q.500kb, span = 0.03)
+
+qqnorm(q.100kb[D == 5,]$adj.M, main = 'QQ Plot, D = 5')
+qqline(q.100kb[D == 5,]$adj.M)
+
+qqnorm(q.100kb[D == 50,]$adj.M, main = 'QQ Plot, D = 50')
+qqline(q.100kb[D == 50,]$adj.M)
+``` 
+
+
+#### 50KB Resolution
+
+At 50KB resolution we fit a QQ plot for M at distances of 5 and 50.
+
+```{r}
+q.50kb <- create.hic.table(S7.dpnii.50kb, S7.mbol.50kb, chr = 'chr1')
+q.50kb <- hic_loess(q.50kb, span = 0.02)
+
+qqnorm(q.50kb[D == 5,]$adj.M, main = 'QQ Plot, D = 5')
+qqline(q.50kb[D == 5,]$adj.M)
+
+qqnorm(q.50kb[D == 50,]$adj.M, main = 'QQ Plot, D = 50')
+qqline(q.50kb[D == 50,]$adj.M)
+``` 
+
+
+
+### Summary
+
+M has an approximately normal distribution over a range of distances, resolutions, and chromosomes. Thus it is justifiable to convert M values into Z-scores for difference detection. The tails of the M distribution are where the most deviations from the fit to the normal distribution occur. These deviations typically occur for the interactions with low average expression and thus will be filtered out before Z-score conversion. 
+
+
+## Comparison with `diffHic`
+
+Four pairs of differentially interacting regions were validated using Fluorescence In Situ Hybridization (FISH) [@Rickman:2012aa] and confirmed in the `diffHiC` analysis [@Lun:2015aa]. These regions were also detected as differentially interacting in the `HiCcompare` analysis (Table 1), although they become nonsignificant after correction for multiple testing due to their relatively small differences (!!! is this true?). These results suggest that both methods are able to detect biologically relevant chromatin interaction differences, with `HiCcompare` prioritizing large chromatin interaction differences.
+
+
+```{r}
+fish.table <- read.table("manuscript/prostate_analysis/fish_table.txt", header = TRUE, sep = '\t')
+colnames(fish.table) <- c('Interaction', 'HiCcompare M', 'HiCcompare A', 'diffHic logFC', 'HiCcompare p-value', 'HiCcompare FDR', 'diffHic FDR')
+
+knitr::kable(fish.table)
+```
+
+
+**Table 1. Differential interactions validated by FISH detected by HiCcompare and diffHiC.** The regions containing genes listed in the "Interaction" column were previously validated by Fluorescence In Situ Hybridization (FISH) as differentially interacting [@Rickman:2012aa]. The "Difference" columns show the differences, measured as $log2(IF_1/IF_2)$, detected by the `HiCcompare` and `diffHiC` pipelines; the "Significance" columns show the permutation p-value ("HiCcompare") and FDR-corrected p-value ("diffHiC") for the corresponding differential interactions.
+
+
+
+![](manuscript/figures/S4_fig.tif)
+
+**S4 Fig. diffHic results in MD and MA plot form**
+
+Chromosome 1 at 1MB resolution for the comparison of RWPE1 prostate epithelial cells and ERG3 over-expression strains of RWPE1 cells.
+(A) MD plot for the results of `diffHic` with coloring for significance. (B) MA plot for the results of `diffHic`. Log CPM is plotted on the x-axis and the M values are plotted on the y-axis. Coloring based on significance.
+
+
+
+
+
+**S2 Table. Comparison of `HiCcompare` and `diffHic` results.** 
+
+"Chromosome" - results are broken down by chromosome; "Number of differentially interacting region pairs" - counts of region pairs detected as significantly differentially interacting by the "HiCcompare" and "diffHiC" pipelines, "Overlap" between them, counts of "diffHiC regions overlapping CNVs" and "diffHiC regions overlapping blacklisted" regions; "Average positive difference" and "Average negative difference", measured as $log2(IF_1-IF_2)$, detected by the "HiCcompare" and "diffHiC" pipelines. 
+
+
+```{r}
+comparison.table <- read.table("manuscript/prostate_analysis/comparison_table.txt", sep = '\t', head = TRUE, check.names = FALSE)
+
+knitr::kable(comparison.table)
+```
+
