@@ -1,0 +1,205 @@
+---
+title: 'HiCcompare: an R-package for joint normalization of Hi-C datasets and differential chromatin interaction detection.'
+csl: styles.ref/bioinformatics.csl
+fontsize: 12pt
+output:
+  word_document:
+    reference_docx: styles.doc/bioinformatics_styles_singlespace.docx
+  pdf_document:
+    fig_caption: no
+  html_document: null
+bibliography: /Users/mdozmorov/Documents/Work/VCU_work/3D_DNA/manuscript/3D_DNA-references.bib
+---
+
+
+John C. Stansfield^1^, Kellen G. Cresswell^1^, Mikhail G. Dozmorov^1\*^ 
+
+^1^ Dept. of Biostatistics, Virginia Commonwealth University, Richmond, VA, USA
+
+
+^\*^ Corresponding author
+
+E-mail: mikhail.dozmorov@vcuhealth.org (MGD)
+
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE}
+# Set up the environment
+library(knitr)
+opts_chunk$set(cache.path='cache/', fig.path='img/', cache=T, tidy=T, fig.keep='high', echo=F, dpi=100, warnings=F, message=F, comment=NA, warning=F, results='as.is', fig.width = 10, fig.height = 6) #out.width=700, 
+library(pander)
+panderOptions('table.split.table', Inf)
+set.seed(1)
+library(dplyr)
+options(stringsAsFactors = FALSE)
+```
+
+# Abstract
+
+Changes in spatial chromatin interactions are now emerging as a unifying mechanism orchestrating the regulation of gene expression. Hi-C sequencing technology now allows insight into chromatin interactions on a genome-wide scale. However, Hi-C data contains many DNA sequence- and technology-driven biases. These biases prevent effective comparison of chromatin interactions aimed at identifying genomic regions differentially interacting between, disease-normal states or different cell types. Several methods have been developed for normalizing individual Hi-C datasets. However, they fail to account for biases _between two or more Hi-C datasets_, hindering comparative analysis of chromatin interactions. We developed a simple and effective method, `HiCcompare`, for the joint normalization and differential analysis of multiple Hi-C datasets.  The method avoids constraining Hi-C data within a rigid statistical model, allowing a data-driven normalization of biases using locally weighted linear regression (`loess`). The method identifies region-specific chromatin interaction changes complementary to changes due to large-scale genomic rearrangements, such as copy number variants (CNVs). `HiCcompare` outperforms methods for normalizing individual Hi-C datasets in detecting _a priori_ known chromatin interaction differences in simulated and real-life settings while detecting biologically relevant changes. `HiCcompare` is freely available as a Bioconductor R package [https://bioconductor.org/packages/HiCcompare/](https://bioconductor.org/packages/HiCcompare/).
+
+
+# Introduction
+
+The 3D chromatin structure of the genome is emerging as a unifying regulatory framework orchestrating gene expression by bringing transcription factors, enhancers and co-activators in spatial proximity to the promoters of genes [@Franke:2016aa; @Symmons:2014aa; @Sexton:2015aa; @Li:2012aa; @Papantonis:2013aa; @Laat:2003aa; @Mora:2016aa; @Mifsud:2015aa; @Shavit:2014aa; @Osborne:2004aa]. Together with epigenomic profiles, changes in chromatin interactions shape cell type-specific gene expression [@Fernandez:2012aa; @Liu:2008aa; @Jin:2013aa; @Lieberman-Aiden:2009aa; @Sanyal:2012aa; @Schmitt:2016aa; @Nora:2012aa], as well as misregulation of oncogenes and tumor suppressors in cancer [@Taberlay:2016aa; @Hnisz:2016aa; @Franke:2016aa; @Lupianez:2016aa]. Identifying changes in chromatin interactions is the next logical step in understanding genomic regulation.
+
+Evolution of Chromatin Conformation Capture (3C) technologies into Hi-C sequencing now allows the detection of "all vs. all" long-distance chromatin interactions across the whole genome [@Berkum:2010aa; @Lieberman-Aiden:2009aa; @Sanborn:2015aa]. Soon after public Hi-C datasets became available, it was clear that technology- and DNA sequence-driven biases substantially affect chromatin interactions [@Yaffe:2011aa]. The technology-specific biases include cutting length of a restriction enzyme (HindIII, MboI, or NcoI), cross-linking conditions, circularization length, etc. [@OSullivan:2013aa; @Cournac:2012aa]. The DNA sequence-driven biases include GC content, mappability, nucleotide composition [@Yaffe:2011aa]. Discovery of these biases led to the development of methods for normalizing individual datasets [@Lieberman-Aiden:2009aa; @Imakaev:2012aa; @Yaffe:2011aa; @knight2012fast]. Although normalization of individual datasets improves reproducibility within replicates of Hi-C data [@Imakaev:2012aa; @Yaffe:2011aa; @Hu:2012aa], these methods do not consider biases between multiple Hi-C datasets. 
+
+Accounting for the between-dataset biases is critical for the correct identification of chromatin interaction changes between, e.g., disease-normal states, or cell types. Left unchecked, biases can be mistaken for biologically relevant differential interactions. While DNA sequence-driven biases affect two datasets similarly (e.g., CG content of genomic regions tested for interaction differences is the same), technology-driven biases are poorly characterized and affect chromatin interactions unpredictably. Importantly, another source of chromatin interaction differences are large-scale genomic rearrangements, such as copy number variations [@Harewood:2017aa; @Servant:2015aa], a frequent event in cancer genomes [@Zink:2004aa; @Rickman:2012aa]. Accounting for such biases is needed for the detection of differential chromatin interactions between Hi-C datasets. 
+
+We developed an R package, `HiCcompare`, for the joint normalization and comparative analysis of multiple Hi-C datasets, summarized as chromatin interaction matrices. Our method is based on the observation that chromatin interactions are highly stable [@Dixon:2012aa; @Fudenberg:2016aa; @Rao:2014aa; @Parada:2002aa], suggesting that the majority of them, excluding large genomic rearrangement of regions, can serve as a reference to build a rescaling model. We present the novel concept of the MD plot (difference vs. distance plot), a modification of the MA plot [@dudoit2002statistical], visualizing the distance-centric differences between interacting chromatin regions, where distance is expressed in terms of unit-length size of the regions. The MD plot concept naturally allows for fitting the local regression model, a procedure termed `loess`, and jointly normalizing the two datasets by balancing biases between them. The distance-centric view of chromatin interaction differences allows for detecting statistically significant differential chromatin interactions between two Hi-C datasets using a simple but robust permutation method. We show improved performance of differential chromatin interaction detection when using the jointly vs. individually normalized simulated and real Hi-C datasets. Our method is broadly applicable to a range of biological problems, such as identifying differential chromatin interactions between tumor and normal cells, immune cell types, and normal tissues.
+
+# Design and implementation
+
+## Visualization of the differences between two Hi-C datasets using an MD plot
+
+A chromosome-specific Hi-C matrix is a square matrix of size $NxN$, where $N$ is the number of genomic regions of size $X$ on a chromosome. The size $X$ of the9 genomic regions defines the resolution of the Hi-C data. Each cell in the matrix contains an interaction frequency $IF_{i,j}$, where $i$ and $j$ are the indices of the interacting regions. For this study, data in the sparse upper triangular format from the GM12878, K562, IMR90, HMEC, NHEK, and RWPE1 cell lines were used (S1 Table).
+
+The first step of the `HiCcompare` procedure is to convert the data into what we refer to as an MD plot. The MD plot is similar to the MA plot (Bland-Altman plot) commonly used to visualize gene expression differences [@dudoit2002statistical]. $M$ is defined as the log difference between the two data sets $M = log_2(IF_2/IF_1)$, where $IF_1$ and $IF_2$ are interaction frequencies of the first and the second Hi-C datasets, respectively. $D$ is defined as the distance between two interacting regions, expressed in unit-length of the $X$ resolution of the Hi-C data. In terms of chromatin interaction matrices, $D$ corresponds to the off-diagonal traces of interaction frequencies (Fig 1A). Because chromatin interaction matrices are sparse, i.e. contain an excess of zero interaction frequencies, by default only the non-zero pairwise interaction are used for the construction of the MD plot with an option to use partial interactions, i.e. with a zero value in one of the matrices and a non-zero IF in the other.
+
+
+## Accounting for the effect of copy number variations
+
+Copy number variations (CNVs) can potentially cause issues for normalization and difference detection. The `QDNAseq` [@Scheinin:2014aa] R package's functionality is used to detect and exclude CNVs from any further analysis. Alternatively, CNV regions can be detected separately and provided to `HiCcompare` as a BED file. Additionally, the `HiCcompare` package includes the ENCODE blacklisted regions for hg19 and hg38 genome assemblies, which can be excluded from further analysis. 
+
+## Joint normalization of multiple Hi-C data using `loess` regression
+
+After the transformation of the data into an MD plot, `loess` regression [@cleveland1979robust] is performed with $D$ as the predictor for $M$. The fitted values are then used to normalize the original IFs. 
+
+$$\begin{cases} log_2(\hat{IF}_{1D}) = log_2(IF_{1D}) + f(D)/2 \\
+log_2(\hat{IF}_{2D}) = log_2(IF_{2D}) - f(D)/2
+\end{cases}  $$
+
+where $f(D)$ is the predicted value from the `loess` regression at a distance $D$. The $log_2(\hat{IF})$ values are then anti-logged to obtain the normalized IFs. Note that for both Hi-C datasets the average interaction frequency remains unchanged, as the one set is increased by the factor of $f(D)/2$ while the other is decreased by the same amount. Any normalized IFs with values less than 1 are not considered in further analyses. The joint normalization was tested against five methods for normalizing individual Hi-C matrices, `ChromoR` [@Shavit:2014aa], `ICE` [@Imakaev:2012aa], `KR` [@knight2012fast], `SCN` [@Cournac:2012aa], `MA` [@Lun:2015aa] normalizations (S1 Methods).
+
+## Detection of differential chromatin interactions
+
+<!-- After joint normalization, the normalized chromatin interaction matrices are ready to be compared for differences. Again, the MD plot is used to represent the differences $M$ between two normalized datasets at a distance $D$. At a given distance $d$, each difference $M_{id}$ is tested for significance using a permutation test: -->
+
+<!-- $$ p_i = \frac{\sum_{k=1}^n{I(|S_k| > |M_{id}|)} + 1}{n + 1} $$ -->
+<!-- \ \  -->
+
+<!-- where $S$ is a sample of size $n$, taken with replacement, of differences sampled from a vector of $M_d$, and $M_{id}$ is the $i^{th}$ difference tested for significance. $I$ is the identity function. Since the number of differences diminishes with the increasing genomic distance (less off-diagonal IFs in the upper right corner of interaction matrices), differences for the top 15% of farther distances are combined to have a pool of variables for permutation purposes. Note that the permutation framework also accounts for multiple testing correction. A user-specified significance threshold $\alpha$ (typically, 0.05) is used to define significant differential chromatin interaction frequencies. To reduce the number of false positives, we provide the option to filter the final p-values $p_{M_{id}}$ by a user-specified or automatically calculated $M' = 2 * \sqrt{Var(M)}$. This option allows for the user to pre-specify the meaningful difference between the two Hi-C datasets that must be reached in order to call a difference truly significant. -->
+
+After joint normalization, the chromatin interaction matrices are ready to be compared for differences. Again, the MD plot is used to represent the differences $M$ between two normalized datasets at a distance $D$. Normalized $M$ values are centered around 0 and are approximately normally distributed across all distances [!!! supplemental XX]. $M$ values can be converted to Z-scores using the standard approach:
+
+$$
+Z_i = \frac{M_i - \bar{M}}{\sigma_M}
+$$
+where $\bar{M}$ is the mean value of all $M$'s on the chromosome and $\sigma_M$ is the standard deviation of all $M$ values on the chromosome and $i$ is the $i$th interacting pair on the chromosome. 
+
+## Filtering low-abundance interaction pairs
+
+During Z-score conversion the average expression of each interacting pair is considered. Due to the nature of $M$, a difference represented by an interacting pair with IFs 1 and 10 is equivalent to an interacting pair of IFs 10 and 100 with both differences producing an $M$ value of 3.32. However the average expression of these two differences is 5.5 and 55, respectively. Differences with higher average expression are more trustworthy than those with low average expression due to the fact that a relatively small difference on the raw scale can lead to a large log2 fold change. Additionally since the IFs represent Hi-C sequencing reads, lower average numbers of reads are also less trustworthy. Thus we filter out differences with low average expression by setting the Z-scores to 0 when average expression ($A$) is less than a user set quantile (typically 5-20%) or a user set specific value of $A$. Filtering takes place such that the $\bar{M}$ and $\sigma_M$ are calculated using only the $M$ values remaining after filtering. The Z-scores can then be converted to p-values using the standard normal distribution.
+
+Analyzing Hi-C data for differences necessarily requires multiple testing. Multiple testing correction is applied on a per-distance basis by default (with an option to apply it on a chromosomal basis). The per-distance multiple testing correction works by grouping the p-values by their distances. Then the desired multiple testing correction (FDR by default) can be applied to each distance group of p-values. 
+
+## Estimating power of the differential chromatin interaction detection
+
+The effect of individual vs. joint normalization methods on the power of detection of differential chromatin interactions must be estimated on _a priori_ known differences [@Dozmorov:2010aa]. As there is no "gold standard" for differential chromatin interactions, we created such _a priori_ known differences by introducing controlled changes to replicate Hi-C datasets. The benefit of using joint normalization vs. individually normalized datasets was quantified by the improvement in power of pre-defined chromatin interaction differences. Standard classifier performance measures (True Positive Rate (TPR), Matthews Correlation Coefficient (MCC), etc) were assessed.
+
+# A/B compartment stability analysis
+ 
+## PC correlation and sign switch
+
+To test the consistency of compartments on a bin-to-bin level, the 1st principal component was compared between normalized matrices. This was done by applying PCA to the contact matrix and creating a vector of principal component scores with each entry corresponding to the PC of a given bin. Pearson correlation was then calculated between vectors of principal components to determine the similarity of compartments. Another metric used to test consistency was the proportion of pairwise matching signs between each combination of normalization methods.
+
+## Jaccard overlap
+
+Jaccard statistics were calculated between compartments pulled from matrices normalized by each normalization method and the raw matrices. This was done by taking the total length of the intersection between compartments and dividing by the total compartment coverage. This was performed separately for A and B, comparing compartments of the same type across chromosomes.
+
+## Compartment score changes
+
+Compartment quality was tested using compartment score [@Nagano:2017aa]. Compartment score is a measure of how dissimilar inter-compartment contact profiles are as compared to intra-compartment profiles. A low compartment score indicates a weaker separation between A and B compartments and consequently implies weaker clustering.
+
+# Results
+
+## The off-diagonal concept of distance between regions in chromatin interaction matrices 
+
+Our study focuses on the analysis of multiple Hi-C datasets by providing functions for the joint normalization of two chromatin interaction matrices and differential chromatin detection among them. Fig 1A illustrates the concept of the unit-length distance between interacting regions captured by the interaction matrix. The values on the diagonal trace represent interaction frequencies of self-interacting regions. Each off-diagonal set of values represents interaction frequencies for a pair of regions at a given unit-length distance. The unit-length distance is expressed in terms of resolution of the data (the size of genomic regions). The concept of considering interaction frequencies at each off-diagonal trace is central for the joint normalization and differential chromatin interaction detection.
+
+## Persistence of biases in individually normalized Hi-C replicated data
+
+Methods for normalizing individual Hi-C datasets can be broadly divided into two categories. The first category relies on parametric modeling of chromatin interaction frequencies that helps to adjust for biases deviating from the model. The second, matrix-balancing techniques, assume the cumulative effect of bias is captured in the global chromatin interaction matrix. Both categories aim to alleviate biases in individual chromatin interaction matrices by uniformly adjusting them. 
+
+To assess the between-dataset biases, we use the MD plot to visualize two Hi-C datasets on one plot. Briefly, differences in chromatin interaction frequencies (**M**inus) are visualized on a per-unit-length distance basis (Fig 1A). Chromatin interactions are highly conserved [@Dixon:2012aa; @Fudenberg:2016aa; @Rao:2014aa],thus the majority of the **M** differences should be centered around zero. The MD plot visualization allows us to identify systematic biases appearing as the offset of the cloud of **M** differences from zero. Visualizing replicates of Hi-C data (Gm12878 cell line) showed the presence of biases (Fig 1A). Importantly, these biases persisted in the individually normalized datasets (Fig 1C-D), suggesting that the performance of individual normalization methods may be sub-optimal when comparing multiple Hi-C datasets.
+
++-------+
+| ![](./figures/fig2.tif)      |
+| **Figure 1.** MD plot data visualization and the effects of different normalization techniques. MD plots of the differences M between two replicated Hi-C datasets (GM12878 cell line, chromosome 11, 1MB resolution, DpnII and MboI restriction enzymes) plotted vs. distance D between interacting regions. (A) Before normalization, (B) after loess joint normalization, (C) ChromoR, (D) Iterative Correction and Eigenvector decomposition (ICE), (E) Knight-Ruiz (KR), (F) Sequential Component Normalization (SCN). |
++-------+
+
+## Elimination of biases in jointly normalized Hi-C datasets
+
+To account for the between-datasets biases, we developed a non-parametric joint normalization method that makes no assumptions about the theoretical distribution of the chromatin interaction frequencies. It utilizes the well-known `loess` (locally weighted polynomial regression) smoothing algorithm - a regression-based method for fitting simple models to segments of data [@cleveland1979robust]. The main advantage of `loess` is that it accounts for any local irregularities _between_ the datasets that cannot be modeled by parametric methods. Thus, `loess` is particularly appealing when normalizing two Hi-C datasets, as the internal biases in Hi-C data are poorly understood.
+
+`Loess` makes no _a priori_ assumptions about chromatin interaction frequencies, allowing the Hi-C data to self-guide the normalization process. Loess normalization minimizes the systematic biases between the datasets, while preserving local and, potentially, biologically significant chromatin interaction differences. Applied to real Hi-C data, it successfully eliminated biases (Fig 1B). On the contrary, biases remained in the individually normalized datasets, hindering their comparison (S1 File).
+
+The between-dataset biases may occur due to large-scale genomic rearrangements and copy number variants (CNVs), a frequent case in tumor-normal comparisons [@Rickman:2012aa; @Lun:2015aa]. Similar to removing other biases, the joint `loess` normalization removes CNV-driven biases by design, allowing for the detection of chromatin interaction differences within CNV regions. However, CNVs introduce large changes in chromatin interactions [@Servant:2015aa], which may be of interest to consider separately. Therefore, unless cells/tissues with normal karyotypes are compared, we recommend excluding genomic regions containing CNVs from the joint normalization.
+
+## Detecting differential chromatin interactions
+
+To the best of our knowledge, only three methods attempted the comparative analysis of Hi-C data. The `diffHic` method [@Lun:2015aa] is an extension of the popular RNA-seq differential expression method `edgeR`, operating on raw sequencing data. As such, it leaves the user with challenges of sequencing data storage, processing, normalization, summarization, and other bioinformatics heavy lifting of Hi-C data. The `HiCCUPS` algorithm [@Rao:2014aa] searches for clusters of chromatin interaction "hotspots" in individual matrices - entries in which the frequency of contacts is enriched relative to the local background. The "hotspots" different between two chromatin interaction matrices are identified by intersection, which does not address the significance of the differences and leaves the problem of between-datasets biases unaddressed. The only method to statistically compare processed Hi-C datasets is `ChromoR` [@Shavit:2014aa]. However, in our tests it failed to detect differential chromatin interactions in real Hi-C data (S1 File). The lack of methods for detecting statistically significant chromatin interaction differences between processed Hi-C matrices prompted us to develop a new simple differential chromatin interaction detection algorithm.
+
+<!-- To detect significant chromatin interaction differences, we used the representation of the differences in the MD coordinate system. Importantly, the MD plot naturally prompts testing of the differences on a per-unit-length-distance basis, an idea we incorporated into a per-unit-distance permutation framework (see Design and implementation). Briefly, distance $d$-specific vectors of chromatin interaction differences $M_d$ are used to provide a reference distribution to calculate the probability of detecting a given difference, or larger. The permutation framework naturally accounts for multiple testing. Such a simple approach showed excellent performance in detecting _a priori_ introduced chromatin interaction differences, even when the data is normalized using individual normalization methods (S5-S6 Files). -->
+
+To detect significant chromatin interaction differences, we used the representation of the differences in the MD coordinate system. Since $M$ is approximately normally distributed we convert it to Z-scores and calculate the corresponding probabilities. Due to the nature of Hi-C data it is difficult to determine what differences found between datasets represent true biological differences as opposed to biases or noise. This means that there is no gold standard with which to compare Hi-C difference detection methods. To test our difference detection algorithm we used replicate data from the GM12878 cell line which are assumed to have no true differences. Any differences found in the data are assumed to be due to bias or noise and thus false positives. A priori known differences were introduced to the data at specified fold changes and then the data was normalized and tested for differences using `HiCcompare`. The performance of `HiCcompare` in detecting the known differences was evalutated using common metrics displayed in table XX. `HiCcompare` is able to detect most of the added differences with a relatively low number of false positives. Supplemental file [!!! XX] displays further evaluation of `HiCcompare` on a priori known differences.
+
+## `Loess` joint normalization improves differential chromatin interaction detection
+
+The power of differential chromatin interaction detection was assessed using replicate GM12878 Hi-C matrices with controlled chromatin interaction differences added. The matrices were normalized using the `loess` and `MA` joint normalization methods, and each of the four individual normalization methods (`ChromoR`, `KR`, `ICE`, `SCN`, S1 Methods). After normalization, HiCcompare was use to detect differences between the datasets. The performance of each normalization method's effect on difference detection was evaluated using several metrics displayed in table XX. `Loess` joint normalization was found to be superior in improving the power of detecting differential chromatin interactions across the range of controlled fold changes (supplemental XX). Notably, `MA` normalization was second in performance to `loess` joint normalization, strengthening the need to normalize Hi-C datasets jointly. 
+
+<!-- The ROC curve analysis showed the superiority of `loess` joint normalization in improving the power of detecting differential chromatin interactions across the range of controlled fold changes (Fig 3). The benefits of `loess` joint normalization were the most pronounced at detecting lower fold changes (Fig 3A). Notably, `MA` normalization was second in performance to `loess` joint normalization, strengthening the need to normalize Hi-C datasets jointly. Interestingly, the performance of the non-normalized data was equal to or better than all normalization methods except `loess` joint normalization, questioning the need for normalization for differential chromatin interaction detection. Expectedly, fold changes $\ge4$ were easier to detect, as reflected by the relatively good performance of all but `ChromoR` normalization. The benefits of normalization as compared with the non-normalized data were easier to detect at the higher fold changes, with `loess` joint normalization performing best (Fig 3B-D). Among methods for normalization of individual chromatin interaction matrices the `KR` method performed best, following the `ICE` and `SCN` methods (Fig 3). Surprisingly, the `ChromoR` method performed the worst, confirming our observation of its poor performance in removing biases and detecting differential chromatin interactions when used alone (S1 File).  -->
+
+
+<!-- **Fig 3. ROC curves for different normalization techniques.**  -->
+<!-- ROC curves of the differential chromatin interaction detection using different normalization techniques at (A) 1.5, (B) 2.0, (C) 4.0, (D) 10.0 fold changes. Simulated 100 x 100 chromatin interaction matrices with 250 controlled changes were used. -->
+
+<!-- As no single metric can evaluate all aspects of classifier performance [@lever2016points], we evaluated the performance of the normalization methods using additional metrics. Confirming our observation that the joint normalization method yields the largest area under the curve (Fig 3), it also had the highest true positive rate (TPR), the smallest false discovery rate (FDR), improved accuracy and precision, as compared with methods for normalizing individual Hi-C matrices (S5 File). In summary, `loess` joint normalization outperformed individual normalization methods in improving the power of detecting differential chromatin interactions. -->
+
+<!-- We evaluated the performance of the aforementioned methods by introducing controlled changes into replicates of real Hi-C data. Replicated experiments are assumed to contain minimal differences, primarily due to technical noise. However, replicates of real data contain many more differentially interacting chromatin regions (~45%, [@Rao:2014aa]) than simulated data due to the much larger effect of biases. These existing differences may often be larger than the controlled fold changes and therefore detected as false positives if biases remain unaccounted for. Indeed, all but `loess` normalization methods performed sub-optimally when controlled changes less than 2-fold were introduced in the replicates of real Hi-C data (S2 Fig). Similar to the simulated settings, the non-normalized data provided sufficient power to detect the controlled changes. While larger controlled changes can be detected when using different normalization methods, `loess` remained the most powerful in removing biases and the detection of small and large fold changes. -->
+
+<!-- To account for the presence of the existing differences in the real Hi-C data we evaluated all major classification metrics [@lever2016points], each providing a unique perspective on the performance of differential chromatin interaction detection. Confirming the results of the power analysis in simulated settings, matrices of real Hi-C data normalized using `loess` joint normalization had the largest number of true positives (TP) and the highest true positive rate (TPR) when detecting 1.5 fold changes, closely followed by the `KR` and `SCN` normalization at higher fold changes (S6 File). Consequently, the number of false positives (FP) and false negatives (FN), the false positive (FPR) and false negative (FNR) rates were the lowest in the matrices normalized with `loess` joint normalization across the range of fold changes. Both accuracy and precision were the highest in the matrices normalized with `loess` joint normalization. Similarly to the results in simulated settings, the individual normalization methods `KR` and `SCN` were the second and third normalization methods following the best performing `loess` joint normalization. In summary, `loess` joint normalization improved the power of differential chromatin interaction detection across the whole range of fold changes, as compared with individual normalization methods. -->
+
+## Comparison with `diffHiC`
+
+The `diffHiC` pipeline was designed to process raw Hi-C sequencing data and detect chromatin interaction differences using the generalized linear framework developed in the `edgeR` package [@Lun:2015aa; @Robinson:2010aa]. We compared the results of Hi-C data analyzed in the `diffHiC` paper (human prostate epithelial cells RWPE1 overexpressing the EGR protein or GFP) with the results obtained with `HiCcompare`. 
+
+<!-- `HiCcompare` detected a total of 6,276 significantly different interactions in the RWPE1 data, excluding regions overlapping CNVs and/or blacklisted regions. `diffHic` detected a total of 5,737 significant differences. Surprisingly, although `diffHiC` used CNV correction in their analysis, 2,567 (44.7%) of the detected differentially interacting regions overlapped with CNV regions detected in our analysis, and/or blacklisted regions. `diffHic` tended to detect differentially interacting regions with smaller fold changes as compared to `HiCcompare` (Fig 4, S4 Fig A, S2 Table). In contrast, `HiCcompare` focuses on detecting regions with high chromatin interaction differences that may be easier to detect and reproduce in subsequent studies. Furthermore, `diffHiC` seem to detect differential chromatin interactions at shorter distances between interacting regions, while `HiCcompare` detects differences across the full range of distances (Fig 4). Notably, when visualized in MA coordinates, the distribution of `diffHiC`-detected changes resembled the distribution of `HiCcompare`-detected changes visualized in MD coordinates (S4 Fig B). These results suggest that detecting chromatin interaction differences represented in MD coordinates, as implemented in `HiCcompare`, may be useful in detecting large chromatin interaction differences that have more significant biological effect. -->
+
+`diffHic` detected a total of 5,737 significant differences (FDR < 0.05), while `HiCcompare` tended to be more conservative in difference detection. `HiCcompare` detected 314 differences when FDR multiple testing correction was used (FDR < 0.05) and 7,620 differences when multiple testing corrections were not considered (P < 0.05). Of the 314 differences, 121 overlapped with the regions detected by `diffHic` and of the 7,620 differences, 1,654 overlapped with the regions detected by `diffHic`. Surprisingly, although `diffHiC` used CNV correction in their analysis, 2,567 (44.7%) of the detected differentially interacting regions overlapped with CNV regions detected in our analysis, and/or blacklisted regions. `diffHic` tended to detect differentially interacting regions with smaller fold changes as compared to `HiCcompare` (!!! Fig 4, S4 Fig A, S2 Table). `diffHiC` seems to detect differential chromatin interactions at shorter distances between interacting regions, while `HiCcompare` can detect differences across the full range of distances (!!! Fig 4). These results suggest that detecting chromatin interaction differences represented in MD coordinates, as implemented in `HiCcompare`, may be useful in detecting large chromatin interaction differences potentially having more significant biological effect.
+
+## Preservation of A/B compartments
+
++-------+
+| |               |                           |                 Mean            |                   |
+|---------------|---------------------------|-------------------|-------------------|-------------------|
+| Comparison    | Correlation | Prop. Match Sign  | Jaccard A         | Jaccard B         |
+| Loess vs. Raw | 0.9954                  | 0.8537 | 0.8719 | 0.8284|
+| SCN vs. Raw   | 0.9309                  | 0.8083 | 0.6641 | 0.5737 |
+| ICE vs. Raw   | 0.9795                   | 0.7850 | 0.6969 | 0.6141 |   |
+| **Table 1. Summary of similarity statistics.** Various compartment similarity metrics are reported below. Correlation is the absolute value of the pearson correlation of the 1st principal component scores between the raw and normalized data. Proportion match sign is the percentage of bins with a shared sign between data types. Jaccard is calculated separately for A and B compartments. Results are averaged over all chromosomes. The results show that HiCcompare mirrors the raw data better than both SCN and ICE.   |
++-------+
+
+
+# Availability and Future Directions
+
+`HiCcompare` is available on Bioconductor at [https://bioconductor.org/packages/HiCcompare/](https://bioconductor.org/packages/HiCcompare/) or on GitHub at [https://github.com/dozmorovlab/HiCcompare](https://github.com/dozmorovlab/HiCcompare). The package includes a vignette with instructions and documentation for all functions included in `HiCcompare` along with a sample analysis. Test data is included in the package for use with the vignette. Additionally, the `supplemental` branch of the GitHub repository contains code to generate all supplemental files referenced in this manuscript. `HiCcompare` is released under the MIT open source software license.
+
+<!--`HiCcompare` introduces three novel concepts for the joint normalization and differential analysis of Hi-C data, namely the MD plot, joint `loess` normalization, and a simple but rigorous method for differential analysis. Although `MA` joint normalization uses a similar concept of representing measures from two datasets on a single plot (S4 Fig B), it performed worse than `loess` joint normalization. This is likely due to the fact that `MA` normalization represents the data using $A$verage chromatin interaction frequency as an X-axis. However, due to power-law decay of interaction measures, the dynamic range of $A$verage chromatin interaction frequency is limited, making loess curve fitting difficult. Our classification evaluation and ROC curve analyses showed a clear advantage of `loess` joint normalization, however, differential chromatin interactions could still be detected in the individually normalized matrices. This can be explained by our permutation-based method of detecting differential chromatin interactions.  The per-unit-length-distance permutation testing for differential chromatin interactions allows our method to detect differential interactions even in the presence of biases. Still, the superior performance of `loess` joint normalization indicates the need to jointly account for biases between matrices when detecting differentially interacting chromatin regions.-->
+
+Increasing the resolution of Hi-C data requires a significant increase in sequencing coverage. To achieve the genome-scale coverage at kilobase-pair resolution conventional Hi-C experiments require billions of DNA sequencing reads [@Jin:2013aa; @Rao:2014aa]. Existing Hi-C data at high resolutions still suffer from a limited dynamic range of chromatin interaction frequencies, with the majority of them being small or zero, especially at large distances between interacting regions (S7 File). The problem is exacerbated in single-cell Hi-C technology, which generates very sparse Hi-C data even at 1Mb resolution [@Nagano:2013aa]. This sparsity places limits on `loess` joint normalization, as it builds a rescaling model from many non-zero pairwise comparisons. This sparsity explains our observed sub-optimal performance of `loess` in higher resolution data (S7 File). A way to alleviate this limitation is to consider interactions only within a range of short interaction distances, where genomic regions interact more frequently and the proportion of zero interaction frequencies is the lowest. Decreasing costs of sequencing technologies will eventually overcome the problem of insufficient coverage of high-resolution chromatin interaction matrices, making them amenable for `loess` joint normalization and the detection of differential chromatin interactions.
+
+The discrepancy of differential chromatin interaction detection between diffHiC and HiCcompare could arise from multiple factors. diffHiC operates on logCPM counts while HiCcompare uses interaction frequency counts. diffHiC uses different bin sizes when partitioning the genome while HiCcompare uses fixed bin sizes. diffHiC filters low-abundance bin pairs (IFs less than median inter-chromosomal IF) while HiCcompare filters based on average IFs of the chromosome being considered. Finally, the RWPE1 data is relatively sparse even at coarse 1Mb resolution, hindering statistical analyses.
+
+
+
+# Acknowledgements
+
+Research reported in this publication was supported in part by the Institutional Research Grant IRG-14-192-40 from the American Cancer Society to MD, and by the National Institute Of Environmental Health Sciences of the National Institutes of Health under Award Number T32ES007334 supporting JS. The content is solely the responsibility of the authors and does not necessarily represent the official views of the National Institutes of Health and the American Cancer Society.
+
+
+# References
+
+
+
+
+
