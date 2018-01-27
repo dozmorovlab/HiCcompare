@@ -25,6 +25,7 @@ filter_params <- function(hic.table) {
   
   # normalize
   shuffle1 <- hic_loess(shuffle1)
+  suffle1 <- hic_compare(shuffle1, Plot = T)
 }
 
 

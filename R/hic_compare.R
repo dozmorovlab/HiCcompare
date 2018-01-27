@@ -116,9 +116,9 @@ hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = T
   # adjust p-values
   if (adjust.dist) {
     if (parallel) {
-      hic.table <- BiocParallel::bplapply(hic.table, .adjust_pval, Plot = Plot, p.method = p.method)
+      hic.table <- BiocParallel::bplapply(hic.table, .adjust_pval, Plot = Plot, p.method = p.method, p.smooth = Plot.smooth)
     } else {
-      hic.table <- lapply(hic.table, .adjust_pval, Plot = Plot, p.method = p.method) 
+      hic.table <- lapply(hic.table, .adjust_pval, Plot = Plot, p.method = p.method, p.smooth = Plot.smooth) 
     }
   } else {
     hic.table <- lapply(hic.table, function(x) {
@@ -126,7 +126,7 @@ hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = T
       return(x)
     })
     if (Plot) lapply(hic.table, function(x) {
-      MD.plot2(x$adj.M, x$D, x$p.adj)
+      MD.plot2(x$adj.M, x$D, x$p.adj, smooth = Plot.smooth)
     })
   }
   
@@ -198,7 +198,7 @@ hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = T
 
 
 # adjust p-values in distance dependent manner
-.adjust_pval <- function(hic.table, Plot, p.method) {
+.adjust_pval <- function(hic.table, Plot, p.method, p.smooth) {
   # apply distance wise FDR p-value correction
   # split table up for each distance
   temp_list <- S4Vectors::split(hic.table, hic.table$D)
@@ -217,7 +217,14 @@ hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = T
   # recombine into one table
   hic.table <- rbindlist(temp_list)
 
-  if (Plot) MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj) 
+  if (Plot) {
+    if (!p.smooth) {
+      p1 <- MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj, smooth = p.smooth)
+      print(p1)
+    } else {
+      MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj, smooth = p.smooth)
+    }
+  }
   return(hic.table)
 }
 
