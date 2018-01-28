@@ -32,3 +32,10 @@ library(gridExtra)
 library(data.table)
 ```
 
+## Performance evaluation
+
+**Figure. Effect of parallelization on HiCcompare runtime** Run time (Y-axis) of `HiCcompare` normalization using 1, 4, 8 and 12 1596 MHz cores (X-axis) with 10gb of memory on CentOS 6.8 operating system. Time to normalize two RWPE datasets (see Methods) over chromosomes 1-22 was averaged over $n = 10$ runs. Data at 1Mb, 500kb, 100kb, 50kb (color legend) was used, expectedly requiring less/more run time, respectively.
+
+\begin{center}
+\includegraphics[height=200px]{figures/runtime_summary.png}
+\end{center}

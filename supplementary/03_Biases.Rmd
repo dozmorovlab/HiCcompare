@@ -91,7 +91,7 @@ if (regenerate_figures) {
 ```
 
 \begin{center}
-\includegraphics[height=220px]{figures/S7_File_fig1.png}
+\includegraphics[height=220px]{../figures/S7_File_fig1.png}
 \end{center}
 
 ### 500KB
@@ -106,7 +106,7 @@ if (regenerate_figures) {
 ```
 
 \begin{center}
-\includegraphics[height=220px]{figures/S7_File_fig2.png}
+\includegraphics[height=220px]{../figures/S7_File_fig2.png}
 \end{center}
 
 ### 100KB
@@ -121,7 +121,7 @@ if (regenerate_figures) {
 ```
 
 \begin{center}
-\includegraphics[height=220px]{figures/S7_File_fig3.png}
+\includegraphics[height=220px]{../figures/S7_File_fig3.png}
 \end{center}
 
 ### 50KB
@@ -136,7 +136,7 @@ if (regenerate_figures) {
 ```
 
 \begin{center}
-\includegraphics[height=220px]{figures/S7_File_fig4.png}
+\includegraphics[height=220px]{../figures/S7_File_fig4.png}
 \end{center}
 
 ### Summary

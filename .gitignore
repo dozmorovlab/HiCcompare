@@ -3,5 +3,8 @@
 .RData
 .Ruserdata
 .Rproj
-*_cache
+*cache
 *_files
+img
+*.pdf
+

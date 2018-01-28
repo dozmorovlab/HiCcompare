@@ -2,7 +2,7 @@
 
 https://www.iscb.org/ismb2018-submit/proceedings
 
-- `3D_DNA-manuscript-Bioinformatics.Rmd` - Dozmorov edits of `manuscript/3D_DNA-manuscript-Bioinformatics.Rmd`
+- `HiCcompare_manuscript.Rmd` - Dozmorov edits of `manuscript/3D_DNA-manuscript-Bioinformatics.Rmd`
 - `Untitled.Rmd` - temporary file
 - `Unused.Rmd` - unused text
 
@@ -21,3 +21,4 @@ https://www.iscb.org/ismb2018-submit/proceedings
 - `03_Biases.Rmd` - MD plots of individually vs. loess normalized datasets, effect of biases on differential expression detection, `HiCcompare` vs. `ChromoR`, different resolutions
 - `04_Differential.Rmd` - Differential analysis benchmarking using real data
 - `05_diffHiC.Rmd` - comparison with `diffHiC`
+- `merge_supplementary.sh` - command to merge individually generated files
