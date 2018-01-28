@@ -1,14 +1,23 @@
-Material for the ISMB 2018 proceedings submission, https://www.iscb.org/ismb2018-submit/proceedings
+# Material for the ISMB 2018 proceedings submission
+
+https://www.iscb.org/ismb2018-submit/proceedings
 
 - `3D_DNA-manuscript-Bioinformatics.Rmd` - Dozmorov edits of `manuscript/3D_DNA-manuscript-Bioinformatics.Rmd`
-
-- `supplemental_combined.Rmd` - Dozmorov edits of `manuscript/supplemental_zscores/supplemental_combined.Rmd`
-
 - `Untitled.Rmd` - temporary file
-
 - `Unused.Rmd` - unused text
 
+## `figures` - Currently used figures
 
-- `styles.doc/bioinformatics_styles_singlespace` - corrected Bioinformatics template, 12 pt Times New font, single-spaced
+## `prostate_analysis` - tables for prostate analysis
 
-- `supplementary/01_Methods.Rmd` - Supplementary Methods
+## `styles.doc`
+
+- `bioinformatics_styles_singlespace.docx` - corrected Bioinformatics template, 12 pt Times New font, single-spaced
+
+## `supplementary`
+
+- `01_Methods.Rmd` - Supplementary Methods
+- `02_Distance.Rmd` - Supplementary Figures
+- `03_Biases.Rmd` - MD plots of individually vs. loess normalized datasets, effect of biases on differential expression detection, `HiCcompare` vs. `ChromoR`, different resolutions
+- `04_Differential.Rmd` - Differential analysis benchmarking using real data
+- `05_diffHiC.Rmd` - comparison with `diffHiC`

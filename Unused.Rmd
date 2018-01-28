@@ -1,5 +1,5 @@
 ---
-# title: Persistence of bias in individually normalized chromatin interaction matrices, and its effect on the detection of differential chromatin interactions
+# title: 
 # author: "John C. Stansfield, Kellen G. Cresswell, Vladimir I. Vladimirov, Mikhail G. Dozmorov"
 output:
   pdf_document:
@@ -7,6 +7,17 @@ output:
 csl: /Users/mdozmorov/Documents/Work/VCU_work/3D_DNA/HiCcompare/styles.ref/bioinformatics.csl
 bibliography: /Users/mdozmorov/Documents/Work/VCU_work/3D_DNA/manuscript/3D_DNA-references.bib
 ---
+
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE}
+# Set up the environment
+library(knitr)
+opts_chunk$set(cache.path='cache/', fig.path='img/', cache=T, tidy=T, fig.keep='high', echo=F, dpi=100, warnings=F, message=F, comment=NA, warning=F, results='as.is', fig.width = 10, fig.height = 4) #out.width=700, 
+library(pander)
+panderOptions('table.split.table', Inf)
+set.seed(1)
+library(dplyr)
+options(stringsAsFactors = FALSE)
+```
 
 ## Multiple testing correction
 

@@ -1,0 +1,451 @@
+---
+# title: 
+# author: "John C. Stansfield, Kellen G. Cresswell, Vladimir I. Vladimirov, Mikhail G. Dozmorov"
+output:
+  pdf_document:
+    toc: no
+csl: /Users/mdozmorov/Documents/Work/VCU_work/3D_DNA/HiCcompare/styles.ref/bioinformatics.csl
+bibliography: /Users/mdozmorov/Documents/Work/VCU_work/3D_DNA/manuscript/3D_DNA-references.bib
+---
+
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE}
+# Set up the environment
+library(knitr)
+opts_chunk$set(cache.path='cache/', fig.path='img/', cache=T, tidy=T, fig.keep='high', echo=F, dpi=100, warnings=F, message=F, comment=NA, warning=F, results='as.is', fig.width = 10, fig.height = 4) #out.width=700, 
+library(pander)
+panderOptions('table.split.table', Inf)
+set.seed(1)
+library(dplyr)
+options(stringsAsFactors = FALSE)
+```
+
+\pagenumbering{gobble}
+
+# 4 Extended evaluation of differential chromatin interaction detection analysis using real Hi-C data
+
+Here we evaluate the performance of the differential detection method of `HiCcompare` using replicate Hi-C data, GM12878 cell line, chromosome 1, at 1MB resolution. 200 controlled differences at various fold changes (2, 3, 4, 5-fold) were introduced into the raw data, the matrices were normalized using the joing `HiCcompare` and various individual normalization methods (chromoR, ICE, KR, SCN, MA, see Supplementary Methods). The performance of each normalization method's effect on difference detection was evaluated using the following metrics: "TP" - true positives, "FP" - false positives, "TN" - true negatives, "FN" - false negatives, "TPR" - True Positive Rate, aka recall, or sensitivity $TP / (TP + FN)$, "SPC" - specificity, $TN / (FP + TN)$, "F1" - $F_1$ score, $2TP/(2TP + FP + FN)$, "AUC" - area under ROC curve, "Accuracy" - $(TP + TN) / (TP + FP + TN + FN)$, "Precision" - $TP / (TP + FP)$, "FPR" - False Positive Rate, $FP / (FP + TN)$, "FNR" - False Negative Rate, $FN / (TP + FN)$, "FOR" - False omission rate, $FN / (FN + TN)$, "NPV" - Negative Predictive Value, $TN / (FN + TN)$, "MCC" - Matthews correlation coefficient, $\frac{TP \times TN - FP \times FN}{\sqrt{(TP + FP)(TP + FN)(TN + FP)(TN + FN)}}$.
+
+```{r}
+library(HiCcompare)
+library(chromoR)
+library(pROC)
+library(MLmetrics)
+library(HiTC)
+library(Matrix)
+library(GenomicRanges)
+library(ggplot2)
+library(gridExtra)
+library(data.table)
+```
+
+```{r}
+githubURL <- "https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_data/S6_File_data.RData"
+load(url(githubURL))
+
+chr1.tab  = create.hic.table(S6.dpnii.chr1,  S6.mbol.chr1,  chr = 'chr1',  scale = FALSE)
+
+raw1 <- S6.dpnii.chr1
+raw2 <- S6.mbol.chr1
+```
+
+```{r}
+# chr1.primary <- read.table("D:/3D_DNA/GM12878_replicates/GM12878_primary_1000000/primary.chr1.1000000.txt")
+# chr1.replicate <- read.table("D:/3D_DNA/GM12878_replicates/GM12878_replicate_1000000/replicate.chr1.1000000.txt")
+chr1.primary <- read.table("/Users/mdozmorov/Documents/Work/VCU_work/3D_DNA/GM12878_replicates/GM12878_primary_1000000/primary.chr1.1000000.txt")
+chr1.replicate <- read.table("/Users/mdozmorov/Documents/Work/VCU_work/3D_DNA/GM12878_replicates/GM12878_replicate_1000000/replicate.chr1.1000000.txt")
+
+chr1.table <- create.hic.table(chr1.primary, chr1.replicate, chr = 'chr1', scale = TRUE)
+backup.table <- create.hic.table(chr1.primary, chr1.replicate, chr = 'chr1', scale = TRUE)
+```
+
+```{r, warning=FALSE, message=FALSE}
+ROC_on_replicate <- function(raw1, raw2, FC, plot.roc = TRUE, plot.MD = TRUE, numChanges = 10, dist = 1, alpha = 0.05, A.quantile = 0.1, 
+                             adjust.dist = TRUE,
+                             p.method = 'holm') {
+  
+  # create hic.table
+  hic.table <- create.hic.table(raw1, raw2, scale = TRUE, chr = 'chr1')
+  
+  ## ADD in true differences
+  # spike in differences
+  # get which interactions at distance
+  # sample_space <- which(hic.table$D == dist)
+  sample_space <- 1:nrow(hic.table)
+  changes <- sample(sample_space, numChanges)
+  # set IFs to mean IF then multiply one by FC
+  meanIF <- ((hic.table[changes,]$IF1 + hic.table[changes,]$IF2) / 2) %>% round() %>% as.integer()
+  hic.table[changes, IF1 := meanIF ]
+  hic.table[changes, IF2 := meanIF]
+  midpoint <- floor(numChanges/2)
+  newIF1 <- hic.table[changes[1:midpoint],]$IF1 * FC %>% as.integer()
+  newIF2 <- hic.table[changes[(midpoint+1):numChanges],]$IF2 * FC %>% as.integer()
+  hic.table[changes[1:midpoint], IF1 :=  newIF1]
+  hic.table[changes[(midpoint+1):numChanges], IF2 :=  newIF2]
+  hic.table = hic.table[, M := log2(IF2/IF1)]
+  truth <- rep(0, nrow(hic.table))
+  truth[changes] <- 1
+  hic.table[, truth := truth]
+  
+  # make data.table for truth coordinates
+  truth.coords <- hic.table[truth == 1, c('start1', 'start2', 'truth')]
+  
+  ### normalize with other methods
+  # convert hic.table to full matrices for other methods to work
+  mat1 = sparse2full(hic.table[, c('start1', 'start2', 'IF1'), with=F])
+  mat2 = sparse2full(hic.table[, c('start1', 'start2', 'IF2'), with=F])
+  
+  # chromoR
+  start = as.numeric(colnames(mat1))
+  end = as.numeric(colnames(mat1))
+  seg = data.frame(chr = hic.table$chr1[1], start = start, end = end)
+  # correct simulated matrices using chromoR's methods
+  sim1.chromor = correctCIM(mat1, seg)
+  sim2.chromor = correctCIM(mat2, seg)
+  colnames(sim1.chromor$mCorrected) = seg$start
+  colnames(sim2.chromor$mCorrected) = seg$start
+  sim1.chromor = full2sparse(sim1.chromor$mCorrected)
+  sim2.chromor = full2sparse(sim2.chromor$mCorrected)
+  chromoR.table = create.hic.table(sim1.chromor, sim2.chromor, scale = FALSE, chr = hic.table$chr1[1])
+  
+  # ICE 
+  
+  sim1.ice = Matrix(mat1)
+  sim2.ice = Matrix(mat2)
+  # create HTCexp object for simulated data
+  xgi = GRanges(seqnames = 'chr11', ranges = IRanges(start = start, end  = end, names = paste('a', 1:length(start), sep='')))
+  ygi = GRanges(seqnames = 'chr11', ranges = IRanges(start = start, end  = end, names = paste('b', 1:length(start), sep='')))
+  colnames(sim1.ice) <- paste('a', 1:length(start), sep='')
+  rownames(sim1.ice) <- paste('b', 1:length(start), sep='')
+  sim1.ice = new('HTCexp', sim1.ice, xgi, ygi)
+  colnames(sim2.ice) <- paste('a', 1:length(start), sep='')
+  rownames(sim2.ice) <- paste('b', 1:length(start), sep='')
+  sim2.ice = new('HTCexp', sim2.ice, xgi, ygi)
+  # normalize with ICE
+  sim1.ice = normICE(sim1.ice, max_iter = 100)
+  sim2.ice = normICE(sim2.ice, max_iter = 100)
+  colnames(sim1.ice@intdata) = start
+  colnames(sim2.ice@intdata) = start
+  sim1.ice = full2sparse(as.matrix(sim1.ice@intdata))
+  sim2.ice = full2sparse(as.matrix(sim2.ice@intdata))
+  ice.table = create.hic.table(sim1.ice, sim2.ice, scale = FALSE, chr = hic.table$chr1[1])
+  
+  # KR
+
+  # remove any columns of 0's
+  zeros1 = which(colSums(mat1) == 0)
+  zeros2 = which(colSums(mat2) == 0)
+  # get sum of matrices
+  kr.sum1 <- sum(mat1)
+  kr.sum2 <- sum(mat2)
+  if (length(zeros1) > 0) {
+    cr.mat1 = mat1[-zeros1, -zeros1]
+  } else {
+    cr.mat1 = mat1
+  }
+  if (length(zeros2) > 0) {
+    cr.mat2 = mat2[-zeros2, -zeros2]
+  } else {
+    cr.mat2 = mat2
+  }
+  sim1.kr = KRnorm(cr.mat1)
+  sim2.kr = KRnorm(cr.mat2)
+  colnames(sim1.kr) = colnames(cr.mat1)
+  colnames(sim2.kr) = colnames(cr.mat2)
+  sim1.kr = full2sparse(sim1.kr)
+  sim2.kr = full2sparse(sim2.kr)
+  # multiple matrix sums back to KR
+  sim1.kr$IF <- sim1.kr$IF * kr.sum1
+  sim2.kr$IF <- sim2.kr$IF * kr.sum2
+  kr.table = create.hic.table(sim1.kr, sim2.kr, scale = FALSE, chr = hic.table$chr1[1])
+  
+  # SCN
+  sim1.scn = SCN(mat1)
+  sim2.scn = SCN(mat2)
+  sim1.scn = full2sparse(sim1.scn)
+  sim2.scn = full2sparse(sim2.scn)
+  # multiple matrix sums back to KR
+  sim1.scn$IF <- sim1.scn$IF * kr.sum1
+  sim2.scn$IF <- sim2.scn$IF * kr.sum2
+  scn.table = create.hic.table(sim1.scn, sim2.scn, chr=hic.table$chr1[1], scale=TRUE)
+  
+  # MA
+  ma.table = create.hic.table(full2sparse(mat1), full2sparse(mat2), chr = hic.table$chr1[1], scale = FALSE)
+  ma.table = MA_norm(ma.table)
+  
+  # detect differences
+  chromoR.table[, ':=' (adj.IF1 = IF1, adj.IF2 = IF2, adj.M = M, A = (IF1 + IF2)/2)]
+  ice.table[, ':=' (adj.IF1 = IF1, adj.IF2 = IF2, adj.M = M, A = (IF1 + IF2)/2)]
+  kr.table[, ':=' (adj.IF1 = IF1, adj.IF2 = IF2, adj.M = M, A = (IF1 + IF2)/2)]
+  scn.table[, ':=' (adj.IF1 = IF1, adj.IF2 = IF2, adj.M = M, A = (IF1 + IF2)/2)]
+  
+  loess.result = hic_loess(hic.table, Plot = plot.MD)
+  loess.result <- hic_compare(loess.result, Plot = plot.MD, A.quantile = A.quantile, p.method = p.method, adjust.dist = adjust.dist)
+  chromoR.result = hic_compare(chromoR.table, Plot = plot.MD, A.quantile = A.quantile, p.method = p.method, adjust.dist = adjust.dist)
+  ice.result = hic_compare(ice.table, Plot = plot.MD, A.quantile = A.quantile, p.method = p.method, adjust.dist = adjust.dist)
+  kr.result = hic_compare(kr.table, Plot = plot.MD, A.quantile = A.quantile, p.method = p.method, adjust.dist = adjust.dist)
+  scn.result = hic_compare(scn.table, Plot = plot.MD, A.quantile = A.quantile, p.method = p.method, adjust.dist = adjust.dist)
+  ma.result = hic_compare(ma.table, Plot = plot.MD, A.quantile = A.quantile, p.method = p.method, adjust.dist = adjust.dist)
+  
+  # combine truth vector back to other tables
+  chromoR.result <- left_join(chromoR.result, truth.coords, by = c('start1' = 'start1' , 'start2' = 'start2')) %>% as.data.table()
+  chromoR.result$truth[is.na(chromoR.result$truth)] <- 0
+  ice.result <- left_join(ice.result, truth.coords, by = c('start1' = 'start1' , 'start2' = 'start2')) %>% as.data.table()
+  ice.result$truth[is.na(ice.result$truth)] <- 0
+  kr.result <- left_join(kr.result, truth.coords, by = c('start1' = 'start1' , 'start2' = 'start2')) %>% as.data.table()
+  kr.result$truth[is.na(kr.result$truth)] <- 0
+  scn.result <- left_join(scn.result, truth.coords, by = c('start1' = 'start1' , 'start2' = 'start2')) %>% as.data.table()
+  scn.result$truth[is.na(scn.result$truth)] <- 0
+  ma.result <- left_join(ma.result, truth.coords, by = c('start1' = 'start1' , 'start2' = 'start2')) %>% as.data.table()
+  ma.result$truth[is.na(ma.result$truth)] <- 0
+  
+  # make pval and truth vectors
+  loess.p = loess.result$p.adj
+  chromoR.p = chromoR.result$p.adj
+  ice.p = ice.result$p.adj
+  kr.p = kr.result$p.adj
+  scn.p = scn.result$p.adj
+  ma.p = ma.result$p.adj
+  
+  loess.truth <- loess.result$truth
+  chromoR.truth <- chromoR.result$truth
+  ice.truth <- ice.result$truth
+  kr.truth <- kr.result$truth
+  scn.truth <- scn.result$truth
+  ma.truth <- ma.result$truth
+  
+  # roc
+  loess.roc = roc(response = loess.result$truth, predictor = loess.p)
+  chromoR.roc = roc(response = chromoR.result$truth, predictor = chromoR.p)
+  ice.roc = roc(response = ice.result$truth, predictor = ice.p)
+  kr.roc = roc(response = kr.result$truth, predictor = kr.p)
+  scn.roc = roc(response = scn.result$truth, predictor = scn.p)
+  ma.roc = roc(response = ma.result$truth, predictor = ma.p)
+  
+  # F1
+  loess.F1 = F1_Score(loess.truth, ifelse(loess.p < alpha, 1, 0))
+  chromoR.F1 = F1_Score(chromoR.truth, ifelse(chromoR.p < alpha, 1, 0))
+  ice.F1 = F1_Score(ice.truth, ifelse(ice.p < alpha, 1, 0))
+  kr.F1 = F1_Score(kr.truth, ifelse(kr.p < alpha, 1, 0))
+  scn.F1 = F1_Score(scn.truth, ifelse(scn.p < alpha, 1, 0))
+  # kr.F1 <- 0
+  # scn.F1 <- 0
+  ma.F1 = F1_Score(ma.truth, ifelse(ma.p < alpha, 1, 0))
+  
+  
+  # AUC
+  loess.auc = auc(loess.roc)
+  chromoR.auc = auc(chromoR.roc)
+  ice.auc = auc(ice.roc)
+  kr.auc = auc(kr.roc)
+  scn.auc = auc(scn.roc)
+  ma.auc = auc(ma.roc)
+  
+   if (plot.roc) {
+    plot_colors = c('black', 'blue', 'red', 'green', 'purple', 'yellow')
+    plot(loess.roc, col = plot_colors[1], main = paste('Fold Change = ', FC, sep=''))
+    plot(chromoR.roc, col = plot_colors[2], add=T)
+    plot(ice.roc, col = plot_colors[3], add=T)
+    plot(kr.roc, col = plot_colors[4], add=T)
+    plot(scn.roc, col = plot_colors[5], add=T)
+    plot(ma.roc, col = plot_colors[6], add = T)
+    legend('bottomright', inset = 0, legend = c('loess', 'chromoR', 'ICE', 'KR', 'SCN', 'MA'), title = 'Normalization Method', fill = plot_colors, horiz = F) #, cex=1.5)
+   }
+  
+  loess.true.pos = sum(loess.p[loess.truth == 1] < alpha)
+  loess.false.pos = sum(loess.p[loess.truth == 0] < alpha)
+  loess.false.neg = sum(loess.p[loess.truth == 1] >= alpha)
+  loess.true.neg = length(loess.p) - loess.true.pos - loess.false.pos - loess.false.neg
+  chromoR.true.pos = sum(chromoR.p[chromoR.truth == 1] < alpha)
+  chromoR.false.pos = sum(chromoR.p[chromoR.truth == 0] < alpha)
+  chromoR.false.neg = sum(chromoR.p[chromoR.truth == 1] >= alpha)
+  chromoR.true.neg = length(chromoR.p) - chromoR.true.pos - chromoR.false.pos - chromoR.false.neg
+  ice.true.pos = sum(ice.p[ice.truth == 1] < alpha)
+  ice.false.pos = sum(ice.p[ice.truth == 0] < alpha)
+  ice.false.neg = sum(ice.p[ice.truth == 1] >= alpha)
+  ice.true.neg = length(ice.p) - ice.true.pos - ice.false.pos - ice.false.neg
+  kr.true.pos = sum(kr.p[kr.truth == 1] < alpha)
+  kr.false.pos = sum(kr.p[kr.truth == 0] < alpha)
+  kr.false.neg = sum(kr.p[kr.truth == 1] >= alpha)
+  kr.true.neg = length(kr.p) - kr.true.pos - kr.false.pos - kr.false.neg
+  scn.true.pos = sum(scn.p[scn.truth == 1] < alpha)
+  scn.false.pos = sum(scn.p[scn.truth == 0] < alpha)
+  scn.false.neg = sum(scn.p[scn.truth == 1] >= alpha)
+  scn.true.neg = length(scn.p) - scn.true.pos - scn.false.pos - scn.false.neg
+  ma.true.pos = sum(ma.p[ma.truth == 1] < alpha)
+  ma.false.pos = sum(ma.p[ma.truth == 0] < alpha)
+  ma.false.neg = sum(ma.p[ma.truth == 1] >= alpha)
+  ma.true.neg = length(ma.p) - ma.true.pos - ma.false.pos - ma.false.neg
+  
+  # FDR
+  loess.fdr = loess.false.pos / (loess.false.pos + loess.true.pos)
+  chromoR.fdr = chromoR.false.pos / (chromoR.false.pos + chromoR.true.pos)
+  ice.fdr = ice.false.pos / (ice.false.pos + ice.true.pos)
+  kr.fdr = kr.false.pos / (kr.false.pos + kr.true.pos)
+  scn.fdr = scn.false.pos / (scn.false.pos + scn.true.pos)
+  ma.fdr = ma.false.pos / (ma.false.pos + ma.true.pos)
+  
+  # accuracy
+  loess.acc = (loess.true.pos + loess.true.neg) / (length(loess.p))
+  chromoR.acc = (chromoR.true.pos + chromoR.true.neg) / (length(chromoR.p))
+  ice.acc = (ice.true.pos + ice.true.neg) / (length(ice.p))
+  kr.acc = (kr.true.pos + kr.true.neg) / (length(kr.p))
+  scn.acc = (scn.true.pos + scn.true.neg) / (length(scn.p))
+  ma.acc = (ma.true.pos + ma.true.neg) / (length(ma.p))
+  
+  # Precision
+  loess.pre = loess.true.pos / (loess.true.pos + loess.false.pos)
+  chromoR.pre = chromoR.true.pos / (chromoR.true.pos + chromoR.false.pos)
+  kr.pre = kr.true.pos / (kr.true.pos + kr.false.pos)
+  ice.pre = ice.true.pos / (ice.true.pos + ice.false.pos)
+  scn.pre = scn.true.pos / (scn.true.pos + scn.false.pos)
+  ma.pre = ma.true.pos / (ma.true.pos + ma.false.pos)
+  
+  # FPR
+  loess.fpr = loess.false.pos / (loess.false.pos + loess.true.neg)
+  chromoR.fpr = chromoR.false.pos / (chromoR.false.pos + chromoR.true.neg)
+  ice.fpr = ice.false.pos / (ice.false.pos + ice.true.neg)
+  kr.fpr = kr.false.pos / (kr.false.pos + kr.true.neg)
+  scn.fpr = scn.false.pos / (scn.false.pos + scn.true.neg)
+  ma.fpr = ma.false.pos / (ma.false.pos + ma.true.neg)
+  
+  # FNR
+  loess.fnr = loess.false.neg / (loess.true.pos + loess.false.neg)
+  chromoR.fnr = chromoR.false.neg / (chromoR.true.pos + chromoR.false.neg)
+  ice.fnr = ice.false.neg / (ice.true.pos + ice.false.neg)
+  kr.fnr = kr.false.neg / (kr.true.pos + kr.false.neg)
+  scn.fnr = scn.false.neg / (scn.true.pos + scn.false.neg)
+  ma.fnr = ma.false.neg / (ma.true.pos + ma.false.neg)
+  
+  # FOR
+  loess.for = loess.false.neg / (loess.false.neg + loess.true.neg)
+  chromoR.for = chromoR.false.neg / (chromoR.false.neg + chromoR.true.neg)
+  ice.for = ice.false.neg / (ice.false.neg + ice.true.neg)
+  kr.for = kr.false.neg / (kr.false.neg + kr.true.neg)
+  scn.for = scn.false.neg / (scn.false.neg + scn.true.neg)
+  ma.for = ma.false.neg / (ma.false.neg + ma.true.neg)
+  
+  # NPV
+  loess.npv = loess.true.neg / (loess.false.neg + loess.true.neg)
+  chromoR.npv = chromoR.true.neg / (chromoR.false.neg + chromoR.true.neg)
+  ice.npv = ice.true.neg / (ice.false.neg + ice.true.neg)
+  kr.npv = kr.true.neg / (kr.false.neg + kr.true.neg)
+  scn.npv = scn.true.neg / (scn.false.neg + scn.true.neg)
+  ma.npv = ma.true.neg / (ma.false.neg + ma.true.neg)
+  
+  # MCC
+  loess.mcc <- ((loess.true.pos * loess.true.neg) - (loess.false.pos * loess.false.neg)) / 
+    (sqrt((loess.true.pos + loess.false.pos)) * sqrt((loess.true.pos + loess.false.neg)) * sqrt((loess.true.neg + loess.false.pos)) *
+    sqrt((loess.true.neg + loess.false.neg)))
+  chromoR.mcc <- ((chromoR.true.pos * chromoR.true.neg) - (chromoR.false.pos * chromoR.false.neg)) / 
+    (sqrt((chromoR.true.pos + chromoR.false.pos)) * sqrt((chromoR.true.pos + chromoR.false.neg)) * sqrt((chromoR.true.neg + chromoR.false.pos)) * 
+           sqrt((chromoR.true.neg + chromoR.false.neg)))
+  ice.mcc <- ((ice.true.pos * ice.true.neg) - (ice.false.pos * ice.false.neg)) / 
+    (sqrt((ice.true.pos + ice.false.pos)) * sqrt((ice.true.pos + ice.false.neg)) * sqrt((ice.true.neg + ice.false.pos)) * 
+       sqrt((ice.true.neg + ice.false.neg)))
+  kr.mcc <- ((kr.true.pos * kr.true.neg) - (kr.false.pos * kr.false.neg)) / 
+    (sqrt((kr.true.pos + kr.false.pos)) * sqrt((kr.true.pos + kr.false.neg)) * sqrt((kr.true.neg + kr.false.pos)) * sqrt((kr.true.neg + kr.false.neg)))
+  scn.mcc <- ((scn.true.pos * scn.true.neg) - (scn.false.pos * scn.false.neg)) / 
+    (sqrt((scn.true.pos + scn.false.pos)) * sqrt((scn.true.pos + scn.false.neg)) * sqrt((scn.true.neg + scn.false.pos)) * 
+       sqrt((scn.true.neg + scn.false.neg)))
+  ma.mcc <- ((ma.true.pos * ma.true.neg) - (ma.false.pos * ma.false.neg)) / 
+    (sqrt((ma.true.pos + ma.false.pos)) * sqrt((ma.true.pos + ma.false.neg)) * sqrt((ma.true.neg + ma.false.pos)) * sqrt((ma.true.neg + ma.false.neg)))
+  
+  
+  rates = data.frame(loess = c(loess.true.pos, loess.false.pos, loess.true.neg, loess.false.neg), 
+                     chromoR = c(chromoR.true.pos, chromoR.false.pos, chromoR.true.neg, chromoR.false.neg),
+                     ice = c(ice.true.pos, ice.false.pos, ice.true.neg, ice.false.neg),
+                     kr = c(kr.true.pos, kr.false.pos, kr.true.neg, kr.false.neg),
+                     scn = c(scn.true.pos, scn.false.pos, scn.true.neg, scn.false.neg),
+                     ma = c(ma.true.pos, ma.false.pos, ma.true.neg, ma.false.neg))
+  TPR = apply(rates, 2, function(x) {
+    x[1] / (x[1] + x[4])
+  })
+  SPC = apply(rates, 2, function(x) {
+    x[3] / (x[3] + x[2])
+  })
+  total = apply(rates, 2, sum)
+  rates = rbind(rates, total, TPR, SPC)
+  F1 = c(loess.F1, chromoR.F1, ice.F1, kr.F1, scn.F1, ma.F1)
+  AUC.row = c(loess.auc, chromoR.auc, ice.auc, kr.auc, scn.auc, ma.auc)
+  FDR = c(loess.fdr, chromoR.fdr, ice.fdr, kr.fdr, scn.fdr, ma.fdr)
+  Acc = c(loess.acc, chromoR.acc, ice.acc, kr.acc, scn.acc, ma.acc)
+  AUC20 = c(auc(loess.roc, partial.auc = c(0.8,1)), auc(chromoR.roc, partial.auc = c(0.8,1)), auc(ice.roc, partial.auc = c(0.8,1)), 
+            auc(kr.roc, partial.auc = c(0.8,1)), auc(scn.roc, partial.auc = c(0.8,1)), auc(ma.roc, partial.auc = c(0.8,1)))
+  precision = c(loess.pre, chromoR.pre, ice.pre, kr.pre, scn.pre, ma.pre)
+  FPR = c(loess.fpr, chromoR.fpr, ice.fpr, kr.fpr, scn.fpr, ma.fpr)
+  FNR = c(loess.fnr, chromoR.fnr, ice.fnr, kr.fnr, scn.fnr, ma.fnr)
+  FOR = c(loess.for, chromoR.for, ice.for, kr.for, scn.for, ma.for)
+  NPV = c(loess.npv, chromoR.npv, ice.npv, kr.npv, scn.npv, ma.npv)
+  MCC <- c(loess.mcc, chromoR.mcc, ice.mcc, kr.mcc, scn.mcc, ma.mcc)
+  
+  rates = rbind(rates, F1, AUC.row, AUC20, FDR, Acc, precision, FPR, FNR, FOR, NPV, MCC)
+  rates = format(rates, scientific = FALSE)
+  rownames(rates) = c('true positive', 'false positive', 'true negative', 'false negative', 'Total', 'TPR', 'SPC', 'F1', 'AUC', 'AUC 20%' , 'FDR', 'Accuracy',
+                    'Precision', 'FPR', 'FNR', 'FOR', 'NPV', 'MCC')
+  result = list(loess.roc = loess.roc, chromoR.roc = chromoR.roc, ice.roc = ice.roc, kr.roc = kr.roc, scn.roc = scn.roc, ma.roc = ma.roc,
+                rates = rates, loess.F1 = loess.F1,
+                chromoR.F1 = chromoR.F1, ice.F1 = ice.F1, kr.F1 = kr.F1, ma.F1 = ma.F1)
+  return(result)  
+}
+```
+
+### Fold change 2
+
+```{r}
+chr1.roc4 <- ROC_on_replicate(chr1.primary, chr1.replicate, FC = 2, numChanges = 200, dist = 50, A.quantile = 0.1, p.method = 'fdr', plot.MD = FALSE, plot.roc = FALSE)
+```
+
+```{r}
+pander(signif(data.matrix(chr1.roc4$rates), digits = 3))
+```
+
+### Fold change 3
+
+```{r}
+chr1.roc6 <- ROC_on_replicate(chr1.primary, chr1.replicate, FC = 3, numChanges = 200, dist = 50, A.quantile = 0.1, p.method = 'fdr', plot.MD = FALSE, plot.roc = FALSE)
+```
+
+```{r}
+pander(signif(data.matrix(chr1.roc6$rates), digits = 3))
+```
+
+### Fold change 4
+
+```{r}
+chr1.roc7 <- ROC_on_replicate(chr1.primary, chr1.replicate, FC = 4, numChanges = 200, dist = 50, A.quantile = 0.1, p.method = 'fdr', plot.MD = FALSE, plot.roc = FALSE)
+```
+
+```{r}
+pander(signif(data.matrix(chr1.roc7$rates), digits = 3))
+```
+
+### Fold change 5
+
+```{r}
+chr1.roc8 <- ROC_on_replicate(chr1.primary, chr1.replicate, FC = 5, numChanges = 200, dist = 50, A.quantile = 0.1, p.method = 'fdr', plot.MD = FALSE, plot.roc = FALSE)
+```
+
+```{r}
+pander(signif(data.matrix(chr1.roc8$rates), digits = 3))
+```
+
+
+```{r}
+### MCC Summary Table
+
+# Here we present a summary table of MCC values. Fold changes increase by row and normalization methods are by column. Data is GM12878 chr1 replicates at 1MB resolution.
+
+mcc.table <- rbind(chr1.roc4$rates[18,], chr1.roc6$rates[18,], chr1.roc7$rates[18,], chr1.roc8$rates[18,] )
+Fold.change <- c( '2',  '3', '4', '5')
+mcc.table <- cbind(Fold.change, mcc.table)
+rownames(mcc.table) <- NULL
+colnames(mcc.table)[1] <- 'Fold Change'
+mcc.table <- as.matrix(mcc.table) %>% apply(., 2, as.numeric) %>% round(., digits = 3) %>% as.data.frame()
+
+colnames(mcc.table) <- c("Fold change", "HiCcompare", "chromoR", "ICE", "KR", "SCN", "MA")
+mcc.table <- mcc.table[, c("Fold change", "HiCcompare", "MA", "ICE", "SCN", "KR")]
+
+# knitr::kable(mcc.table)
+write.csv(mcc.table, "04_Differential_MCC_summary.csv", row.names = FALSE)
+```
+
