@@ -218,6 +218,7 @@ hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = T
   hic.table <- rbindlist(temp_list)
 
   if (Plot) {
+    # if plotting ggplot MD plot then need to save as object and print it
     if (!p.smooth) {
       p1 <- MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.adj, smooth = p.smooth)
       print(p1)
