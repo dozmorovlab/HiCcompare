@@ -1,0 +1,68 @@
+---
+# title: 
+# author: "John C. Stansfield, Kellen G. Cresswell, Vladimir I. Vladimirov, Mikhail G. Dozmorov"
+output:
+  pdf_document:
+    toc: no
+csl: /Users/mdozmorov/Documents/Work/VCU_work/3D_DNA/HiCcompare/styles.ref/bioinformatics.csl
+bibliography: /Users/mdozmorov/Documents/Work/VCU_work/3D_DNA/manuscript/3D_DNA-references.bib
+---
+
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE}
+# Set up the environment
+library(knitr)
+opts_chunk$set(cache.path='cache/', fig.path='img/', cache=T, tidy=T, fig.keep='high', echo=F, dpi=100, warnings=F, message=F, comment=NA, warning=F, results='as.is', fig.width = 10, fig.height = 4) #out.width=700, 
+library(pander)
+panderOptions('table.split.table', Inf)
+set.seed(1)
+library(dplyr)
+options(stringsAsFactors = FALSE)
+```
+
+## Multiple testing correction
+
+Since the number of interacting pairs decreases with increasing distance, the top 15% of distances are combined into a single group. i.e. if there are 100 distances then the p-values from distances 85 to 100 would be grouped together for multiple testing correction. Per-distance multiple testing correction is less conservative than applying multiple testing corrections to the entire set of p-values for a chromosome yet still maintained low false positive rates in testing [!!! supplemental XX].
+
+## Persistence of biases in individually normalized Hi-C replicated data
+
+Methods for normalizing individual Hi-C datasets can be broadly divided into two categories. The first category relies on parametric modeling of chromatin interaction frequencies that helps to adjust for biases deviating from the model. The second, matrix-balancing techniques, assume the cumulative effect of bias is captured in the global chromatin interaction matrix. Both categories aim to alleviate biases in individual chromatin interaction matrices by uniformly adjusting them. 
+
+## Elimination of biases in jointly normalized Hi-C datasets
+
+`Loess` makes no _a priori_ assumptions about chromatin interaction frequencies, allowing the Hi-C data to self-guide the normalization process. Loess normalization minimizes the systematic biases between the datasets, while preserving local and, potentially, biologically significant chromatin interaction differences. Applied to real Hi-C data, it successfully eliminated biases (Fig 1B). On the contrary, biases remained in the individually normalized datasets, hindering their comparison (S1 File).
+
+## Detecting differential chromatin interactions
+
+To the best of our knowledge, only three methods attempted the comparative analysis of Hi-C data. The `diffHic` method [@Lun:2015aa] is an extension of the popular RNA-seq differential expression method `edgeR`, operating on raw sequencing data. As such, it leaves the user with challenges of sequencing data storage, processing, normalization, summarization, and other bioinformatics heavy lifting of Hi-C data. The `HiCCUPS` algorithm [@Rao:2014aa] searches for clusters of chromatin interaction "hotspots" in individual matrices - entries in which the frequency of contacts is enriched relative to the local background. The "hotspots" different between two chromatin interaction matrices are identified by intersection, which does not address the significance of the differences and leaves the problem of between-datasets biases unaddressed. The only method to statistically compare processed Hi-C datasets is `ChromoR` [@Shavit:2014aa]. However, in our tests it failed to detect differential chromatin interactions in real Hi-C data (S1 File). The lack of methods for detecting statistically significant chromatin interaction differences between processed Hi-C matrices prompted us to develop a new simple differential chromatin interaction detection algorithm.
+
+<!-- To detect significant chromatin interaction differences, we used the representation of the differences in the MD coordinate system. Importantly, the MD plot naturally prompts testing of the differences on a per-unit-length-distance basis, an idea we incorporated into a per-unit-distance permutation framework (see Design and implementation). Briefly, distance $d$-specific vectors of chromatin interaction differences $M_d$ are used to provide a reference distribution to calculate the probability of detecting a given difference, or larger. The permutation framework naturally accounts for multiple testing. Such a simple approach showed excellent performance in detecting _a priori_ introduced chromatin interaction differences, even when the data is normalized using individual normalization methods (S5-S6 Files). -->
+
+## `Loess` joint normalization improves differential chromatin interaction detection
+
+The power of differential chromatin interaction detection was assessed using replicate GM12878 Hi-C matrices with controlled chromatin interaction differences added. The matrices were normalized using the `loess` and `MA` joint normalization methods, and each of the four individual normalization methods (`ChromoR`, `KR`, `ICE`, `SCN`, S1 Methods). After normalization, HiCcompare was use to detect differences between the datasets. The performance of each normalization method's effect on difference detection was evaluated using several metrics displayed in table XX. `Loess` joint normalization was found to be superior in improving the power of detecting differential chromatin interactions across the range of controlled fold changes (supplemental XX). Notably, `MA` normalization was second in performance to `loess` joint normalization, strengthening the need to normalize Hi-C datasets jointly. 
+
+<!-- The ROC curve analysis showed the superiority of `loess` joint normalization in improving the power of detecting differential chromatin interactions across the range of controlled fold changes (Fig 3). The benefits of `loess` joint normalization were the most pronounced at detecting lower fold changes (Fig 3A). Notably, `MA` normalization was second in performance to `loess` joint normalization, strengthening the need to normalize Hi-C datasets jointly. Interestingly, the performance of the non-normalized data was equal to or better than all normalization methods except `loess` joint normalization, questioning the need for normalization for differential chromatin interaction detection. Expectedly, fold changes $\ge4$ were easier to detect, as reflected by the relatively good performance of all but `ChromoR` normalization. The benefits of normalization as compared with the non-normalized data were easier to detect at the higher fold changes, with `loess` joint normalization performing best (Fig 3B-D). Among methods for normalization of individual chromatin interaction matrices the `KR` method performed best, following the `ICE` and `SCN` methods (Fig 3). Surprisingly, the `ChromoR` method performed the worst, confirming our observation of its poor performance in removing biases and detecting differential chromatin interactions when used alone (S1 File).  -->
+
+
+<!-- **Fig 3. ROC curves for different normalization techniques.**  -->
+<!-- ROC curves of the differential chromatin interaction detection using different normalization techniques at (A) 1.5, (B) 2.0, (C) 4.0, (D) 10.0 fold changes. Simulated 100 x 100 chromatin interaction matrices with 250 controlled changes were used. -->
+
+<!-- As no single metric can evaluate all aspects of classifier performance [@lever2016points], we evaluated the performance of the normalization methods using additional metrics. Confirming our observation that the joint normalization method yields the largest area under the curve (Fig 3), it also had the highest true positive rate (TPR), the smallest false discovery rate (FDR), improved accuracy and precision, as compared with methods for normalizing individual Hi-C matrices (S5 File). In summary, `loess` joint normalization outperformed individual normalization methods in improving the power of detecting differential chromatin interactions. -->
+
+<!-- We evaluated the performance of the aforementioned methods by introducing controlled changes into replicates of real Hi-C data. Replicated experiments are assumed to contain minimal differences, primarily due to technical noise. However, replicates of real data contain many more differentially interacting chromatin regions (~45%, [@Rao:2014aa]) than simulated data due to the much larger effect of biases. These existing differences may often be larger than the controlled fold changes and therefore detected as false positives if biases remain unaccounted for. Indeed, all but `loess` normalization methods performed sub-optimally when controlled changes less than 2-fold were introduced in the replicates of real Hi-C data (S2 Fig). Similar to the simulated settings, the non-normalized data provided sufficient power to detect the controlled changes. While larger controlled changes can be detected when using different normalization methods, `loess` remained the most powerful in removing biases and the detection of small and large fold changes. -->
+
+<!-- To account for the presence of the existing differences in the real Hi-C data we evaluated all major classification metrics [@lever2016points], each providing a unique perspective on the performance of differential chromatin interaction detection. Confirming the results of the power analysis in simulated settings, matrices of real Hi-C data normalized using `loess` joint normalization had the largest number of true positives (TP) and the highest true positive rate (TPR) when detecting 1.5 fold changes, closely followed by the `KR` and `SCN` normalization at higher fold changes (S6 File). Consequently, the number of false positives (FP) and false negatives (FN), the false positive (FPR) and false negative (FNR) rates were the lowest in the matrices normalized with `loess` joint normalization across the range of fold changes. Both accuracy and precision were the highest in the matrices normalized with `loess` joint normalization. Similarly to the results in simulated settings, the individual normalization methods `KR` and `SCN` were the second and third normalization methods following the best performing `loess` joint normalization. In summary, `loess` joint normalization improved the power of differential chromatin interaction detection across the whole range of fold changes, as compared with individual normalization methods. -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
