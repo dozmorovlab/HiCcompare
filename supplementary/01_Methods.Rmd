@@ -1,0 +1,434 @@
+---
+# author: "John C. Stansfield, Kellen G. Cresswell, Vladimir I. Vladimirov, Mikhail G. Dozmorov"
+output:
+  pdf_document:
+    toc: no
+csl: /Users/mdozmorov/Documents/Work/VCU_work/3D_DNA/HiCcompare/styles.ref/bioinformatics.csl
+bibliography: /Users/mdozmorov/Documents/Work/VCU_work/3D_DNA/manuscript/3D_DNA-references.bib
+---
+
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE}
+# Set up the environment
+library(knitr)
+opts_chunk$set(cache.path='cache/', fig.path='img/', cache=T, tidy=T, fig.keep='high', echo=F, dpi=100, warnings=F, message=F, comment=NA, warning=F, results='as.is', fig.width = 10, fig.height = 4) #out.width=700, 
+library(pander)
+panderOptions('table.split.table', Inf)
+set.seed(1)
+library(dplyr)
+options(stringsAsFactors = FALSE)
+```
+
+\pagenumbering{gobble}
+
+```{r libraries}
+library(HiCcompare)
+library(chromoR)
+library(pROC)
+library(MLmetrics)
+library(HiTC)
+library(Matrix)
+library(GenomicRanges)
+library(ggplot2)
+library(gridExtra)
+library(data.table)
+```
+
+# 1 Methods
+
+## Data sources
+
+**Table. Hi-C data used in the current study.**
+
+```{r, echo = FALSE, message=FALSE}
+S1_Table <- data.frame(File = c("GSE63525_GM12878_insitu_primary_30.hic.gz", "GSE63525_GM12878_insitu_DpnII_combined_30.hic.gz", "GSE63525_K562_combined_30.hic.gz",
+                       "GSE63525_IMR90_intrachromosomal_contact_matrices.tar.gz", "GSE63525_HMEC_intrachromosomal_contact_matrices.tar.gz", 
+                       "GSE63525_NHEK_intrachromosomal_contact_matrices.tar.gz", "Dixon2012-H1hESC-HindIII-allreps-filtered.1000kb.cool", 
+                       "GSM927075 & GSM927076"),
+                       "Cell line" = c("GM12878", "GM12878", "K562", "IMR90", "HMEC", "NHEK", "hESC", "RWPE1"),
+                       Resolution = c("1kb - 1mb", "1kb - 1mb", "1kb - 1mb", "1kb - 1mb", "1kb - 1mb", "1kb - 1mb", "1mb", "1mb"),
+                       "Cutting enzyme" = c("MboI", "DpnII", "MboI", "MboI", "MboI", "MboI", "HindIII", "HindIII"),
+                       URL = c("ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE63nnn/GSE63525/suppl/GSE63525_GM12878_insitu_primary_30.hic.gz",
+                               "ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE63nnn/GSE63525/suppl/GSE63525_GM12878_insitu_DpnII_combined_30.hic.gz",
+                               "ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE63nnn/GSE63525/suppl/GSE63525_K562_combined_30.hic.gz",
+                               "ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE63nnn/GSE63525/suppl/GSE63525_IMR90_intrachromosomal_contact_matrices.tar.gz",
+                               "ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE63nnn/GSE63525/suppl/GSE63525_HMEC_intrachromosomal_contact_matrices.tar.gz",
+                               "ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE63nnn/GSE63525/suppl/GSE63525_NHEK_intrachromosomal_contact_matrices.tar.gz",
+                               "ftp://cooler.csail.mit.edu/coolers/hg19/Dixon2012-H1hESC-HindIII-allreps-filtered.1000kb.cool",
+                               "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE37752"),
+                       Reference = c("[@Rao:2014aa]", "[@Rao:2014aa]", "[@Rao:2014aa]", "[@Rao:2014aa]", "[@Rao:2014aa]", "[@Rao:2014aa]", "[@Dixon:2012aa]", "[@Rickman:2012aa]"),
+                       "Included in package" = c("", "", "", "", "*", "*", "*", ""))
+# MD fixes
+S1_Table <- S1_Table[, -1]
+S1_Table <- S1_Table[, -ncol(S1_Table)]
+S1_Table <- S1_Table[, -ncol(S1_Table)]
+# S1_Table <- S1_Table[S1_Table$Cell.line %in% c("GM12878", "RWPE1"), ]
+S1_Table <- S1_Table[, c("Cell.line", "Resolution", "Cutting.enzyme", "URL")]
+pander::pander(S1_Table)
+```
+
+## Normalization methods for individual Hi-C datasets
+
+Four methods for normalizing individual Hi-C datasets were compared with the `loess` joint normalization method. Here, we briefly describe them.
+
+The `ChromoR` method [@Shavit:2014aa] applies the Haar-Fisz Transform (HFT) to decompose a Hi-C contact map. HFT assumes the IFs in the contact map are distributed as a Poisson random variable. After HFT decomposition, wavelet shrinkage methods for Gaussian noise are applied for de-noising. The contact map is then reconstructed with the inverse HFT. The `ChromoR` R package was used to normalize the matrices  with the `correctCIM` function.   
+
+`ICE` (iterative correction and eigenvector decomposition) normalization [@Imakaev:2012aa] functions by modeling the expected $IF_{ij}$ for every pair of regions *(i,j)* as $E_{ij} = B_i B_j T_{ij}$, where $B_i$ and $B_j$ are the biases and $T_{ij}$ is the true matrix of normalized IFs. The maximum likelihood solution for the biases $B_i$ is obtained by iterative correction. It attempts to make all regions equally visible, and was shown to perform as well as the explicit bias correction method by Yaffe and Tanay [@Belton:2012aa]. `ICE` normalization was performed using the `HiTC` R package's `normICE` function.
+
+`KR` (Knight-Ruiz) normalization [@knight2012fast] is another "equal visibility" algorithm that balances a square non-negative matrix $A$ by finding a diagonal scaling of $A$ such that $P = D_1AD_2$ sums to one. The `KR` algorithm uses an iterative process to find $D_1$ and $D_2$ scaling matrices by alternately normalizing columns and rows in a sequence of matrices using an approximation of Newton's method. The `KR` normalization method was re-implemented in R using the published `matlab` code [@knight2012fast] and is included in the `HiCcompare` package as the `KRnorm` function.
+
+`SCN` (Sequential Component Normalization) [@Cournac:2012aa] is a method that is broadly generalizable to many Hi-C experimental protocols. It attempts to smooth out biases due to GC content and circularization. `SCN` works by first normalizing each column vector of a Hi-C contact matrix to one using the Euclidean norm. Then each row of the resulting matrix is normalized to one using the row Euclidean norm. This process is repeated until convergence (usually 2 to 3 iterations). The SCN method was re-implemented in R and included in the `HiCcompare` package as the `SCN` function.
+
+`MA` (Minus Average normalization) [@Lun:2015aa] is a commonly used normalization method for genomic data. It is based on the MA plot where the data is plotted according to the Average log counts (or counts per million) and the log Minus (difference) between the two data sets. A loess model is then fit to this plot and the residuals for the fit can be used to smooth the data sets. MA normalization was implemented in R and included in the `HiCcompare` packages as the `MA_norm` function.
+
+## Investigation of the distribution of M
+
+```{r}
+# load data
+githubURL <- "https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_data/S1_File_data.RData"
+load(url(githubURL))
+```
+
+```{r}
+## `hic.table` format
+chr1.tab      <- create.hic.table(S1.dpnii.chr1,   S1.mbol.chr1,        chr = 'chr1')
+chr11.tab     <- create.hic.table(S1.dpnii.chr11,  S1.mbol.chr11,       chr = 'chr11')
+chr18.tab     <- create.hic.table(S1.dpnii.chr18,  S1.mbol.chr18,       chr = 'chr18')
+chr19.tab     <- create.hic.table(S1.dpnii.chr19,  S1.mbol.chr19,       chr = 'chr19')
+replicate.tab <- create.hic.table(S1.primary.chr1, S1.replicate.chr1,   chr = 'chr1')
+rep.chr11.tab <- create.hic.table(S1.primary.chr11, S1.replicate.chr11, chr = 'chr1')
+rep.chr18.tab <- create.hic.table(S1.primary.chr18, S1.replicate.chr18, chr = 'chr1')
+rep.chr19.tab <- create.hic.table(S1.primary.chr19, S1.replicate.chr19, chr = 'chr1')
+
+unscaled.tab       <- create.hic.table(S1.dpnii.chr1,  S1.mbol.chr1,  chr='chr1',  scale=T)
+chr11.unscaled.tab <- create.hic.table(S1.dpnii.chr11, S1.mbol.chr11, chr='chr11', scale=T)
+```
+
+Here we show that the distribution of M is approximately normal and that this holds true for different genomic distances, chromosomes, and resolutions.
+
+### Chromosome 1
+
+Using GM12878 replicate datasets for chromosome 1 at 1MB resolution we fit a QQ plot for a normal distribution at distances of 5 and 50 showing that after loess normalization M is roughly normal at different distances.
+
+```{r}
+par(mfrow = c(1, 2))
+gm12878.chr1 <- create.hic.table(S1.replicate.chr1, S1.primary.chr1, chr = 'chr1')
+gm12878.chr1 <- hic_loess(gm12878.chr1)
+
+qqnorm(gm12878.chr1[D == 5, ]$adj.M, main = 'QQ Plot, D = 5')
+qqline(gm12878.chr1[D == 5, ]$adj.M)
+
+qqnorm(gm12878.chr1[D == 50, ]$adj.M, main = 'QQ Plot, D = 50')
+qqline(gm12878.chr1[D == 50, ]$adj.M)
+```
+
+### Chromosome 18
+
+Using GM12878 replicate datasets for chromosome 18 at 1MB resolution we fit a QQ plot for a normal distribution at distances of 5 and 50 showing that after loess normalization M is roughly normal at different distances and chromosomes.
+
+```{r}
+par(mfrow = c(1, 2))
+gm12878.chr18 <- create.hic.table(S1.replicate.chr18, S1.primary.chr1, chr = 'chr18')
+gm12878.chr18 <- hic_loess(gm12878.chr18)
+
+qqnorm(gm12878.chr18[D == 5, ]$adj.M, main = 'QQ Plot, D = 5')
+qqline(gm12878.chr18[D == 5, ]$adj.M)
+
+qqnorm(gm12878.chr18[D == 50, ]$adj.M, main = 'QQ Plot, D = 50')
+qqline(gm12878.chr18[D == 50, ]$adj.M)
+```
+
+### The distribution of M is approximately normal between resolutions
+
+Real Hi-C data from Gm12878 cell line were used. The data used were from chromosome 1 cut either using the DpnII enzyme or MboI enzyme at varying resolutions of 1MB, 500KB, 100KB, 50KB, and 5KB. The increased resolution (smaller length of genomic region) is accompanied by the increased proportion of zero interaction frequencies and the overall smaller dynamic range of IFs. 
+
+```{r}
+githubURL <- "https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_data/S7_File_data.RData"
+load(url(githubURL))
+```
+
+#### 500KB Resolution
+
+At 500KB resolution we fit a QQ plot for M at distances of 5 and 50.
+
+```{r}
+par(mfrow = c(1, 2))
+q.500kb <- create.hic.table(S7.dpnii.500kb, S7.mbol.500kb, chr = 'chr1')
+q.500kb <- hic_loess(q.500kb, span = 0.03)
+
+qqnorm(q.500kb[D == 5,]$adj.M, main = 'QQ Plot, D = 5')
+qqline(q.500kb[D == 5,]$adj.M)
+
+qqnorm(q.500kb[D == 50,]$adj.M, main = 'QQ Plot, D = 50')
+qqline(q.500kb[D == 50,]$adj.M)
+``` 
+
+#### 100KB Resolution
+
+At 100KB resolution we fit a QQ plot for M at distances of 5 and 50.
+
+```{r}
+par(mfrow = c(1, 2))
+q.100kb <- create.hic.table(S7.dpnii.100kb, S7.mbol.100kb, chr = 'chr1')
+q.100kb <- hic_loess(q.500kb, span = 0.03)
+
+qqnorm(q.100kb[D == 5,]$adj.M, main = 'QQ Plot, D = 5')
+qqline(q.100kb[D == 5,]$adj.M)
+
+qqnorm(q.100kb[D == 50,]$adj.M, main = 'QQ Plot, D = 50')
+qqline(q.100kb[D == 50,]$adj.M)
+``` 
+
+#### 50KB Resolution
+
+At 50KB resolution we fit a QQ plot for M at distances of 5 and 50.
+
+```{r}
+par(mfrow = c(1, 2))
+q.50kb <- create.hic.table(S7.dpnii.50kb, S7.mbol.50kb, chr = 'chr1')
+q.50kb <- hic_loess(q.50kb, span = 0.02)
+
+qqnorm(q.50kb[D == 5,]$adj.M, main = 'QQ Plot, D = 5')
+qqline(q.50kb[D == 5,]$adj.M)
+
+qqnorm(q.50kb[D == 50,]$adj.M, main = 'QQ Plot, D = 50')
+qqline(q.50kb[D == 50,]$adj.M)
+``` 
+
+### Summary
+
+M has an approximately normal distribution over a range of distances, resolutions, and chromosomes. Thus it is justifiable to convert M values into Z-scores for difference detection. The tails of the M distribution are where the most deviations from the fit to the normal distribution occur. These deviations typically occur for the interactions with low average expression and thus will be filtered out before Z-score conversion. 
+
+## The distribution of Average Expression $A$ between interacting pairs
+
+```{r}
+# load data
+githubURL <- "https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_data/S1_File_data.RData"
+load(url(githubURL))
+```
+
+```{r}
+## `hic.table` format
+chr1.tab      <- create.hic.table(S1.dpnii.chr1,   S1.mbol.chr1,        chr = 'chr1')
+chr11.tab     <- create.hic.table(S1.dpnii.chr11,  S1.mbol.chr11,       chr = 'chr11')
+chr18.tab     <- create.hic.table(S1.dpnii.chr18,  S1.mbol.chr18,       chr = 'chr18')
+chr19.tab     <- create.hic.table(S1.dpnii.chr19,  S1.mbol.chr19,       chr = 'chr19')
+replicate.tab <- create.hic.table(S1.primary.chr1, S1.replicate.chr1,   chr = 'chr1')
+rep.chr11.tab <- create.hic.table(S1.primary.chr11, S1.replicate.chr11, chr = 'chr1')
+rep.chr18.tab <- create.hic.table(S1.primary.chr18, S1.replicate.chr18, chr = 'chr1')
+rep.chr19.tab <- create.hic.table(S1.primary.chr19, S1.replicate.chr19, chr = 'chr1')
+
+unscaled.tab       <- create.hic.table(S1.dpnii.chr1,  S1.mbol.chr1,  chr='chr1',  scale=T)
+chr11.unscaled.tab <- create.hic.table(S1.dpnii.chr11, S1.mbol.chr11, chr='chr11', scale=T)
+```
+
+Average expression ($A$) is the mean of IF1 and IF2 where IF1 and IF2 are the Hi-C interaction frequencies for a pair of interacting regions from datasets 1 and dataset 2. Higher values of $A$ indicate that the reads are more trustworthy due to better sequencing coverage. Differences found between interactions with low values of $A$ may not be trustworthy due to the possibility of larger effects of biases, random variation, sequencing errors, etc. Thus it is justifiable to not consider any differences found for interactions with low average expression. $A$ tends to have a very right skewed distribution. This is because interactions coming from closer to the diagonal of a Hi-C matrix tend to have very large IFs (short distance interactions) while the long range interactions tend to have smaller IFs.
+
+### The distribution of A over varying resolutions
+
+```{r}
+githubURL <- "https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_data/S7_File_data.RData"
+load(url(githubURL))
+```
+
+Here we display the distribution of the Log average expression between GM12878 chromosome 1 data cut with either DpnII or MBOI enzymes at 1MB resolution.
+
+```{r}
+par(mfrow = c(1, 2))
+q.1mb <- create.hic.table(S7.dpnii.1mb, S7.mbol.1mb, chr = 'chr1')
+q.1mb <- hic_loess(q.1mb, span = 0.034)
+# q.1mb <- hic_compare(q.1mb, A.quantile = 0.15, Plot = TRUE, adjust.dist = TRUE, p.method = 'fdr')
+# q.1mb <- hic_compare(q.1mb, A.quantile = 0.1, Plot = TRUE, adjust.dist = TRUE, p.method = 'fdr')
+# q.1mb <- hic_compare(q.1mb, A.quantile = 0.05, Plot = TRUE, adjust.dist = TRUE, p.method = 'fdr')
+hist(log2(q.1mb$A), main = 'Log2(A)', xlab = 'Log A')
+# quantile((q.1mb$A), 0.1, na.rm = TRUE)
+
+### Find distribution of A
+# library(fitdistrplus)
+fitdistrplus::descdist(q.1mb$A)
+# descdist(q.500kb$A)
+# descdist(log2(q.100kb$A))
+# descdist(q.50kb$A)
+# fitdist(q.1mb$A, distr = 'beta')
+# fitdistrplus::fitdist(abs(log2(q.1mb$A)), distr = 'lnorm')
+# ks.test(abs(log2(q.1mb$A)), 'plnorm')
+``` 
+
+```{r eval = FALSE}
+# Here we display the distribution of the average expression between GM12878 chromosome 1 data cut with either DpnII or MBOI enzymes at 1MB, 500KB, 100KB, and 50KB resolution.
+
+q.500kb <- create.hic.table(S7.dpnii.500kb, S7.mbol.500kb, chr = 'chr1')
+q.500kb <- hic_loess(q.500kb, span = 0.03)
+q.100kb <- create.hic.table(S7.dpnii.100kb, S7.mbol.100kb, chr = 'chr1')
+q.100kb <- hic_loess(q.500kb, span = 0.03)
+q.50kb <- create.hic.table(S7.dpnii.50kb, S7.mbol.50kb, chr = 'chr1')
+q.50kb <- hic_loess(q.50kb, span = 0.02)
+
+# make table of A distribution
+sum.1mb <- summary(q.1mb$A)
+sum.500kb <- summary(q.500kb$A)
+sum.100kb <- summary(q.100kb$A)
+sum.50kb <- summary(q.50kb$A)
+
+A.table <- cbind(sum.1mb, sum.500kb, sum.100kb, sum.50kb)
+colnames(A.table) <- c('1MB', '500KB', '100KB', '50KB')
+A.table <- round(A.table, digits = 3)
+
+ks.pval <- vector()
+ks.pval[1] <- ks.test(q.1mb$A, 'pnorm')$p.value
+ks.pval[2] <- ks.test(q.500kb$A, 'pnorm')$p.value
+ks.pval[3] <- ks.test(q.100kb$A, 'pnorm')$p.value
+ks.pval[4] <- ks.test(q.50kb$A, 'pnorm')$p.value
+
+A.table <- rbind(A.table, ks.pval)
+
+knitr::kable(A.table)
+``` 
+
+### Determining which A quantile to filter out
+
+Here we add differences to data from replicates of the GM12878 cell line. We then perform a HiCcompare analysis using a sequence of values for the A quantile or minimum A value to be filtered out. All differences with an A value less than the quantile (or minimum value) specified are filtered out and ignored. We then plot the number of true positives and false positives against the A quantile (or value) filtered. 
+
+```{r}
+determine_A <- function(raw1, raw2, FC = 2, numChanges = 100, alpha = 0.05, span = NA,
+                             adjust.dist = TRUE, A_seq = seq(0.01, 0.4, by = 0.01), A.min = NA,
+                             p.method = 'fdr') {
+  
+  # create hic.table
+  hic.table <- create.hic.table(raw1, raw2, scale = TRUE, chr = 'chr1')
+  
+  ## ADD in true differences
+  # spike in differences
+  # get which interactions at distance
+  # sample_space <- which(hic.table$D == dist)
+  sample_space <- 1:nrow(hic.table)
+  changes <- sample(sample_space, numChanges)
+  # set IFs to mean IF then multiply one by FC
+  meanIF <- ((hic.table[changes,]$IF1 + hic.table[changes,]$IF2) / 2) %>% round() %>% as.integer()
+  hic.table[changes, IF1 := meanIF ]
+  hic.table[changes, IF2 := meanIF]
+  midpoint <- floor(numChanges/2)
+  newIF1 <- hic.table[changes[1:midpoint],]$IF1 * FC %>% as.integer()
+  newIF2 <- hic.table[changes[(midpoint+1):numChanges],]$IF2 * FC %>% as.integer()
+  hic.table[changes[1:midpoint], IF1 :=  newIF1]
+  hic.table[changes[(midpoint+1):numChanges], IF2 :=  newIF2]
+  hic.table = hic.table[, M := log2(IF2/IF1)]
+  truth <- rep(0, nrow(hic.table))
+  truth[changes] <- 1
+  hic.table[, truth := truth]
+  
+  hic.table <- hic_loess(hic.table, span = span)
+  
+  roc_list <- list()
+  TP <- vector()
+  FP <- vector()
+  FN <- vector()
+  TN <- vector()
+  if (is.na(A.min)) {
+    for(i in 1:length(A_seq)) {
+      new.table <- hic_compare(hic.table, A.quantile = A_seq[i], adjust.dist = TRUE, A.min = A.min, p.method = 'fdr', Plot = FALSE)
+      # roc_list[[i]] <- roc(response = new.table$truth, predictor = new.table$p.adj)
+      TP[i] <- sum(new.table$p.adj < alpha & new.table$truth == 1)
+      FP[i] <- sum(new.table$p.adj < alpha & new.table$truth == 0)
+      FN[i] <- sum(new.table$p.adj >= alpha & new.table$truth == 1)
+      TN[i] <- sum(new.table$p.adj >= alpha & new.table$truth == 0)
+    }
+  } else {
+    for(i in 1:length(A_seq)) {
+      new.table <- hic_compare(hic.table, A.min = A_seq[i], adjust.dist = TRUE, p.method = 'fdr', Plot = FALSE)
+      # roc_list[[i]] <- roc(response = new.table$truth, predictor = new.table$p.adj)
+      TP[i] <- sum(new.table$p.adj < alpha & new.table$truth == 1)
+      FP[i] <- sum(new.table$p.adj < alpha & new.table$truth == 0)
+      FN[i] <- sum(new.table$p.adj >= alpha & new.table$truth == 1)
+      TN[i] <- sum(new.table$p.adj >= alpha & new.table$truth == 0)
+    }
+  }
+  
+  
+  # # get aucs
+  # auc <- sapply(roc_list, auc)
+  # plot(FP ~ TP)
+  # text(TP, FP, labels = names(TP))
+  
+  # # get TPR and FPR
+  # TPR <- TP/(TP + FN)
+  # FPR <- FP/(FP + TN)
+  
+  # Calculate MCC
+  MCC <- ((TP * TN) - (FP * FN)) / 
+    (sqrt((TP + FP)) * sqrt((TP + FN)) * sqrt((TN + FP)) *
+    sqrt((TN + FN)))
+  
+
+  # OLD; for plotting TP vs FP 
+  # if (is.na(A.min)) {
+  #   plot(FP ~ A_seq, type = 'l', col = 'red', main = 'Number TP and FP by A quantile filtered', ylab = 'Number TP or FP', xlab = 'A Quantile filtered', 
+  #      ylim = c(0, max(FP)))
+  # } else {
+  #   plot(FP ~ A_seq, type = 'l', col = 'red', main = 'Number TP and FP by A quantile filtered', ylab = 'Number TP or FP', xlab = 'A minimum filtered', 
+  #      ylim = c(0, max(FP)))
+  # }
+  # lines(TP ~ A_seq, col='black')
+  # legend('topright', legend = c('True Positives', 'False Positives'), fill = c('black', 'red'))
+  
+  
+  # PLOT MCC
+  if (is.na(A.min)) {
+    plot(MCC ~ A_seq, type = 'l', col = 'red', main = 'MCC by A quantile filtered', ylab = 'MCC', xlab = 'A Quantile filtered')
+  } else {
+    plot(MCC ~ A_seq, type = 'l', col = 'red', main = 'MCC by A quantile filtered', ylab = 'MCC', xlab = 'A minimum filtered')
+  }
+  
+ 
+}
+```
+
+#### 1MB Resolution
+
+Here we add 100 differences at a 2 fold change to data. At lower resolutions it is better to use the `A.quantile` option for controlling the differences with low average expression. This shows that filtering the 10-20% quantiles is a good range for this resolution.
+
+```{r}
+chr1.primary <- read.table("/Users/mdozmorov/Documents/Work/VCU_work/3D_DNA/GM12878_replicates/GM12878_primary_1000000/primary.chr1.1000000.txt")
+chr1.replicate <- read.table("/Users/mdozmorov/Documents/Work/VCU_work/3D_DNA/GM12878_replicates/GM12878_replicate_1000000/replicate.chr1.1000000.txt")
+
+determine_A(chr1.primary, chr1.replicate, span = 0.09)
+```
+
+#### 100KB Resolution
+
+At higher resolutions it is better to use the `A.min` option for controlling differences with low average expression. There is much greater variability in M at higher resolutions due to the generally lower levels of average expression. The data with no changes added to it looks like this on the MD plot after difference detection with no filtering:
+
+```{r}
+chr1.100kb.primary <- read.table("/Users/mdozmorov/Documents/Work/VCU_work/3D_DNA/GM12878_replicates/GM12878_primary_100000/primary.chr1.100000.txt")
+chr1.100kb.replicate <- read.table("/Users/mdozmorov/Documents/Work/VCU_work/3D_DNA/GM12878_replicates/GM12878_replicate_100000/replicate.chr1.100000.txt")
+
+tab <- create.hic.table(chr1.100kb.primary, chr1.100kb.replicate, 'chr1')
+tab <- hic_loess(tab, span = 0.025)
+tab <- hic_compare(tab, A.quantile = 0, Plot = TRUE)
+```
+
+Most of these detected differences have relatively low A values are not very trustworthy. 
+Varying the minimum A filtered and addng in 5,000 true differences at a 4 fold change we get: 
+
+```{r}
+determine_A(chr1.100kb.primary, chr1.100kb.replicate, FC = 4, span = 0.025, A_seq = seq(1, 30, by = 1), numChanges = 5000, A.min = 1)
+```
+
+Many of the differences with high M values are derived from interactions where one IF is close to 1 and the other is in the range of 15 to 30. Filtering out any differences where A < 15 gives the best results and allows the most true differences to be detected and the least number of false positives. This may require some tuning to different datasets and resolutions.
+
+```{r}
+determine_A(chr1.100kb.primary, chr1.100kb.replicate, FC = 4, span = 0.025, A_seq = seq(0, 0.5, by = 0.01), numChanges = 5000)
+```
+
+### Summary 
+
+A has a right skewed distribution. Many of the differencecs detected with low corresponding average expression are not as trustworhy as differences with large values of A. Filtering is required to remove these low A differences. Filtering can be accomplished either using the quantile of A or by setting a minimum acceptable value of A. These difference approaches may work better in some situations than others. Both options are available to the user in `HiCcompare`. 
+
+## Performance evaluation
+
+**Figure. Effect of parallelization on HiCcompare runtime** Run time (Y-axis) of `HiCcompare` normalization using 1, 4, 8 and 12 1596 MHz cores (X-axis) with 10gb of memory on CentOS 6.8 operating system. Time to normalize two RWPE datasets (see Methods) over chromosomes 1-22 was averaged over $n = 10$ runs. Data at 1Mb, 500kb, 100kb, 50kb (color legend) was used, expectedly requiring less/more run time, respectively.
+
+\begin{center}
+\includegraphics[height=200px]{../figures/runtime_summary.png}
+\end{center}
+
+## References

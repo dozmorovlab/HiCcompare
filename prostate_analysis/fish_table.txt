@@ -1,0 +1,5 @@
+Interaction	HiCcompare M	HiCcompare A	diffHic logFC	diffHic LogCPM	HiCcompare p-value	HiCcompare FDR	diffHic FDR
+FYN - MOXD1	2.564	3.547	0.733	1.134	0.001	0.078	0.042
+HEY2 - MOXD1	2.022	5.297	0.67	2.625	0.01	0.624	0.002
+SERPINB9 - MOXD1	-1.939	3.772	-1.27	-0.151	0.017	0.296	0.016
+FYN - HEY2	-2.078	8.968	-1.545	0.621	0.01	0.368	0

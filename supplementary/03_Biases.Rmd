@@ -1,0 +1,486 @@
+---
+output:
+  pdf_document:
+    toc: no
+csl: /Users/mdozmorov/Documents/Work/VCU_work/3D_DNA/HiCcompare/styles.ref/bioinformatics.csl
+bibliography: /Users/mdozmorov/Documents/Work/VCU_work/3D_DNA/manuscript/3D_DNA-references.bib
+---
+
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE}
+# Set up the environment
+library(knitr)
+opts_chunk$set(cache.path='cache/', fig.path='img/', cache=T, tidy=T, fig.keep='high', echo=F, dpi=100, warnings=F, message=F, comment=NA, warning=F, results='as.is', fig.width = 10, fig.height = 4) #out.width=700, 
+library(pander)
+panderOptions('table.split.table', Inf)
+set.seed(1)
+library(dplyr)
+options(stringsAsFactors = FALSE)
+```
+
+\pagenumbering{gobble}
+
+# 3 Persistence of bias in individually normalized chromatin interaction matrices, and its effect on the detection of differential chromatin interactions
+
+```{r libraries}
+library(HiCcompare)
+library(chromoR)
+library(pROC)
+library(MLmetrics)
+library(HiTC)
+library(Matrix)
+library(GenomicRanges)
+library(ggplot2)
+library(gridExtra)
+library(data.table)
+```
+
+```{r}
+# load data
+githubURL <- "https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_data/S1_File_data.RData"
+load(url(githubURL))
+```
+
+## Introduction
+
+To compare the ability of methods for normalizing individual datasets to remove biases _between_ chromatin interaction matrices, we compare individually normalized matrices with the jointly normalized ones. Several parameters were assessed:
+
+- The effect of global differences. Most of the time different chromatin interaction matrices will contain different total number of reads, resulting in the overall differences. We assessed whether methods for normalizing individual datasets were able to account for the differences in the total number of reads.
+- The ability of the joint normalization to account for biases under different conditions, such as when comparing matrices obtained with different cutting enzymes, or matrices from different chromosomes.
+- The effect of individual and joint normalization methods on detecting chromatin interaction differences.
+
+```{r}
+## `hic.table` format
+chr1.tab      <- create.hic.table(S1.dpnii.chr1,   S1.mbol.chr1,        chr = 'chr1')
+chr11.tab     <- create.hic.table(S1.dpnii.chr11,  S1.mbol.chr11,       chr = 'chr11')
+chr18.tab     <- create.hic.table(S1.dpnii.chr18,  S1.mbol.chr18,       chr = 'chr18')
+chr19.tab     <- create.hic.table(S1.dpnii.chr19,  S1.mbol.chr19,       chr = 'chr19')
+replicate.tab <- create.hic.table(S1.primary.chr1, S1.replicate.chr1,   chr = 'chr1')
+rep.chr11.tab <- create.hic.table(S1.primary.chr11, S1.replicate.chr11, chr = 'chr1')
+rep.chr18.tab <- create.hic.table(S1.primary.chr18, S1.replicate.chr18, chr = 'chr1')
+rep.chr19.tab <- create.hic.table(S1.primary.chr19, S1.replicate.chr19, chr = 'chr1')
+
+unscaled.tab       <- create.hic.table(S1.dpnii.chr1,  S1.mbol.chr1,  chr='chr1',  scale=T)
+chr11.unscaled.tab <- create.hic.table(S1.dpnii.chr11, S1.mbol.chr11, chr='chr11', scale=T)
+```
+
+## Investigation of the `loess` joint normalization over varying resolutions
+
+```{r}
+regenerate_figures <- FALSE # If the plots have been created, do not regenerate them
+```
+
+Hi-C data from Gm12878 cell line were used. The data used were from chromosome 1 cut either using the DpnII enzyme or MboI enzyme at varying resolutions of 1MB, 500KB, 100KB, 50KB, and 5KB. The increased resolution (smaller length of genomic region) is accompanied by the increased proportion of zero interaction frequencies and the overall smaller dynamic range of IFs. The goal of this section is to observe the effect of resolution on the performance of joint `loess` normalization.
+
+```{r}
+githubURL <- "https://github.com/dozmorovlab/HiCdiff/raw/supplemental/Supplemental_data/S7_File_data.RData"
+load(url(githubURL))
+```
+
+Here the `hic_loess` procedure is performed for the comparison of MboI and DpnII in GM12878 for chromosome 1 at varying resolutions.
+
+### 1MB
+
+```{r results='hide'}
+if (regenerate_figures) {
+  dir.create("manuscript/supplemental_zscores/img")
+  tab.1mb   = create.hic.table(S7.dpnii.1mb,   S7.mbol.1mb,   chr='chr1')
+  tiff(paste0("manuscript/supplemental_zscores/img/", "S7_File_fig1.tif"), width = 2500, height = 1500, units = 'px', res = 300)
+  hic_loess(tab.1mb, Plot=T)
+  dev.off()
+}
+```
+
+\begin{center}
+\includegraphics[height=220px]{../figures/S7_File_fig1.png}
+\end{center}
+
+### 500KB
+
+```{r results='hide'}
+if (regenerate_figures) {
+  tab.500kb = create.hic.table(S7.dpnii.500kb, S7.mbol.500kb, chr='chr1')
+  tiff(paste0("manuscript/supplemental_zscores/img/", "S7_File_fig2.tif"), width = 2500, height = 1500, units = 'px', res = 300)
+  hic_loess(tab.500kb, Plot=T)
+  dev.off()
+}
+```
+
+\begin{center}
+\includegraphics[height=220px]{../figures/S7_File_fig2.png}
+\end{center}
+
+### 100KB
+
+```{r results='hide'}
+if (regenerate_figures) {
+  tab.100kb = create.hic.table(S7.dpnii.100kb, S7.mbol.100kb, chr='chr1')
+  tiff(paste0("manuscript/supplemental_zscores/img/", "S7_File_fig3.tif"), width = 2500, height = 1500, units = 'px', res = 300)
+  hic_loess(tab.100kb, Plot=T)
+  dev.off()
+}
+```
+
+\begin{center}
+\includegraphics[height=220px]{../figures/S7_File_fig3.png}
+\end{center}
+
+### 50KB
+
+```{r results='hide'}
+if (regenerate_figures) {
+  tab.50kb  = create.hic.table(S7.dpnii.50kb,  S7.mbol.50kb,  chr='chr1')
+  tiff(paste0("manuscript/supplemental_zscores/img/", "S7_File_fig4.tif"), width = 2500, height = 1500, units = 'px', res = 300)
+  hic_loess(tab.50kb, Plot=T)
+  dev.off()
+}
+```
+
+\begin{center}
+\includegraphics[height=220px]{../figures/S7_File_fig4.png}
+\end{center}
+
+### Summary
+
+`loess` works well for removing biases at resolutions between 1MB and 100KB. Once the resolution is higher than 100KB, the procedure begins to fail due to the sparsity of the data. At high resolutions Hi-C data becomes very sparse with most values in the matrix being 0 or a small number. Thus when plotted on the MD plot the sparsity begins to show as the straight horizontal lines of points representing very small differences existing between the two datasets due to the sparsity of the sequencing coverage.
+
+## The effect of normalization methods on removing global differences
+
+Hi-C matrices may have a different total number of reads. This disbalance will lead to the overall difference between the two matrices, reflected by the global shift of the cloud of $M$ differences from zero. The unscaled matrices, globally shifted from $M = 0$, can be successfully normalized by `loess`. However, individually normalized matrices will still contain the global shift, as shown below. By default, the `create.hic.table` function rescales the matrices to have the same total number of reads. Rescaling is accomplished by first calculating the scale factor $\psi = \frac{\sum IF_i}{\sum IF_j}$ where $i$ is the set of all the IFs for the upper triangle of the first Hi-C matrix and $j$ is the set of all IFs for the upper triangle of the second Hi-C matrix. Next, $IF_j$ is scaled by setting $IF_{j_{new}} = \frac{IF_j}{\psi}$.
+
+### `loess`
+
+```{r}
+diffs = hic_loess(unscaled.tab,  Plot = T, Plot.smooth = FALSE)
+```
+
+### `ChromoR`
+
+```{r}
+# convert hic.table to full matrices for other methods to work
+mat1 = sparse2full(unscaled.tab[, c('start1', 'start2', 'IF1'), with=F])
+mat2 = sparse2full(unscaled.tab[, c('start1', 'start2', 'IF2'), with=F])
+
+start = as.numeric(colnames(mat1))
+end = as.numeric(colnames(mat1))
+seg = data.frame(chr = chr11.tab$chr1[1], start = start, end = end)
+# correct simulated matrices using chromoR's methods
+sim1.chromor = correctCIM(mat1, seg)
+sim2.chromor = correctCIM(mat2, seg)
+colnames(sim1.chromor$mCorrected) = seg$start
+colnames(sim2.chromor$mCorrected) = seg$start
+sim1.chromor = full2sparse(sim1.chromor$mCorrected)
+sim2.chromor = full2sparse(sim2.chromor$mCorrected)
+
+chromoR.tab = create.hic.table(sim1.chromor, sim2.chromor, scale=F, chr = 'chr11')
+chromoR.tab[, ':=' (adj.IF1 = IF1, adj.IF2 = IF2, adj.M = M)]
+
+p1 = MD.plot2(unscaled.tab$M, unscaled.tab$D, smooth = FALSE) + ggtitle('Before Normalization')
+p2 = MD.plot2(chromoR.tab$M, chromoR.tab$D, smooth = FALSE) + ggtitle('After Normalization')
+grid.arrange(p1, p2, ncol = 2)
+```
+
+### `ICE`
+
+```{r, message=FALSE}
+sim1.ice = Matrix(mat1)
+sim2.ice = Matrix(mat2)
+# create HTCexp object for simulated data
+xgi = GRanges(seqnames = 'chr11', ranges = IRanges(start = start, end  = end, names = paste('a', 1:length(start), sep='')))
+ygi = GRanges(seqnames = 'chr11', ranges = IRanges(start = start, end  = end, names = paste('b', 1:length(start), sep='')))
+colnames(sim1.ice) <- paste('a', 1:length(start), sep='')
+rownames(sim1.ice) <- paste('b', 1:length(start), sep='')
+sim1.ice = new('HTCexp', sim1.ice, xgi, ygi)
+colnames(sim2.ice) <- paste('a', 1:length(start), sep='')
+rownames(sim2.ice) <- paste('b', 1:length(start), sep='')
+sim2.ice = new('HTCexp', sim2.ice, xgi, ygi)
+# normalize with ICE
+sim1.ice = normICE(sim1.ice, max_iter = 100)
+sim2.ice = normICE(sim2.ice, max_iter = 100)
+# convert to hic.table
+colnames(sim1.ice@intdata) = start
+colnames(sim2.ice@intdata) = start
+sim1.ice = full2sparse(as.matrix(sim1.ice@intdata))
+sim2.ice = full2sparse(as.matrix(sim2.ice@intdata))
+ice.table = create.hic.table(sim1.ice, sim2.ice, scale = FALSE, chr = 'chr11')
+ice.table[, ':=' (adj.IF1 = IF1, adj.IF2 = IF2, adj.M = M)]
+
+p1 = MD.plot2(unscaled.tab$M, unscaled.tab$D, smooth = FALSE) + ggtitle('Before Normalization')
+p2 = MD.plot2(ice.table$M, ice.table$D, smooth = FALSE) + ggtitle('After Normalization')
+grid.arrange(p1, p2, ncol = 2)
+```
+
+### `KR`
+
+```{r}
+zeros1 = which(colSums(mat1) == 0)
+zeros2 = which(colSums(mat2) == 0)
+if (length(zeros1) > 0) {
+  cr.mat1 = mat1[-zeros1, -zeros1]
+} else {
+  cr.mat1 = mat1
+}
+if (length(zeros2) > 0) {
+  cr.mat2 = mat2[-zeros2, -zeros2]
+} else {
+  cr.mat2 = mat2
+}
+sim1.kr = KRnorm(cr.mat1)
+sim2.kr = KRnorm(cr.mat2)
+colnames(sim1.kr) = colnames(cr.mat1)
+colnames(sim2.kr) = colnames(cr.mat2)
+sim1.kr = full2sparse(sim1.kr)
+sim2.kr = full2sparse(sim2.kr)
+kr.table = create.hic.table(sim1.kr, sim2.kr, scale = FALSE, chr = 'chr11')
+kr.table[, ':=' (adj.IF1 = IF1, adj.IF2 = IF2, adj.M = M)]
+
+p1 = MD.plot2(unscaled.tab$M, unscaled.tab$D, smooth = FALSE) + ggtitle('Before Normalization')
+p2 = MD.plot2(kr.table$M, kr.table$D, smooth = FALSE) + ggtitle('After Normalization')
+grid.arrange(p1, p2, ncol = 2)
+```
+
+### `SCN`
+
+```{r}
+sim1.scn = SCN(mat1)
+sim2.scn = SCN(mat2)
+sim1.scn = full2sparse(sim1.scn)
+sim2.scn = full2sparse(sim2.scn)
+scn.table = create.hic.table(sim1.scn, sim2.scn, chr='chr11', scale=FALSE)
+scn.table[, ':=' (adj.IF1 = IF1, adj.IF2 = IF2, adj.M = M)]
+
+p1 = MD.plot2(unscaled.tab$M, unscaled.tab$D, smooth = FALSE) + ggtitle('Before Normalization')
+p2 = MD.plot2(scn.table$M, scn.table$D, smooth = FALSE) + ggtitle('After Normalization')
+grid.arrange(p1, p2, ncol = 2)
+```
+
+### Summary
+
+As can be seen from the above, the MD plots for the single matrix normalization methods do not all succeed at rescaling the data and thus the main cloud of points are not centered around $M = 0$. `Loess` however, was able to take care of rescaling the data and centered the MD plot around 0. Global scaling is recommended for any comparisons between Hi-C datasets.
+
+# The effect of `loess` normalization on removing chromosome-specific biases
+
+## Common cutting enzyme
+
+The MD plot below displays data before and after joint `loess` normalization from GM12878 at 1MB resolution, chromosome 1, that were obtained as replicates using the same cutting enzyme. Since the data here is replicate data it is expected that there will not be many differences between the datasets. Any differences found are assumed to be due to bias in the sequencing procedures. 
+
+```{r}
+### Chr 1
+hic_loess(replicate.tab, Plot = T, Plot.smooth = FALSE)
+```
+
+As can be seen by the loess fit on the "Before loess" MD plot there is not a large amount of bias between the two datasets.
+
+## Different cutting enzymes
+
+The Hi-C datasets here are from GM12878 cell lines at 1MB resolution, chromosome 1. One dataset was cut using MboI and the other using DpnII. Since different cutting enzymes are used it is expected that there will be some differences in the data due to enzyme choice. Biases between the datasets are successfully removed with `loess` normalization as can be seen in the following MD plots displaying the data before and after joint `loess` normalization. It can also be seen that biases between the datasets differ between each chromosome and dataset. The differences do not appear to follow a trend which makes a non-parametric approach to normalization better suited to the task.
+
+```{r, warning=FALSE}
+### Chr 1
+hic_loess(chr1.tab,  Plot = T, Plot.smooth = FALSE)
+```
+
+# The effect of normalization methods on detecting differential chromatin interactions
+
+To look at differences between different normalization methods we use data from GM12878 at 1MB resolution on chr 11 generated using two different cutting enzymes, MboI and DpnII. The data is scaled. For each method tested below, we also test for differences between the two datasets. No artificial changes were added to the datasets. Any differences detected by the method will be examples of existing differences between the replicated Hi-C data on the same cell line when cut by different enzymes. Since the datasets are for the same chromosome and the same cell line we should expect few differences to be detected.
+
+### `loess`
+
+```{r}
+diffs = hic_loess(chr11.tab, Plot=T, Plot.smooth = FALSE)
+```
+
+```{r}
+diffs = hic_compare(diffs, Plot=T, Plot.smooth = FALSE)
+tab = diffs
+counts = sum(diffs$p.adj < 0.05)
+print(paste0(counts, ' differences found between the datasets'))
+```
+
+The MD plot above serves as a reference to show that `Loess` can successfully normalizes the data and removes bias between the two datasets. The following MD plots display the data after the specified individual normalization method has been applied to each matrix. The dotted lines on the second MD plot represent the difference threshold where points are considered significant outside of the two dotted lines. The difference threshold used here is $\theta = 1$, see `?hic_diff` and the methods section of the paper for a full explanation on the difference threshold.
+
+### `ChromoR`
+
+```{r}
+# convert hic.table to full matrices for other methods to work
+mat1 = sparse2full(chr11.tab[, c('start1', 'start2', 'IF1'), with=F])
+mat2 = sparse2full(chr11.tab[, c('start1', 'start2', 'IF2'), with=F])
+
+start = as.numeric(colnames(mat1))
+end = as.numeric(colnames(mat1))
+seg = data.frame(chr = chr11.tab$chr1[1], start = start, end = end)
+# correct simulated matrices using chromoR's methods
+sim1.chromor = correctCIM(mat1, seg)
+sim2.chromor = correctCIM(mat2, seg)
+colnames(sim1.chromor$mCorrected) = seg$start
+colnames(sim2.chromor$mCorrected) = seg$start
+sim1.chromor = full2sparse(sim1.chromor$mCorrected)
+sim2.chromor = full2sparse(sim2.chromor$mCorrected)
+
+chromoR.tab = create.hic.table(sim1.chromor, sim2.chromor, scale=F, chr = 'chr11')
+chromoR.tab[, ':=' (adj.IF1 = IF1, adj.IF2 = IF2, adj.M = M)]
+
+p1 = MD.plot2(tab$M, tab$D, smooth = FALSE) + ggtitle('Before Normalization')
+p2 = MD.plot2(chromoR.tab$M, chromoR.tab$D, smooth = FALSE) + ggtitle('After Normalization')
+grid.arrange(p1, p2, ncol = 2)
+```
+
+```{r}
+diffs = hic_compare(chromoR.tab, Plot = T, Plot.smooth = FALSE)
+counts = sum(diffs$p.adj < 0.05)
+print(paste0(counts, ' differences found between the datasets'))
+```
+
+### `ICE`
+
+```{r, message=F}
+sim1.ice = Matrix(mat1)
+sim2.ice = Matrix(mat2)
+# create HTCexp object for simulated data
+xgi = GRanges(seqnames = 'chr11', ranges = IRanges(start = start, end  = end, names = paste('a', 1:length(start), sep='')))
+ygi = GRanges(seqnames = 'chr11', ranges = IRanges(start = start, end  = end, names = paste('b', 1:length(start), sep='')))
+colnames(sim1.ice) <- id(xgi)
+rownames(sim1.ice) <- id(ygi)
+sim1.ice = new('HTCexp', sim1.ice, xgi, ygi)
+colnames(sim2.ice) <- id(xgi)
+rownames(sim2.ice) <- id(ygi)
+sim2.ice = new('HTCexp', sim2.ice, xgi, ygi)
+# normalize with ICE
+sim1.ice = normICE(sim1.ice, max_iter = 100)
+sim2.ice = normICE(sim2.ice, max_iter = 100)
+# convert to hic.table
+colnames(sim1.ice@intdata) = start
+colnames(sim2.ice@intdata) = start
+sim1.ice = full2sparse(as.matrix(sim1.ice@intdata))
+sim2.ice = full2sparse(as.matrix(sim2.ice@intdata))
+ice.table = create.hic.table(sim1.ice, sim2.ice, scale = FALSE, chr = 'chr11')
+
+ice.table[, ':=' (adj.IF1 = IF1, adj.IF2 = IF2, adj.M = M)]
+
+p1 = MD.plot2(tab$M, tab$D, smooth = FALSE) + ggtitle('Before Normalization')
+p2 = MD.plot2(ice.table$M, ice.table$D, smooth = FALSE) + ggtitle('After Normalization')
+grid.arrange(p1, p2, ncol = 2)
+```
+
+```{r}
+diffs = hic_compare(ice.table, Plot = T, Plot.smooth = FALSE)
+counts = sum(diffs$p.adj < 0.05)
+print(paste0(counts, ' differences found between the datasets'))
+```
+
+### `KR`
+
+```{r}
+zeros1 = which(colSums(mat1) == 0)
+zeros2 = which(colSums(mat2) == 0)
+if (length(zeros1) > 0) {
+  cr.mat1 = mat1[-zeros1, -zeros1]
+} else {
+  cr.mat1 = mat1
+}
+if (length(zeros2) > 0) {
+  cr.mat2 = mat2[-zeros2, -zeros2]
+} else {
+  cr.mat2 = mat2
+}
+sim1.kr = KRnorm(cr.mat1)
+sim2.kr = KRnorm(cr.mat2)
+colnames(sim1.kr) = colnames(cr.mat1)
+colnames(sim2.kr) = colnames(cr.mat2)
+sim1.kr = full2sparse(sim1.kr)
+sim2.kr = full2sparse(sim2.kr)
+kr.table = create.hic.table(sim1.kr, sim2.kr, scale = FALSE, chr = 'chr11')
+
+kr.table[, ':=' (adj.IF1 = IF1, adj.IF2 = IF2, adj.M = M)]
+
+p1 = MD.plot2(tab$M, tab$D, smooth = FALSE) + ggtitle('Before Normalization')
+p2 = MD.plot2(kr.table$M, kr.table$D, smooth = FALSE) + ggtitle('After Normalization')
+grid.arrange(p1, p2, ncol = 2)
+```
+
+```{r}
+diffs = hic_compare(kr.table, Plot = T,  Plot.smooth = FALSE)
+counts = sum(diffs$p.adj < 0.05)
+print(paste0(counts, ' differences found between the datasets'))
+```
+
+### `SCN`
+
+```{r}
+sim1.scn = SCN(mat1)
+sim2.scn = SCN(mat2)
+sim1.scn = full2sparse(sim1.scn)
+sim2.scn = full2sparse(sim2.scn)
+scn.table = create.hic.table(sim1.scn, sim2.scn, chr='chr11', scale=FALSE)
+
+scn.table[, ':=' (adj.IF1 = IF1, adj.IF2 = IF2, adj.M = M)]
+
+p1 = MD.plot2(tab$M, tab$D, smooth = FALSE) + ggtitle('Before Normalization')
+p2 = MD.plot2(scn.table$M, scn.table$D, smooth = FALSE) + ggtitle('After Normalization')
+grid.arrange(p1, p2, ncol = 2)
+```
+
+
+```{r}
+diffs = hic_compare(scn.table, Plot = T, Plot.smooth = FALSE)
+counts = sum(diffs$p.adj < 0.05)
+print(paste0(counts, ' differences found between the datasets'))
+```
+
+### Summary
+
+`Loess` is the only method that can successfully remove the bias between the two datasets. The individual normalization techniques fail to remove biases between the datasets though they may be effective at removing bias within a single dataset. `KR` normalization appears to be second to the `loess` normalization in removing global and local biases.
+
+# Comparison of `HiCcompare` vs. `ChromoR` in detecting differential chromatin interactions
+
+`ChromoR` includes a function for detecting differences between two Hi-C datasets. Using the data for chromosome 11 from GM12878 as used in the above normalization comparison we add 200 _a priori_ known differences to the matrix at a 5 fold change and attempt to detect them using `ChromoR` and `loess`
+
+```{r}
+# add differences 
+changes = sample(1:nrow(chr11.unscaled.tab), 200)
+whichIF = ifelse(chr11.unscaled.tab[changes, ]$M < 0, -1, 1)
+newIF1 = 5^whichIF * chr11.unscaled.tab[changes,]$IF1
+newIF1 = as.integer(round(newIF1))
+chr11.unscaled.tab[changes,]$IF1 = newIF1
+chr11.unscaled.tab = chr11.unscaled.tab[, M := log2(IF2/IF1)]
+
+mat1 = chr11.unscaled.tab[, c('start1', 'start2', 'IF1'), with=F] %>% sparse2full()
+mat2 = chr11.unscaled.tab[, c('start1', 'start2', 'IF2'), with=F] %>% sparse2full()
+sim1.chromor = correctCIM(mat1, seg)
+sim2.chromor = correctCIM(mat2, seg)
+colnames(sim1.chromor$mCorrected) = seg$start
+colnames(sim2.chromor$mCorrected) = seg$start
+
+chromoR.result = compareCIM(sim1.chromor$mCorrected, sim2.chromor$mCorrected, seg)
+num.diffs = nrow(chromoR.result$sigChanges)
+
+cr1 = sim1.chromor$mCorrected %>% full2sparse()
+cr2 = sim2.chromor$mCorrected %>% full2sparse()
+chromoR.result = create.hic.table(cr1, cr2, chr='chr11')
+```
+
+The MD plot of the `ChromoR` normalized matrices:
+   
+```{r}
+p1 = MD.plot2(chr11.unscaled.tab$M, chr11.unscaled.tab$D, smooth = FALSE) + ggtitle('Before Normalization')
+p2 = MD.plot2(chromoR.result$M, chromoR.result$D, smooth = FALSE) + ggtitle('After Normalization')
+grid.arrange(p1, p2, ncol = 2)
+```
+
+```{r}
+MD.plot2(chromoR.result$M, chromoR.result$D, p.val = 1, smooth = FALSE)
+```
+
+`ChromoR` found `r num.diffs` differences between the two matrices. Compared to `hic_loess` below:
+
+```{r}
+loess.diffs = hic_loess(chr11.unscaled.tab, Plot = T , Plot.smooth = FALSE)
+```
+
+```{r}
+loess.diffs = hic_compare(loess.diffs, Plot = T, Plot.smooth = FALSE)
+loess.diffs = sum(loess.diffs$p.adj < 0.05)
+```
+
+`HiCcompare` found `r loess.diffs` differences between the matrices.
+
+`ChromoR`'s normalization technique fails to remove bias between Hi-C datasets and it's difference detection method also fails to detect any differences when true differences are added at a 5 fold change. `Loess` was capable of normalizing these datasets and detecting the majority of the true differences added to the matrices.

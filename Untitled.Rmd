@@ -1,0 +1,41 @@
+---
+# title: 
+# author: "John C. Stansfield, Kellen G. Cresswell, Vladimir I. Vladimirov, Mikhail G. Dozmorov"
+output:
+  pdf_document:
+    toc: no
+csl: /Users/mdozmorov/Documents/Work/VCU_work/3D_DNA/HiCcompare/styles.ref/bioinformatics.csl
+bibliography: /Users/mdozmorov/Documents/Work/VCU_work/3D_DNA/manuscript/3D_DNA-references.bib
+---
+
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE}
+# Set up the environment
+library(knitr)
+opts_chunk$set(cache.path='cache/', fig.path='img/', cache=T, tidy=T, fig.keep='high', echo=F, dpi=100, warnings=F, message=F, comment=NA, warning=F, results='as.is', fig.width = 10, fig.height = 4) #out.width=700, 
+library(pander)
+panderOptions('table.split.table', Inf)
+set.seed(1)
+library(dplyr)
+options(stringsAsFactors = FALSE)
+```
+
+```{r libraries}
+library(HiCcompare)
+library(chromoR)
+library(pROC)
+library(MLmetrics)
+library(HiTC)
+library(Matrix)
+library(GenomicRanges)
+library(ggplot2)
+library(gridExtra)
+library(data.table)
+```
+
+## Performance evaluation
+
+**Figure. Effect of parallelization on HiCcompare runtime** Run time (Y-axis) of `HiCcompare` normalization using 1, 4, 8 and 12 1596 MHz cores (X-axis) with 10gb of memory on CentOS 6.8 operating system. Time to normalize two RWPE datasets (see Methods) over chromosomes 1-22 was averaged over $n = 10$ runs. Data at 1Mb, 500kb, 100kb, 50kb (color legend) was used, expectedly requiring less/more run time, respectively.
+
+\begin{center}
+\includegraphics[height=200px]{figures/runtime_summary.png}
+\end{center}
