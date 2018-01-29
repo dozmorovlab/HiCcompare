@@ -8,7 +8,7 @@
 
 The main functions are:
 + `hic_loess()` which performs joint `loess` normalization on the Hi-C datasets
-+ `hic_diff()` which performs the difference detection process to detect significant changes between Hi-C datasets and assist in comparative analysis
++ `hic_compare()` which performs the difference detection process to detect significant changes between Hi-C datasets and assist in comparative analysis
 
 Several Hi-C datasets are also included in the package.
 
@@ -83,6 +83,7 @@ To view the usage vignette:
 
 - Master: contains the current stable release of `HiCcompare`
 - supplemental: contains supplementary files and data, see Additional Vignettes section below
+- manuscript_bioinformatics: contains write up for submission to Bioinformatics
 - test_version: contains versions of `HiCcommpare` currently in development. This version of the software may be unstable and is not reccomended for users.
 
 ## Additional Vignettes
