@@ -44,7 +44,7 @@ load(url(githubURL))
 
 To compare the ability of methods for normalizing individual datasets to remove biases _between_ chromatin interaction matrices, we compare individually normalized matrices with the jointly normalized ones. Several parameters were assessed:
 
-- The effect of global differences. Most of the time different chromatin interaction matrices will contain different total number of reads, resulting in the overall differences. We assessed whether methods for normalizing individual datasets were able to account for the differences in the total number of reads.
+- The effect of global differences. Most of the time different chromatin interaction matrices will contain different total numbers of reads, resulting in overall differences. We assessed whether methods for normalizing individual datasets were able to account for the differences in the total number of reads.
 - The ability of the joint normalization to account for biases under different conditions, such as when comparing matrices obtained with different cutting enzymes, or matrices from different chromosomes.
 - The effect of individual and joint normalization methods on detecting chromatin interaction differences.
 
@@ -296,7 +296,7 @@ counts = sum(diffs$p.adj < 0.05)
 print(paste0(counts, ' differences found between the datasets'))
 ```
 
-The MD plot above serves as a reference to show that `Loess` can successfully normalizes the data and removes bias between the two datasets. The following MD plots display the data after the specified individual normalization method has been applied to each matrix. The dotted lines on the second MD plot represent the difference threshold where points are considered significant outside of the two dotted lines. The difference threshold used here is $\theta = 1$, see `?hic_diff` and the methods section of the paper for a full explanation on the difference threshold.
+The MD plot above serves as a reference to show that `Loess` can successfully normalizes the data and removes bias between the two datasets. The following MD plots display the data after the specified individual normalization method has been applied to each matrix. 
 
 ### `ChromoR`
 

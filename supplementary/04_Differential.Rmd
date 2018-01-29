@@ -23,7 +23,7 @@ options(stringsAsFactors = FALSE)
 
 # 4 Extended evaluation of differential chromatin interaction detection analysis using real Hi-C data
 
-Here we evaluate the performance of the differential detection method of `HiCcompare` using replicate Hi-C data, GM12878 cell line, chromosome 1, at 1MB resolution. 200 controlled differences at various fold changes (2, 3, 4, 5-fold) were introduced into the raw data, the matrices were normalized using the joing `HiCcompare` and various individual normalization methods (chromoR, ICE, KR, SCN, MA, see Supplementary Methods). The performance of each normalization method's effect on difference detection was evaluated using the following metrics: "TP" - true positives, "FP" - false positives, "TN" - true negatives, "FN" - false negatives, "TPR" - True Positive Rate, aka recall, or sensitivity $TP / (TP + FN)$, "SPC" - specificity, $TN / (FP + TN)$, "F1" - $F_1$ score, $2TP/(2TP + FP + FN)$, "AUC" - area under ROC curve, "Accuracy" - $(TP + TN) / (TP + FP + TN + FN)$, "Precision" - $TP / (TP + FP)$, "FPR" - False Positive Rate, $FP / (FP + TN)$, "FNR" - False Negative Rate, $FN / (TP + FN)$, "FOR" - False omission rate, $FN / (FN + TN)$, "NPV" - Negative Predictive Value, $TN / (FN + TN)$, "MCC" - Matthews correlation coefficient, $\frac{TP \times TN - FP \times FN}{\sqrt{(TP + FP)(TP + FN)(TN + FP)(TN + FN)}}$.
+Here we evaluate the performance of the differential detection method of `HiCcompare` using replicate Hi-C data, GM12878 cell line, chromosome 1, at 1MB resolution. 200 controlled differences at various fold changes (2, 3, 4, 5-fold) were introduced into the raw data, the matrices were normalized using `HiCcompare` and various individual normalization methods (chromoR, ICE, KR, SCN, MA, see Supplementary Methods). The performance of each normalization method's effect on difference detection was evaluated using the following metrics: "TP" - true positives, "FP" - false positives, "TN" - true negatives, "FN" - false negatives, "TPR" - True Positive Rate, aka recall, or sensitivity $TP / (TP + FN)$, "SPC" - specificity, $TN / (FP + TN)$, "F1" - $F_1$ score, $2TP/(2TP + FP + FN)$, "AUC" - area under ROC curve, "Accuracy" - $(TP + TN) / (TP + FP + TN + FN)$, "Precision" - $TP / (TP + FP)$, "FPR" - False Positive Rate, $FP / (FP + TN)$, "FNR" - False Negative Rate, $FN / (TP + FN)$, "FOR" - False omission rate, $FN / (FN + TN)$, "NPV" - Negative Predictive Value, $TN / (FN + TN)$, "MCC" - Matthews correlation coefficient, $\frac{TP \times TN - FP \times FN}{\sqrt{(TP + FP)(TP + FN)(TN + FP)(TN + FN)}}$.
 
 ```{r}
 library(HiCcompare)
@@ -418,6 +418,8 @@ chr1.roc7 <- ROC_on_replicate(chr1.primary, chr1.replicate, FC = 4, numChanges =
 ```{r}
 pander(signif(data.matrix(chr1.roc7$rates), digits = 3))
 ```
+
+\newpage 
 
 ### Fold change 5
 
