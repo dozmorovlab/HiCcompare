@@ -28,10 +28,11 @@ biocLite(c("InteractionSet", "GenomicRanges", "IRanges",
 		   "BiocParallel", "QDNAseq", "GenomeInfoDbData"))			   
 ```
 
-To install `HiCcompare` from bioconductor open R and enter the following commands.
+To install `HiCcompare` from bioconductor open R and enter the following commands. Currently it is recommended to use the GitHub release or the development version of the bioconductor release.
 
 ```
-# Currently only available on the development version of Bioconductor
+# Bioconductor development version and Github Release contain major changes for difference detection
+# it is recommended to use the github release until the next Bioconductor update
 ## try http:// if https:// URLs are not supported
 source("https://bioconductor.org/biocLite.R")
 biocLite("HiCcompare")
@@ -39,7 +40,7 @@ library(HiCcompare)
 ```
 
 
-Or to install `HiCcompare` directly from the github release open R and enter the following commands.
+Or to install the latest version of `HiCcompare` directly from the github release open R and enter the following commands.
 
 ```
 library(devtools)
