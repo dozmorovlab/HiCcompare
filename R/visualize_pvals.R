@@ -7,6 +7,9 @@
 #'     a numeric value then any p-values >= alpha will
 #'     be set to 1 for the visualization in the heatmap.
 #'     Defaults to NA for visualization of all p-values.
+#' @param adj.p Logical, Should the multiple testing
+#'     corrected p-values be used (TRUE) or the raw 
+#'     p-values (FALSE)?
 #' @details The goal of this function is to visualize
 #'     where in the Hi-C matrix the differences are
 #'     occuring between two experimental conditions.
@@ -30,7 +33,7 @@
 #' visualize_pvals(diff.result)
 #' @export
 
-visualize_pvals <- function(hic.table, alpha = NA) {
+visualize_pvals <- function(hic.table, alpha = NA, adj.p = TRUE) {
   # check that hic.table is entered
   if (!is(hic.table, "data.table")) {
     stop("Enter a hic.table object")
@@ -48,7 +51,12 @@ visualize_pvals <- function(hic.table, alpha = NA) {
     }
   }
   # convert to full matrix
-  m <- sparse2full(hic.table, hic.table = TRUE, column.name = 'p.value') 
+  if (adj.p) {
+    m <- sparse2full(hic.table, hic.table = TRUE, column.name = 'p.adj') 
+  } else {
+    m <- sparse2full(hic.table, hic.table = TRUE, column.name = 'p.value') 
+  }
+  
   # get fold change
   fc <- sparse2full(hic.table, hic.table = TRUE, column.name = 'adj.M')
   # remove non significant values from matrix if alpha is set to a value
@@ -93,49 +101,3 @@ visualize_pvals <- function(hic.table, alpha = NA) {
 }
 
 
-#' #' Alternate heatmap for dealing with rankings
-#' #' @param which_rank The column name for the ranking that you
-#' #'    want to plot.
-#' #' @param only_toprank Logical, Should only the top ranks be 
-#' #'    plotted? If TRUE then the proportion option will be used
-#' #'    to determine how many ranks will be considered top.
-#' #' @param proportion The proportion of ranks to be considered
-#' #'    as top ranks. Defaults to 0.05.
-#' visualize_differences <- function(hic.table, which_rank = 'rnkMean', only_toprank = TRUE, proportion = 0.05) {
-#'   # check that hic.table is entered
-#'   if (!is(hic.table, "data.table")) {
-#'     stop("Enter a hic.table object")
-#'   }
-#'   # check that hic.table has necessary columns
-#'   if (ncol(hic.table) < 16) {
-#'     stop('Enter a hic.table that you have already performed normalization and difference detection on')
-#'   }
-#'   # sort hic.table for top rankings
-#'   hic.table <- hic.table[order(get(which_rank)), ]
-#'   idx <- 1:(proportion * nrow(hic.table))
-#'   # make indicator for top ranks
-#'   tRank <- rep(0, nrow(hic.table))
-#'   tRank[idx] <- 1
-#'   hic.table[, topRank := tRank]
-#'   # convert to full matrix
-#'   m <- sparse2full(hic.table, hic.table = TRUE, column.name = which_rank) 
-#'   # normalize ranks by total length of ranks
-#'   m <- m / nrow(hic.table)
-#'   # get fold change
-#'   fc <- sparse2full(hic.table, hic.table = TRUE, column.name = 'adj.M')
-#'   if (only_toprank) {
-#'     # top rank indicator matrix
-#'     tr <- sparse2full(hic.table, hic.table = TRUE, column.name = 'topRank')
-#'     # set non-top ranks to NA
-#'     m <- m * tr
-#'   }
-#'   # make 0 values 1 since we are -log10 transforming m
-#'   m[m == 0] <- 1
-#'   
-#'   # plot heatmap
-#'   pheatmap::pheatmap(-log10(m) * sign(fc), cluster_rows = FALSE, 
-#'                      cluster_cols = FALSE, show_rownames = FALSE, 
-#'                      show_colnames = FALSE)
-#'  
-#'   
-#' }

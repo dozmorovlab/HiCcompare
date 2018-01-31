@@ -4,7 +4,7 @@
 \alias{visualize_pvals}
 \title{Function to visualize p-values from HiCcompare results}
 \usage{
-visualize_pvals(hic.table, alpha = NA)
+visualize_pvals(hic.table, alpha = NA, adj.p = TRUE)
 }
 \arguments{
 \item{hic.table}{A hic.table object that has been
@@ -15,6 +15,10 @@ call a p-value significant. If this is set to
 a numeric value then any p-values >= alpha will
 be set to 1 for the visualization in the heatmap.
 Defaults to NA for visualization of all p-values.}
+
+\item{adj.p}{Logical, Should the multiple testing
+corrected p-values be used (TRUE) or the raw 
+p-values (FALSE)?}
 }
 \value{
 A heatmap
