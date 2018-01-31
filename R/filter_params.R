@@ -107,6 +107,8 @@ randomize_IFs <- function(hic.table, SD) {
   newIF2 <- newIF2 + 5
   # add random noise
   newIF2 <- newIF2 + rnorm(length(newIF2), 0, SD)
+  # check for 0's and negatives
+  newIF2[newIF2 <= 0] <- 1
   # create new hic.table with new IF vectors
   sparse1 <- cbind(hic.table$start1, hic.table$start2, hic.table$IF1)
   sparse2 <- cbind(hic.table$start1, hic.table$start2, newIF2)
