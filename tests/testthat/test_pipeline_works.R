@@ -36,7 +36,7 @@ test_that('Pipeline works', {
   expect_equal(class(norm5)[1], "data.table")
   expect_error(hic_compare(norm1, A.min = 0))
   expect_error(hic_compare(norm1, A.quantile = 2))
-  expect_error(hic_compare(norm1, A.quantile = 0))
+  expect_error(hic_compare(norm1, A.quantile = -1))
 })
 
 
