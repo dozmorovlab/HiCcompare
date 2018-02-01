@@ -93,7 +93,7 @@ MD.plot1 <- function(M, D, mc, smooth = TRUE) {
 #' # Plug hic.table into hic_loess()
 #' result <- hic_loess(hic.table)
 #' # perform difference detection
-#' diff.result <- hic_diff(result, diff.thresh = 1)
+#' diff.result <- hic_compare(result)
 #' MD.plot2(diff.result$M, diff.result$D, diff.result$p.value)
 #'
 MD.plot2 <- function(M, D, p.val = NA, diff.thresh = NA, smooth = TRUE) {

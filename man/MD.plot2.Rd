@@ -39,7 +39,7 @@ hic.table <- create.hic.table(HMEC.chr22, NHEK.chr22, chr='chr22')
 # Plug hic.table into hic_loess()
 result <- hic_loess(hic.table)
 # perform difference detection
-diff.result <- hic_diff(result, diff.thresh = 1)
+diff.result <- hic_compare(result)
 MD.plot2(diff.result$M, diff.result$D, diff.result$p.value)
 
 }

@@ -28,7 +28,7 @@
 #' # Plug hic.table into hic_loess()
 #' result <- hic_loess(hic.table, Plot = TRUE)
 #' # perform difference detection
-#' diff.result <- hic_diff(result, diff.thresh = 'auto', Plot = TRUE)
+#' diff.result <- hic_compare(result, Plot = TRUE)
 #' # visualize p-values
 #' visualize_pvals(diff.result)
 #' @export
