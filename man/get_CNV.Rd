@@ -13,7 +13,9 @@ get_CNV(path2bam, out.file = "CNV_calls", bin.size = 1000,
 \item{out.file}{The prefix for the filename which will be exported.}
 
 \item{bin.size}{The bin.size (resolution) of the HiC data you will be using in kbp. e.g. for 1MB
-resolution enter 1000, for 500kb resolution enter 500.}
+resolution enter 1000, for 500kb resolution enter 500. QNDAseq may not have 
+annotations for all possible bin sizes. If the bin size of your data is not found
+it is recommended to try other bin sizes which are close to your size.}
 
 \item{genome}{Character string for the genome. Defaults to 'hg19'.}
 
