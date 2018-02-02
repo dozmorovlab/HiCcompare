@@ -1,5 +1,5 @@
 #' Create a Manhattan plot for the results of HiCcompare
-#' 
+#'
 #' @param hic.table a hic.table object that has been normalized
 #'     and had differences detected.
 #' @param adj.p Logical, should the adjusted p-value be used (TRUE)
