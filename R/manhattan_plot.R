@@ -5,6 +5,9 @@
 #' @param adj.p Logical, should the adjusted p-value be used (TRUE)
 #'     of the raw p-value (FALSE)?
 #' @param alpha The alpha level for calling a p-value significant.
+#' @param return_df Logical, should the data.frame built to be used
+#'    for plotting be returned? If TRUE then the data.frame will be
+#'    returned and the plot will only be printed.
 #' @details This function will produce a manhattan plot of the results
 #'     of hic_compare(). Can be used to display which regions around found
 #'     to be significantly different on the linear genome.
@@ -24,7 +27,7 @@
 
 
 
-manhattan_plot <- function(hic.table, adj.p = TRUE, alpha = 0.05) {
+manhattan_plot <- function(hic.table, adj.p = TRUE, alpha = 0.05, return_df = FALSE) {
   # get regions on chr
   regions <- unique(c(hic.table$start1, hic.table$start2))
   # count number of times each region found significant
@@ -37,5 +40,10 @@ manhattan_plot <- function(hic.table, adj.p = TRUE, alpha = 0.05) {
   df <- data.frame(chr = hic.table$chr1[1], bp = regions, count = num_sig)
   # make plot
   p1 <- ggplot(df, aes(x = bp, y = count)) + geom_point() + labs(y = 'Number of times significant', x = paste0(df$chr[1], ' position'))
-  return(p1)
+  if (return_df) {
+    print(p1)
+    return(df)
+  } else {
+    return(p1)
+  }
 }   

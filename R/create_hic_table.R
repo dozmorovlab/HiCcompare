@@ -45,9 +45,9 @@
 #'     the hic.table object. Could be useful for excluding regions with a
 #'     known CNV, blacklist regions, or some other a priori known difference.
 #' @param exclude.overlap The proportion of overlap required to exclude a region.
-#'     Defaults to 0.2, indicating 20% or more overlap will be enough for
+#'     Defaults to 0.2, indicating 20\% or more overlap will be enough for
 #'     exclusion. To exclude any amount of overlap set to 0.
-#'     If set to 1, only a 100% overlap with an excluded regions will
+#'     If set to 1, only a 100\% overlap with an excluded regions will
 #'     result in exclusion.
 #'
 #'@details This function is used to transform two sparse upper triangular Hi-C matrices

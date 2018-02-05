@@ -4,7 +4,7 @@
 \alias{manhattan_plot}
 \title{Create a Manhattan plot for the results of HiCcompare}
 \usage{
-manhattan_plot(hic.table, adj.p = TRUE, alpha = 0.05)
+manhattan_plot(hic.table, adj.p = TRUE, alpha = 0.05, return_df = FALSE)
 }
 \arguments{
 \item{hic.table}{a hic.table object that has been normalized
@@ -14,6 +14,10 @@ and had differences detected.}
 of the raw p-value (FALSE)?}
 
 \item{alpha}{The alpha level for calling a p-value significant.}
+
+\item{return_df}{Logical, should the data.frame built to be used
+for plotting be returned? If TRUE then the data.frame will be
+returned and the plot will only be printed.}
 }
 \value{
 A manhattan plot.
