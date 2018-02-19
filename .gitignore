@@ -2,7 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
-.Rproj
+*.Rproj
 *_cache
 *_files
 .Rproj
