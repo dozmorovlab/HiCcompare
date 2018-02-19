@@ -33,8 +33,8 @@
 #' filter_params(hic.table)
 
 
-
-filter_params <- function(hic.table, A.quantile = TRUE, SD = 2, numChanges = 300, FC = 3, alpha = 0.05, Plot = FALSE) {
+filter_params <- function(hic.table, A.quantile = TRUE, filter_n = 100,
+                          SD = 2, numChanges = 300, FC = 3, alpha = 0.05, Plot = FALSE) {
   # create new fuzzed table
   new.table <- randomize_IFs(hic.table, SD)
   # delete huge differences
@@ -67,9 +67,9 @@ filter_params <- function(hic.table, A.quantile = TRUE, SD = 2, numChanges = 300
   FN <- vector(length = 50)
   TN <- vector(length = 50)
   if (A.quantile) {
-    A_seq <- seq(0.01, 0.5, by = 0.01)
+    A_seq <- seq(1, 100, by = 1)
     for (i in seq_along(A_seq)) {
-      tmp.table <- hic_compare(new.table, A.quantile = A_seq[i], adjust.dist = TRUE, p.method = 'fdr', Plot = FALSE)
+      tmp.table <- hic_compare(new.table, ngroups = A_seq[i], filter_n = filter_n, adjust.dist = TRUE, p.method = 'fdr', Plot = FALSE)
       TP[i] <- sum(tmp.table$p.adj < alpha & tmp.table$truth == 1)
       FP[i] <- sum(tmp.table$p.adj < alpha & tmp.table$truth == 0)
       FN[i] <- sum(tmp.table$p.adj >= alpha & tmp.table$truth == 1)
@@ -95,7 +95,8 @@ filter_params <- function(hic.table, A.quantile = TRUE, SD = 2, numChanges = 300
   TPR <- TP / (TP + FP)
   # PLOT MCC
   if (A.quantile) {
-    plot(MCC ~ A_seq, type = 'l', col = 'red', main = 'MCC by A quantile filtered', ylab = 'MCC', xlab = 'A Quantile filtered', ylim = c(0,1))
+    # plot(MCC ~ A_seq, type = 'l', col = 'red', main = 'MCC by A quantile filtered', ylab = 'MCC', xlab = 'A Quantile filtered', ylim = c(0,1)) # old method
+    plot(MCC ~ A_seq, type = 'l', col = 'red', main = 'MCC by A groups filtered', ylab = 'MCC', xlab = 'A Quantile filtered', ylim = c(0,1)) # new thing
     lines(FPR ~ A_seq, col = 'blue')
     lines(FNR ~ A_seq, col= 'green')
     lines(TPR ~ A_seq, col = 'black')
@@ -109,6 +110,84 @@ filter_params <- function(hic.table, A.quantile = TRUE, SD = 2, numChanges = 300
   }
   
 }
+
+
+# old version
+# filter_params <- function(hic.table, A.quantile = TRUE, SD = 2, numChanges = 300, FC = 3, alpha = 0.05, Plot = FALSE) {
+#   # create new fuzzed table
+#   new.table <- randomize_IFs(hic.table, SD)
+#   # delete huge differences
+#   new.table <- new.table[abs(M) < 2, ]
+#   
+#   # add true changes to fuzzed table
+#   sample_space <- 1:nrow(new.table)
+#   changes <- sample(sample_space, numChanges)
+#   # set IFs to mean IF then multiply one by FC
+#   meanIF <- ((new.table[changes,]$IF1 + new.table[changes,]$IF2) / 2) %>% round() %>% as.integer()
+#   suppressWarnings(new.table[changes, IF1 := meanIF ])
+#   suppressWarnings(new.table[changes, IF2 := meanIF])
+#   midpoint <- floor(numChanges/2)
+#   newIF1 <- new.table[changes[1:midpoint],]$IF1 * FC %>% as.integer()
+#   newIF2 <- new.table[changes[(midpoint+1):numChanges],]$IF2 * FC %>% as.integer()
+#   new.table[changes[1:midpoint], IF1 :=  newIF1]
+#   new.table[changes[(midpoint+1):numChanges], IF2 :=  newIF2]
+#   new.table = new.table[, M := log2(IF2/IF1)]
+#   truth <- rep(0, nrow(new.table))
+#   truth[changes] <- 1
+#   new.table[, truth := truth]
+#   
+#   # normalize & detect differences
+#   new.table <- hic_loess(new.table, Plot = Plot)
+#   new.table <- hic_compare(new.table, Plot = Plot)
+#   
+#   # calculate MCC
+#   TP <- vector(length = 50)
+#   FP <- vector(length = 50)
+#   FN <- vector(length = 50)
+#   TN <- vector(length = 50)
+#   if (A.quantile) {
+#     A_seq <- seq(0.01, 0.5, by = 0.01)
+#     for (i in seq_along(A_seq)) {
+#       tmp.table <- hic_compare(new.table, A.quantile = A_seq[i], adjust.dist = TRUE, p.method = 'fdr', Plot = FALSE)
+#       TP[i] <- sum(tmp.table$p.adj < alpha & tmp.table$truth == 1)
+#       FP[i] <- sum(tmp.table$p.adj < alpha & tmp.table$truth == 0)
+#       FN[i] <- sum(tmp.table$p.adj >= alpha & tmp.table$truth == 1)
+#       TN[i] <- sum(tmp.table$p.adj >= alpha & tmp.table$truth == 0)
+#     }
+#   } else {
+#     A_seq <- seq(1, 50, by = 1)
+#     for (i in seq_along(A_seq)) {
+#       tmp.table <- hic_compare(new.table, A.min = A_seq[i], adjust.dist = TRUE, p.method = 'fdr', Plot = FALSE)
+#       TP[i] <- sum(tmp.table$p.adj < alpha & tmp.table$truth == 1)
+#       FP[i] <- sum(tmp.table$p.adj < alpha & tmp.table$truth == 0)
+#       FN[i] <- sum(tmp.table$p.adj >= alpha & tmp.table$truth == 1)
+#       TN[i] <- sum(tmp.table$p.adj >= alpha & tmp.table$truth == 0)
+#     }
+#   }
+#   # Calculate MCC
+#   MCC <- ((TP * TN) - (FP * FN)) / 
+#     (sqrt((TP + FP)) * sqrt((TP + FN)) * sqrt((TN + FP)) *
+#        sqrt((TN + FN)))
+#   ## calculate FN & FP rates
+#   FPR <- FP / (FP + TP)
+#   FNR <- FN / (FN + TN)
+#   TPR <- TP / (TP + FP)
+#   # PLOT MCC
+#   if (A.quantile) {
+#     plot(MCC ~ A_seq, type = 'l', col = 'red', main = 'MCC by A quantile filtered', ylab = 'MCC', xlab = 'A Quantile filtered', ylim = c(0,1))
+#     lines(FPR ~ A_seq, col = 'blue')
+#     lines(FNR ~ A_seq, col= 'green')
+#     lines(TPR ~ A_seq, col = 'black')
+#     legend('topright', legend = c('MCC', 'FPR', 'FNR', 'TPR'), fill = c('red', 'blue', 'green', 'black'))
+#   } else {
+#     plot(MCC ~ A_seq, type = 'l', col = 'red', main = 'MCC by A quantile filtered', ylab = 'MCC', xlab = 'A minimum filtered', ylim = c(0,1))
+#     lines(FPR ~ A_seq, col = 'blue')
+#     lines(FNR ~ A_seq, col= 'green')
+#     lines(TPR ~ A_seq, col = 'black')
+#     legend('topright', legend = c('MCC', 'FPR', 'FNR', 'TPR'), fill = c('red', 'blue', 'green', 'black'))
+#   }
+#   
+# }
 
 
 # function to add noise to IFs of one matrix 

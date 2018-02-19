@@ -69,7 +69,7 @@
 #' diff.result <- hic_compare(result, Plot = TRUE)
 #'
 hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = TRUE, p.method = 'fdr',
-                        Plot = FALSE, Plot.smooth = TRUE, filter_fc = 10,
+                        Plot = FALSE, Plot.smooth = TRUE, filter_n = 10, ngroups = 10,
                         parallel = FALSE, BP_param = bpparam()) {
   # check for correct input
   if (is(hic.table, "list")) {
@@ -108,9 +108,9 @@ hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = T
   
   # calculate z-scores
   if (parallel) {
-    hic.table <- BiocParallel::bplapply(hic.table, .calc_z2, quant = A.quantile, A.min = A.min, filter_fc = filter_fc) 
+    hic.table <- BiocParallel::bplapply(hic.table, .calc_z2, quant = A.quantile, A.min = A.min, filter_n = filter_n, ngroups = ngroups) 
   } else {
-    hic.table <- lapply(hic.table, .calc_z2, quant = A.quantile, A.min = A.min, filter_fc = filter_fc) 
+    hic.table <- lapply(hic.table, .calc_z2, quant = A.quantile, A.min = A.min, filter_n = filter_n, ngroups = ngroups) 
   }
   
   # adjust p-values
@@ -168,7 +168,7 @@ hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = T
 
 # version where M values with A < thresh removed before z score calculations
 # this version makes M have a lower standard deviation and thus higher z-scores
-.calc_z2 <- function(hic.table, quant, A.min, Plot = TRUE, filter_fc) {
+.calc_z2 <- function(hic.table, quant, A.min, Plot = TRUE, filter_n, ngroups) {
   # add average expression to table
   # A <- (hic.table$adj.IF1 + hic.table$adj.IF2) / 2
   # hic.table[, A := A]
@@ -176,7 +176,7 @@ hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = T
   new_M <- hic.table$adj.M
   if (is.na(A.min)) {
     # new filtering
-    filter_idx <- .filter_A(hic.table$A)
+    filter_idx <- .filter_A(hic.table$A, filter_n, ngroups)
     new_M[filter_idx] <- NA
     new_M[hic.table$adj.IF1 < 1 | hic.table$adj.IF2 < 1] <- NA
     # # set M to NA to be ignored if A < quantile or IF1 < 1 or IF2 < 1
@@ -201,9 +201,13 @@ hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = T
 }
 
 # filtering function
-.filter_A <- function(A, filter_fc) {
+# this gives number groups = ceiling(log_fc(max_A))
+# To make n groups with equal fold change: FC = (max_A^(1/(n+1)))
+.filter_A <- function(A, filter_n, ngroups) {
   # get max value
   max_A <- max(A)
+  # calculate fold change
+  filter_fc <- (max_A^(1/(filter_n + 1)))
   # make groups
   groups <- vector()
   groups[1] <- max_A
@@ -217,7 +221,7 @@ hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = T
   }
   # get index for bottom A group
   groups <- rev(groups)
-  filter_idx <- which(A >= groups[1] & A < groups[2])
+  filter_idx <- which(A >= groups[1] & A < groups[ngroups])
   return(filter_idx)
 }
 
