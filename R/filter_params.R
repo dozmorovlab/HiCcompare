@@ -67,7 +67,7 @@ filter_params <- function(hic.table, A.quantile = TRUE, filter_n = 100,
   FN <- vector(length = 50)
   TN <- vector(length = 50)
   if (A.quantile) {
-    A_seq <- seq(1, 100, by = 1)
+    A_seq <- seq(1, filter_n, by = 1)
     for (i in seq_along(A_seq)) {
       tmp.table <- hic_compare(new.table, ngroups = A_seq[i], filter_n = filter_n, adjust.dist = TRUE, p.method = 'fdr', Plot = FALSE)
       TP[i] <- sum(tmp.table$p.adj < alpha & tmp.table$truth == 1)
@@ -96,7 +96,7 @@ filter_params <- function(hic.table, A.quantile = TRUE, filter_n = 100,
   # PLOT MCC
   if (A.quantile) {
     # plot(MCC ~ A_seq, type = 'l', col = 'red', main = 'MCC by A quantile filtered', ylab = 'MCC', xlab = 'A Quantile filtered', ylim = c(0,1)) # old method
-    plot(MCC ~ A_seq, type = 'l', col = 'red', main = 'MCC by A groups filtered', ylab = 'MCC', xlab = 'A Quantile filtered', ylim = c(0,1)) # new thing
+    plot(MCC ~ A_seq, type = 'l', col = 'red', main = 'MCC by A groups filtered', ylab = 'MCC', xlab = 'A group filtered', ylim = c(0,1)) # new thing
     lines(FPR ~ A_seq, col = 'blue')
     lines(FNR ~ A_seq, col= 'green')
     lines(TPR ~ A_seq, col = 'black')
