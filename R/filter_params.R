@@ -42,7 +42,8 @@ filter_params <- function(hic.table, A.quantile = TRUE, SD = 2, numChanges = 300
   # add true changes to fuzzed table
   sample_space <- 1:nrow(new.table)
   # remove any items from the sample space where A < 5th percentile
-  low_A <- which(new.table$A < quantile(new.table$A, 0.05))
+  tmp_A <- (new.table$IF1 + new.table$IF2) / 2# make a temp A for filtering out things that should not have changes applied to them
+  low_A <- which(tmp_A < quantile(tmp_A, 0.1))
   changes <- sample(sample_space[-low_A], numChanges)
   # set IFs to mean IF then multiply one by FC
   meanIF <- ((new.table[changes,]$IF1 + new.table[changes,]$IF2) / 2) %>% round() %>% as.integer()
