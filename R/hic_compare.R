@@ -175,12 +175,12 @@ hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = T
   threshold <- quantile((hic.table$A), quant, na.rm = TRUE)
   new_M <- hic.table$adj.M
   if (is.na(A.min)) {
-    # new filtering
-    filter_idx <- .filter_A(hic.table$A, filter_n, ngroups)
-    new_M[filter_idx] <- NA
-    new_M[hic.table$adj.IF1 < 1 | hic.table$adj.IF2 < 1] <- NA
+    # # new filtering
+    # filter_idx <- .filter_A(hic.table$A, filter_n, ngroups)
+    # new_M[filter_idx] <- NA
+    # new_M[hic.table$adj.IF1 < 1 | hic.table$adj.IF2 < 1] <- NA
     # # set M to NA to be ignored if A < quantile or IF1 < 1 or IF2 < 1
-    # new_M[hic.table$A < threshold | hic.table$adj.IF1 < 1 | hic.table$adj.IF2 < 1] <- NA
+    new_M[hic.table$A < threshold | hic.table$adj.IF1 < 1 | hic.table$adj.IF2 < 1] <- NA
   } else {
     # set M to be NA to be ignored if A < A.min or IF1 < 1 or IF2 < 1
     new_M[hic.table$A < A.min | hic.table$adj.IF1 < 1 | hic.table$adj.IF2 < 1] <- NA
