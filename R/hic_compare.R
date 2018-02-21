@@ -69,7 +69,7 @@
 #' diff.result <- hic_compare(result, Plot = TRUE)
 #'
 hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = TRUE, p.method = 'fdr',
-                        Plot = FALSE, Plot.smooth = TRUE, filter_fc = 10,
+                        Plot = FALSE, Plot.smooth = TRUE,
                         parallel = FALSE, BP_param = bpparam()) {
   # check for correct input
   if (is(hic.table, "list")) {
@@ -108,9 +108,9 @@ hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = T
   
   # calculate z-scores
   if (parallel) {
-    hic.table <- BiocParallel::bplapply(hic.table, .calc_z2, quant = A.quantile, A.min = A.min, filter_fc = filter_fc) 
+    hic.table <- BiocParallel::bplapply(hic.table, .calc_z2, quant = A.quantile, A.min = A.min) 
   } else {
-    hic.table <- lapply(hic.table, .calc_z2, quant = A.quantile, A.min = A.min, filter_fc = filter_fc) 
+    hic.table <- lapply(hic.table, .calc_z2, quant = A.quantile, A.min = A.min) 
   }
   
   # adjust p-values
@@ -168,19 +168,15 @@ hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = T
 
 # version where M values with A < thresh removed before z score calculations
 # this version makes M have a lower standard deviation and thus higher z-scores
-.calc_z2 <- function(hic.table, quant, A.min, Plot = TRUE, filter_fc) {
+.calc_z2 <- function(hic.table, quant, A.min, Plot = TRUE) {
   # add average expression to table
   # A <- (hic.table$adj.IF1 + hic.table$adj.IF2) / 2
   # hic.table[, A := A]
   threshold <- quantile((hic.table$A), quant, na.rm = TRUE)
   new_M <- hic.table$adj.M
   if (is.na(A.min)) {
-    # new filtering
-    filter_idx <- .filter_A(hic.table$A)
-    new_M[filter_idx] <- NA
-    new_M[hic.table$adj.IF1 < 1 | hic.table$adj.IF2 < 1] <- NA
-    # # set M to NA to be ignored if A < quantile or IF1 < 1 or IF2 < 1
-    # new_M[hic.table$A < threshold | hic.table$adj.IF1 < 1 | hic.table$adj.IF2 < 1] <- NA
+    # set M to NA to be ignored if A < quantile or IF1 < 1 or IF2 < 1
+    new_M[hic.table$A < threshold | hic.table$adj.IF1 < 1 | hic.table$adj.IF2 < 1] <- NA
   } else {
     # set M to be NA to be ignored if A < A.min or IF1 < 1 or IF2 < 1
     new_M[hic.table$A < A.min | hic.table$adj.IF1 < 1 | hic.table$adj.IF2 < 1] <- NA
@@ -194,31 +190,10 @@ hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = T
   # set P-values with NA value to 1
   p.val[is.na(p.val)] <- 1
   hic.table[, p.value := p.val]
-
-
+  
+  
   # if (Plot) MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.value)
   return(hic.table)
-}
-
-# filtering function
-.filter_A <- function(A, filter_fc) {
-  # get max value
-  max_A <- max(A)
-  # make groups
-  groups <- vector()
-  groups[1] <- max_A
-  gval <- max_A
-  count <- 2
-  # loop through to create groups where A values are within a 10 fold change
-  while(gval > 1) {
-    gval <- gval / filter_fc
-    groups[count] <- gval
-    count <- count + 1
-  }
-  # get index for bottom A group
-  groups <- rev(groups)
-  filter_idx <- which(A >= groups[1] & A < groups[2])
-  return(filter_idx)
 }
 
 
@@ -241,7 +216,7 @@ hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = T
   })
   # recombine into one table
   hic.table <- rbindlist(temp_list)
-
+  
   if (Plot) {
     # if plotting ggplot MD plot then need to save as object and print it
     if (!p.smooth) {
@@ -253,7 +228,6 @@ hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = T
   }
   return(hic.table)
 }
-
 
 
 

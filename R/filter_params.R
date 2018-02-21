@@ -89,23 +89,11 @@ filter_params <- function(hic.table, A.quantile = TRUE, SD = 2, numChanges = 300
   MCC <- ((TP * TN) - (FP * FN)) / 
     (sqrt((TP + FP)) * sqrt((TP + FN)) * sqrt((TN + FP)) *
        sqrt((TN + FN)))
-  ## calculate FN & FP rates
-  FPR <- FP / (FP + TP)
-  FNR <- FN / (FN + TN)
-  TPR <- TP / (TP + FP)
   # PLOT MCC
   if (A.quantile) {
-    plot(MCC ~ A_seq, type = 'l', col = 'red', main = 'MCC by A quantile filtered', ylab = 'MCC', xlab = 'A Quantile filtered', ylim = c(0,1))
-    lines(FPR ~ A_seq, col = 'blue')
-    lines(FNR ~ A_seq, col= 'green')
-    lines(TPR ~ A_seq, col = 'black')
-    legend('topright', legend = c('MCC', 'FPR', 'FNR', 'TPR'), fill = c('red', 'blue', 'green', 'black'))
+    plot(MCC ~ A_seq, type = 'l', col = 'red', main = 'MCC by A quantile filtered', ylab = 'MCC', xlab = 'A Quantile filtered')
   } else {
-    plot(MCC ~ A_seq, type = 'l', col = 'red', main = 'MCC by A quantile filtered', ylab = 'MCC', xlab = 'A minimum filtered', ylim = c(0,1))
-    lines(FPR ~ A_seq, col = 'blue')
-    lines(FNR ~ A_seq, col= 'green')
-    lines(TPR ~ A_seq, col = 'black')
-    legend('topright', legend = c('MCC', 'FPR', 'FNR', 'TPR'), fill = c('red', 'blue', 'green', 'black'))
+    plot(MCC ~ A_seq, type = 'l', col = 'red', main = 'MCC by A quantile filtered', ylab = 'MCC', xlab = 'A minimum filtered')
   }
   
 }
