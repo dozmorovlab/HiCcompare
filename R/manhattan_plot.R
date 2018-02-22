@@ -13,13 +13,13 @@
 #'     to be significantly different on the linear genome.
 #' @return A manhattan plot.
 #' @examples 
-#' # Create hic.table object using included Hi-C data in sparse upper triangular
-#' matrix format
+#' # Create hic.table object using included Hi-C data in 
+#' # sparse upper triangular matrix format
 #' data('HMEC.chr22')
 #' data('NHEK.chr22')
 #' hic.table <- create.hic.table(HMEC.chr22, NHEK.chr22, chr = 'chr22')
 #' # Plug hic.table into hic_loess()
-#' #' result <- hic_loess(hic.table, Plot = TRUE)
+#' result <- hic_loess(hic.table, Plot = TRUE)
 #' # perform difference detection
 #' diff.result <- hic_compare(result, Plot = TRUE)
 #' # make manhattan plot

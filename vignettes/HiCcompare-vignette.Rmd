@@ -278,33 +278,22 @@ where $\bar{M}$ is the mean value of all $M$'s on the chromosome and $\sigma_M$ 
 
 During Z-score conversion the average expression of each interacting pair is considered. Due to the nature of $M$, a difference represented by an interacting pair with IFs 1 and 10 is equivalent to an interacting pair of IFs 10 and 100 with both differences having an $M$ value of 3.32. However the average expression of these two differences is 5.5 and 55, respectively. Differences with higher average expression are more trustworthy than those with low average expression due to the fact that a relatively small difference on the raw scale can lead to a large log2 fold change. Additionally since the IFs represent Hi-C sequencing reads, lower average numbers of reads are also less trustworthy. Thus we filter out differences with low average expression before calculating Z-scores when average expression ($A$) is less than a user set quantile (typically 5-20%) or a user set specific value of $A$. The Z-scores can then be converted to p-values using the standard normal distribution.
 
-To determine how to filter your data you can use the `filter_params()` function. This will produce a plot of the Matthews Correlation Coefficient (MCC) vs. the A quantile filtered out or the A minimum value filtered out. This plot should help you determine a reasonable value to set your filtering parameter in `hic_compare`. You may need to adjust the `numChanges` option and the `FC` option depending on the resolution of the data and how noisy it is.
+To determine how to filter your data you can use the `filter_params()` function. This will produce a plot of the Matthews Correlation Coefficient (MCC) vs. the A minimum value filtered out. This plot should help you determine a reasonable value to set your filtering parameter in `hic_compare`. You may need to adjust the `numChanges` option and the `FC` option depending on the resolution of the data and how noisy it is.
 
-Here we check the filtering by A quantile:
-
-```{r, message=FALSE}
-filter_params(hic.table, A.quantile = TRUE)
-```
-
-And here by A minimum value:
+Here we check the filtering:
 
 ```{r, message=FALSE}
-filter_params(hic.table, A.quantile = FALSE)
+filter_params(hic.table)
 ```
 
 
-Difference detection can be performed using the `hic_compare()` function. Before difference detection you will need to decide how you would like to filter out interactions with low average expression. You can either filter based on the quantile of A or by a specific value of A. Quantile filtering is recommended for lower resolution data (1MB or 500KB). Picking a minimum value of A would like to filter is recommend for higher resolution data (<= 100KB). Once you have a normalized `hic.table` or list of `hic.tables` detect differences with an A quantile filter as follows:
+Difference detection can be performed using the `hic_compare()` function. Before difference detection you will need to decide how you would like to filter out interactions with low average expression. You can filter based on a specific value of A. Once you have a normalized `hic.table` or list of `hic.tables` detect differences with an A filter as follows:
 
 ```{r}
-hic.table <- hic_compare(hic.table, A.quantile = 0.1, adjust.dist = TRUE, p.method = 'fdr', Plot = TRUE)
+hic.table <- hic_compare(hic.table, A.min = 15, adjust.dist = TRUE, p.method = 'fdr', Plot = TRUE)
 ```
 
-Or with a minimum A value as follows:
-
-```{r}
-hic.table <- hic_compare(hic.table, A.min = 15, adjust.dist = TRUE, p.method = 'fdr', Plot = FALSE)
-```
-
+If you leave the `A.min = NA` then the 10th percentile of A will be calculated and used for filtering by default.
 The resulting table will display the results as shown below:
 
 ```{r}
