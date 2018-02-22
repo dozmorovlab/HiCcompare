@@ -4,14 +4,11 @@
 \alias{filter_params}
 \title{Determine the A quantile cutoff to be used}
 \usage{
-filter_params(hic.table, A.quantile = TRUE, SD = 2, numChanges = 300,
-  FC = 3, alpha = 0.05, Plot = FALSE)
+filter_params(hic.table, SD = 2, numChanges = 300, FC = 3, alpha = 0.05,
+  Plot = FALSE)
 }
 \arguments{
 \item{hic.table}{A hic.table object}
-
-\item{A.quantile}{Logical, Should the quantile of A be tested for a cut off (TRUE)
-or should a minimum value of A be tested for a cut off (FALSE).}
 
 \item{SD}{The standard deviation of the fuzzing used to produce a Hi-C
 matrix from your data with few true differences.}
@@ -29,7 +26,9 @@ data should use more changes i.e. 1MB resolution - 300 changes, 100KB resolution
 and difference detection be plotted?}
 }
 \value{
-A plot of the MCC over either the A quantile filtered or the A minimum
+A plot of the Mathews Correlation Coefficient (MCC), 
+    true positive rate (TPR), and false positive rate (FPR)
+    over the A minimum
     value filtered.
 }
 \description{
@@ -41,8 +40,8 @@ This function will take your data and produce an additional
     to the vector to create a "fuzzed" matrix with few true differences.
     Then the specified number of true changes will be added at the specified
     fold change level to the matrices. The HiCcompare procedure is run on the
-    data and a plot of the MCC based on either the A quantile filtered out
-    or the A minimum value filtered out will be produced. This is to aid you
+    data and a plot of the MCC, TPR, and FPR based on
+    the A minimum value filtered out will be produced. This is to aid you
     in determining what value you should use when analyzing your data with
     the hic_compare() function.
 }
