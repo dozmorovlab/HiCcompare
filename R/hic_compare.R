@@ -4,15 +4,12 @@
 #' @param hic.table A hic.table or list of hic.tables output from the
 #'     \code{hic_loess} function. hic.table must be jointly normalized
 #'     before being entered.
-#' @param A.quantile The quantile of A values you would like to be filtered
-#'     out. Defaults to 0.1. Typically should be between 0.05-0.2.
 #' @param A.min The required value of A in order for a differences to be
-#'     considered. This is an alternate option to A.quantile. All Z-scores
+#'     considered. All Z-scores
 #'     where the corresponding A value is < A.min will be set to 0. 
-#'     Defaults to NA. If NA, only A.quantile will be used for filtering
-#'     low reads. Note that if A.min is set to a value then no filtering 
-#'     will be performed based on A.quantile. Filtering will only be based
-#'     on A.min.
+#'     Defaults to NA. If NA, then the 10th percentile of A will automatically
+#'     be calculated and set as the A.min value.
+#'     To better determine how to set A.min see the help for ?filter_params().
 #' @param adjust.dist Logical, should the p-value adjustment be performed
 #'     on a per distance basis. i.e. The p-values at distance 1 will be grouped
 #'     and the p-value adjustment will be applied. This process is repeated for
@@ -68,7 +65,7 @@
 #' # perform difference detection
 #' diff.result <- hic_compare(result, Plot = TRUE)
 #'
-hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = TRUE, p.method = 'fdr',
+hic_compare <- function(hic.table, A.min = NA, adjust.dist = TRUE, p.method = 'fdr',
                         Plot = FALSE, Plot.smooth = TRUE,
                         parallel = FALSE, BP_param = bpparam()) {
   # check for correct input
@@ -95,22 +92,28 @@ hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = T
       }
     }
   }
+  # if A.min = NA then automatically set it to the 10th percentile
+  if (is.na(A.min)) {
+    # get A quantiles 
+    A_q10 <- sapply(hic.table, function(x) quantile(x$A, 0.1))
+    A.min <- mean(A_q10) %>% ceiling()
+  }
   
-  # check A.quantile
-  if (is.na(A.min) & !is.numeric(A.quantile)) {
-    stop('Enter a numeric value for A.quantile or A.min')
-  }
-  if (is.na(A.min) & is.numeric(A.quantile)) {
-    if (A.quantile < 0 | A.quantile >= 1) {
-      stop('Enter a value between 0 and 1 for A.quantile')
-    }
-  }
+  # # check A.quantile
+  # if (is.na(A.min) & !is.numeric(A.quantile)) {
+  #   stop('Enter a numeric value for A.quantile or A.min')
+  # }
+  # if (is.na(A.min) & is.numeric(A.quantile)) {
+  #   if (A.quantile < 0 | A.quantile >= 1) {
+  #     stop('Enter a value between 0 and 1 for A.quantile')
+  #   }
+  # }
   
   # calculate z-scores
   if (parallel) {
-    hic.table <- BiocParallel::bplapply(hic.table, .calc_z2, quant = A.quantile, A.min = A.min) 
+    hic.table <- BiocParallel::bplapply(hic.table, .calc_z2, A.min = A.min) 
   } else {
-    hic.table <- lapply(hic.table, .calc_z2, quant = A.quantile, A.min = A.min) 
+    hic.table <- lapply(hic.table, .calc_z2, A.min = A.min) 
   }
   
   # adjust p-values
@@ -141,50 +144,20 @@ hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = T
 
 
 
-# version where z scores calculated first then z scores with A < thresh set to 0
-# this version means that M values have wider standard deviation thus lower Z-scores
-.calc_z <- function(hic.table, quant, A.min, Plot  = TRUE) {
-  # add average expression to table
-  # A <- (hic.table$adj.IF1 + hic.table$adj.IF2) / 2
-  # hic.table[, A := A]
-  threshold <- quantile((hic.table$A), quant, na.rm = TRUE)
-  Z1 <- (hic.table$adj.M - mean(hic.table$adj.M)) / sd(hic.table$adj.M)
-  # set z-scores where A < threshold to 0
-  if (is.na(A.min)) {
-    Z1[hic.table$A < threshold] <- 0
-    # set z-score to 0 if either adj.IF1 or adj.IF2 < 1
-    Z1[hic.table$adj.IF1 < 1 | hic.table$adj.IF2 < 1] <- 0
-  } else {
-    # Set Z scores where A < A.min to 0
-    Z1[hic.table$A < A.min] <- 0
-  }
-  
-  hic.table[, Z := Z1]
-  hic.table[, p.value := 2*pnorm(abs(Z), lower.tail = FALSE)]
-  # if (Plot) MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.value)
-  return(hic.table)
-}
-
-
 # version where M values with A < thresh removed before z score calculations
 # this version makes M have a lower standard deviation and thus higher z-scores
-.calc_z2 <- function(hic.table, quant, A.min, Plot = TRUE) {
-  # add average expression to table
-  # A <- (hic.table$adj.IF1 + hic.table$adj.IF2) / 2
-  # hic.table[, A := A]
-  threshold <- quantile((hic.table$A), quant, na.rm = TRUE)
+.calc_z2 <- function(hic.table, A.min, Plot = TRUE) {
+  # threshold <- quantile((hic.table$A), quant, na.rm = TRUE)
   new_M <- hic.table$adj.M
-  if (is.na(A.min)) {
-    # set M to NA to be ignored if A < quantile or IF1 < 1 or IF2 < 1
-    new_M[hic.table$A < threshold | hic.table$adj.IF1 < 1 | hic.table$adj.IF2 < 1] <- NA
-  } else {
+  # if (is.na(A.min)) {
+  #   # set M to NA to be ignored if A < quantile or IF1 < 1 or IF2 < 1
+  #   new_M[hic.table$A < threshold | hic.table$adj.IF1 < 1 | hic.table$adj.IF2 < 1] <- NA
+  # } else {
     # set M to be NA to be ignored if A < A.min or IF1 < 1 or IF2 < 1
     new_M[hic.table$A < A.min | hic.table$adj.IF1 < 1 | hic.table$adj.IF2 < 1] <- NA
-  }
+  # }
   
   Z1 <- (new_M - mean(new_M, na.rm = TRUE)) / sd(new_M, na.rm = TRUE)
-  # # set z-score to 0 if either adj.IF1 or adj.IF2 < 1
-  # Z1[hic.table$adj.IF1 < 1 | hic.table$adj.IF2 < 1] <- 0
   hic.table[, Z := Z1]
   p.val <- 2*pnorm(abs(hic.table$Z), lower.tail = FALSE)
   # set P-values with NA value to 1
@@ -231,4 +204,28 @@ hic_compare <- function(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = T
 
 
 
+
+# # version where z scores calculated first then z scores with A < thresh set to 0
+# # this version means that M values have wider standard deviation thus lower Z-scores
+# .calc_z <- function(hic.table, quant, A.min, Plot  = TRUE) {
+#   # add average expression to table
+#   # A <- (hic.table$adj.IF1 + hic.table$adj.IF2) / 2
+#   # hic.table[, A := A]
+#   threshold <- quantile((hic.table$A), quant, na.rm = TRUE)
+#   Z1 <- (hic.table$adj.M - mean(hic.table$adj.M)) / sd(hic.table$adj.M)
+#   # set z-scores where A < threshold to 0
+#   if (is.na(A.min)) {
+#     Z1[hic.table$A < threshold] <- 0
+#     # set z-score to 0 if either adj.IF1 or adj.IF2 < 1
+#     Z1[hic.table$adj.IF1 < 1 | hic.table$adj.IF2 < 1] <- 0
+#   } else {
+#     # Set Z scores where A < A.min to 0
+#     Z1[hic.table$A < A.min] <- 0
+#   }
+#   
+#   hic.table[, Z := Z1]
+#   hic.table[, p.value := 2*pnorm(abs(Z), lower.tail = FALSE)]
+#   # if (Plot) MD.plot2(hic.table$adj.M, hic.table$D, hic.table$p.value)
+#   return(hic.table)
+# }
 

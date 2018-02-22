@@ -4,8 +4,8 @@
 \alias{hic_compare}
 \title{Detect differences between two jointly normalized Hi-C datasets.}
 \usage{
-hic_compare(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = TRUE,
-  p.method = "fdr", Plot = FALSE, Plot.smooth = TRUE, parallel = FALSE,
+hic_compare(hic.table, A.min = NA, adjust.dist = TRUE, p.method = "fdr",
+  Plot = FALSE, Plot.smooth = TRUE, parallel = FALSE,
   BP_param = bpparam())
 }
 \arguments{
@@ -13,16 +13,12 @@ hic_compare(hic.table, A.quantile = 0.1, A.min = NA, adjust.dist = TRUE,
 \code{hic_loess} function. hic.table must be jointly normalized
 before being entered.}
 
-\item{A.quantile}{The quantile of A values you would like to be filtered
-out. Defaults to 0.1. Typically should be between 0.05-0.2.}
-
 \item{A.min}{The required value of A in order for a differences to be
-considered. This is an alternate option to A.quantile. All Z-scores
+considered. All Z-scores
 where the corresponding A value is < A.min will be set to 0. 
-Defaults to NA. If NA, only A.quantile will be used for filtering
-low reads. Note that if A.min is set to a value then no filtering 
-will be performed based on A.quantile. Filtering will only be based
-on A.min.}
+Defaults to NA. If NA, then the 10th percentile of A will automatically
+be calculated and set as the A.min value.
+To better determine how to set A.min see the help for ?filter_params().}
 
 \item{adjust.dist}{Logical, should the p-value adjustment be performed
 on a per distance basis. i.e. The p-values at distance 1 will be grouped
