@@ -66,7 +66,7 @@ filter_params <- function(hic.table, SD = 2, numChanges = 300, FC = 3, alpha = 0
   
   # normalize & detect differences
   new.table <- hic_loess(new.table, Plot = Plot)
-  new.table <- hic_compare(new.table, Plot = Plot)
+  new.table <- suppressMessages(hic_compare(new.table, Plot = Plot))
   
   # calculate MCC
   TP <- vector(length = 50)
@@ -85,7 +85,7 @@ filter_params <- function(hic.table, SD = 2, numChanges = 300, FC = 3, alpha = 0
   # } else {
     A_seq <- seq(1, 50, by = 1)
     for (i in seq_along(A_seq)) {
-      tmp.table <- hic_compare(new.table, A.min = A_seq[i], adjust.dist = TRUE, p.method = 'fdr', Plot = FALSE)
+      tmp.table <- suppressMessages(hic_compare(new.table, A.min = A_seq[i], adjust.dist = TRUE, p.method = 'fdr', Plot = FALSE))
       TP[i] <- sum(tmp.table$p.adj < alpha & tmp.table$truth == 1)
       FP[i] <- sum(tmp.table$p.adj < alpha & tmp.table$truth == 0)
       FN[i] <- sum(tmp.table$p.adj >= alpha & tmp.table$truth == 1)
@@ -104,7 +104,7 @@ filter_params <- function(hic.table, SD = 2, numChanges = 300, FC = 3, alpha = 0
   # if (A.quantile) {
   #   plot(MCC ~ A_seq, type = 'l', col = 'red', main = 'MCC by A quantile filtered', ylab = 'MCC', xlab = 'A Quantile filtered')
   # } else {
-      plot(MCC ~ A_seq, type = 'l', col = 'black', main = 'MCC by A value filtered', ylab = 'MCC', xlab = 'A minimum filtered', ylim = c(0,1))
+      plot(MCC ~ A_seq, type = 'l', col = 'black', main = 'Performance by A value filtered', ylab = 'Value', xlab = 'A minimum filtered', ylim = c(0,1))
       lines(FPR ~ A_seq, col = 'red')
       lines(TPR ~ A_seq, col = 'blue')
       legend('topright', legend = c('MCC', 'FPR', 'TPR'), fill = c('black', 'red', 'blue'))
