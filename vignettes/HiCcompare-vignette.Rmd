@@ -78,7 +78,20 @@ The `cooler` software, [http://cooler.readthedocs.io/en/latest/index.html](http:
 
 ### Using data from HiC-Pro
 
-HiC-Pro is another tool for processing raw Hi-C data into usable matrix files. HiC-Pro will produce a `.matrix` file and a `.bed` file for the data. These `.matrix` files are in sparse upper triangular format similar to the results of Juicer and the dumped contents of a `.hic` file, however instead of using the genomic start coordinates for the first two columns of the sparse matrix they use an ID number. The `.bed` file contains the mappings for each of these IDs to their genomic coordinates. `HiCcompare` includes a function to convert the results of HiC-Pro into a usable format for analysis in `HiCcompare`. See the help using `?hicpro2bedpe` for more details.
+HiC-Pro is another tool for processing raw Hi-C data into usable matrix files. HiC-Pro will produce a `.matrix` file and a `.bed` file for the data. These `.matrix` files are in sparse upper triangular format similar to the results of Juicer and the dumped contents of a `.hic` file, however instead of using the genomic start coordinates for the first two columns of the sparse matrix they use an ID number. The `.bed` file contains the mappings for each of these IDs to their genomic coordinates. `HiCcompare` includes a function to convert the results of HiC-Pro into a usable format for analysis in `HiCcompare`. When using data from HiC-Pro it is important to use the raw `.matrix` files and NOT the iced `.matrix` files. The iced `.matrix` files have already had ICE normalization applied to them and are not suitable for entry into `HiCcompare`. Here we convert HiC-Pro data for input into HiCcompare:
+
+```{r, eval=FALSE}
+# read in files
+mat <- read.table("hic_1000000.matrix")
+bed <- read.table("hic_1000000_abs.bed")
+# convert to BEDPE
+dat <- hicpro2bedpe(mat, bed)
+# NOTE: hicpro2bedpe returns a list of lists. The first list, dat$cis, contains the intrachromosomal contact matrices
+# NOTE: dat$trans contains the interchromosomal contact matrix which is not used in HiCcompare.
+```
+
+
+See the help using `?hicpro2bedpe` for more details.
 
 ## Detecting Copy Number Variations and Excluding regions
 
@@ -166,6 +179,30 @@ To create a `hic.table` object using BEDPE data is very similar to using data in
 bed.hic.tab <- create.hic.table(HMEC.chr22_BEDPE, NHEK.chr22_BEDPE)
 head(bed.hic.tab)
 ```
+
+### HiC-Pro format
+
+If you are using data from HiC-Pro you can create a `hic.table` object as follows.
+
+```{r, eval=FALSE}
+# first dataset
+mat1 <- read.table("hic1_1000000.matrix")
+bed1 <- read.table("hic1_1000000_abs.bed")
+dat1 <- hicpro2bedpe(mat, bed)
+dat1 <- dat1$cis # extract intrachromosomal matrices
+# second dataset
+mat2 <- read.table("hic2_1000000.matrix")
+bed2 <- read.table("hic2_1000000_abs.bed")
+dat2 <- hicpro2bedpe(mat, bed)
+dat2 <- dat2$cis # extract intrachromosomal matrices
+
+# for chr1
+hic.table <- create.hic.table(dat1[[1]], dat2[[1]])
+
+# for all chromosomes
+hic.list <- mapply(create.hic.table, dat1, dat2, SIMPLIFY = FALSE)
+```
+
 
 ### InteractionSet/GRanges format
 
