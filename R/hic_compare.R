@@ -163,8 +163,8 @@ hic_compare <- function(hic.table, A.min = NA, adjust.dist = TRUE, p.method = 'f
   Z1 <- (new_M - mean(new_M, na.rm = TRUE)) / sd(new_M, na.rm = TRUE)
   hic.table[, Z := Z1]
   p.val <- 2*pnorm(abs(hic.table$Z), lower.tail = FALSE)
-  # set P-values with NA value to 1
-  p.val[is.na(p.val)] <- 1
+  # # set P-values with NA value to 1
+  # p.val[is.na(p.val)] <- 1
   hic.table[, p.value := p.val]
   
   
@@ -193,6 +193,14 @@ hic_compare <- function(hic.table, A.min = NA, adjust.dist = TRUE, p.method = 'f
   # recombine into one table
   hic.table <- rbindlist(temp_list)
   
+  # set NA p-values to 1
+  p.val <- hic.table$p.val
+  p.adjust <- hic.table$p.adj
+  p.val[is.na(p.val)] <- 1
+  p.adjust[is.na(p.adjust)] <- 1
+  hic.table[, p.value := p.val]
+  hic.table[, p.adj := p.adjust]
+ 
   if (Plot) {
     # if plotting ggplot MD plot then need to save as object and print it
     if (!p.smooth) {
