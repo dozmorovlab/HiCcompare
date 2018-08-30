@@ -27,8 +27,9 @@ The `hic_loess` function outputs normalized chromatin interactions for both matr
 Install `HiCcompare` from Bioconductor.
 
 ```{r, eval = FALSE}
-source("https://bioconductor.org/biocLite.R")
-biocLite("HiCcompare")
+if (!requireNamespace("BiocManager", quietly=TRUE))
+    install.packages("BiocManager")
+BiocManager::install("HiCcompare")
 library(HiCcompare)
 ```
 

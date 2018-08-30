@@ -23,8 +23,9 @@ First make sure you have all dependencies installed in R.
 install.packages(c('dplyr', 'data.table', 'ggplot2', 'gridExtra', 
 				   'mgcv', 'parallel', 'devtools'))
 
-source("https://bioconductor.org/biocLite.R")
-biocLite(c("InteractionSet", "GenomicRanges", "IRanges", 
+if (!requireNamespace("BiocManager", quietly=TRUE))
+    install.packages("BiocManager")
+BiocManager::install(c("InteractionSet", "GenomicRanges", "IRanges", 
 		   "BiocParallel", "QDNAseq", "GenomeInfoDbData"))			   
 ```
 
@@ -34,8 +35,9 @@ To install `HiCcompare` from bioconductor open R and enter the following command
 # Bioconductor development version and Github Release contain major changes for difference detection
 # it is recommended to use the github release until the next Bioconductor update
 ## try http:// if https:// URLs are not supported
-source("https://bioconductor.org/biocLite.R")
-biocLite("HiCcompare")
+if (!requireNamespace("BiocManager", quietly=TRUE))
+    install.packages("BiocManager")
+BiocManager::install("HiCcompare")
 library(HiCcompare)
 ```
 
