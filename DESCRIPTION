@@ -11,7 +11,7 @@ Description: HiCcompare provides functions for joint normalization and differenc
     from other packages that attempt to compare Hi-C data in that it works on processed data in chromatin interaction 
     matrix format instead of pre-processed sequencing data. In addition, `HiCcompare` provides a non-parametric method 
     for the joint normalization and removal of biases between two Hi-C datasets for the purpose of comparative analysis. 
-    `HiCcompare` also provides a simple yet robust permutation method for detecting differences between Hi-C datasets. 
+    `HiCcompare` also provides a simple yet robust method for detecting differences between Hi-C datasets. 
 Depends: R (>= 3.4.0),
     dplyr
 Imports: data.table,
@@ -39,5 +39,6 @@ LazyData: true
 RoxygenNote: 6.0.1
 Suggests: knitr,
     rmarkdown,
-    testthat
+    testthat,
+    multiHiCcompare
 VignetteBuilder: knitr
