@@ -4,8 +4,8 @@
 \alias{filter_params}
 \title{Determine the A quantile cutoff to be used}
 \usage{
-filter_params(hic.table, SD = 2, numChanges = 300, FC = 3, alpha = 0.05,
-  Plot = FALSE)
+filter_params(hic.table, SD = 2, numChanges = 300, FC = 3,
+  alpha = 0.05, Plot = FALSE)
 }
 \arguments{
 \item{hic.table}{A hic.table object}

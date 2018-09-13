@@ -111,6 +111,9 @@ create.hic.table <- function(sparse.mat1, sparse.mat2, chr = NA, scale = TRUE,
   # check if sparse matrices are 3 column sparse upper triangular format
   # or 7 column BEDPE format
   if (ncol(sparse.mat1) == 7 & ncol(sparse.mat2) == 7) {
+    if (any(sparse.mat1[,1] != sparse.mat1[,4]) | any(sparse.mat2[,1] != sparse.mat2[,4])) {
+      stop("HiCcompare is design to analyze only intra-chromosomal interactions. Please remove any inter-chromosomal interactions.")
+    }
     chr <- as.character(sparse.mat1[1, 1])
     sparse.mat1 <- sparse.mat1[, c(2, 5, 7)]
     sparse.mat2 <- sparse.mat2[, c(2, 5, 7)]

@@ -8,8 +8,8 @@ hic_simulate(nrow = 100, medianIF = 50000, sdIF = 14000,
   powerlaw.alpha = 1.8, sd.alpha = 1.9, prop.zero.slope = 0.001,
   centromere.location = NA, CNV.location = NA, CNV.proportion = 0.8,
   CNV.multiplier = 0, biasFunc = .normal.bias, fold.change = NA,
-  i.range = NA, j.range = NA, Plot = TRUE, scale = TRUE, alpha = 0.05,
-  diff.thresh = NA, include.zeros = FALSE)
+  i.range = NA, j.range = NA, Plot = TRUE, scale = TRUE,
+  alpha = 0.05, diff.thresh = NA, include.zeros = FALSE)
 }
 \arguments{
 \item{nrow}{Number of rows and columns of the full matrix}

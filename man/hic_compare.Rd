@@ -4,9 +4,9 @@
 \alias{hic_compare}
 \title{Detect differences between two jointly normalized Hi-C datasets.}
 \usage{
-hic_compare(hic.table, A.min = NA, adjust.dist = TRUE, p.method = "fdr",
-  Plot = FALSE, Plot.smooth = TRUE, parallel = FALSE,
-  BP_param = bpparam())
+hic_compare(hic.table, A.min = NA, adjust.dist = TRUE,
+  p.method = "fdr", Plot = FALSE, Plot.smooth = TRUE,
+  parallel = FALSE, BP_param = bpparam())
 }
 \arguments{
 \item{hic.table}{A hic.table or list of hic.tables output from the
