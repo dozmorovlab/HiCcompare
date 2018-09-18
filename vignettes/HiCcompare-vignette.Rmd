@@ -472,12 +472,12 @@ The above can be saved as an R script and then submitted to a cluster using the 
 
 ```{bash, eval = FALSE}
 #!/bin/sh
-# Grid Engine options (lines prefixed with #$)
+# Sun Grid Engine options (lines prefixed with #$)
 #$ -cwd
 #$ -N HiCCompare
 #$ -l h_rt=06:00:00
 #$ -l h_vmem=32G
-#$ -pe sharedmem 4
+#$ -pe sharedmem 11
 #$ -V
 
 Rscript 01_HiCcompare.R $1 $2 $3
