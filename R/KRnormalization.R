@@ -85,7 +85,9 @@ KRnorm = function(A) {
     }
     eta = max(c(min(c(eta, etamax)), stop_tol/res_norm));
   }
-  result = diag(c(x)) %*% A %*% diag(c(x))
+
+  result = t(t(x[,1]*A)*x[,1])
+
   # reintroduce NAs in final matrix
   if(nrow(NAlist) > 0) {
     idx <- as.matrix(NAlist[, 1:2])
