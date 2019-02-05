@@ -21,6 +21,7 @@ To learn more about HiCcompare, start with the vignettes:
 
 Authors:
 \itemize{
+  \item Kellen Cresswell \email{cresswellkg@vcu.edu}
   \item Mikhail Dozmorov \email{mikhail.dozmorov@vcuhealth.org}
 }
 
