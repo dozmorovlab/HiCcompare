@@ -1,8 +1,9 @@
 Package: HiCcompare
 Title: HiCcompare: Joint normalization and comparative analysis of multiple Hi-C datasets
-Version: 1.5.1
+Version: 1.5.2
 Authors@R: c(person("John", "Stansfield", email = "stansfieldjc@vcu.edu", role = c("aut", "cre")), 
-    person("Mikhail", "Dozmorov", email = "mikhail.dozmorov@vcuhealth.org", role = c("aut")))
+    person("Mikhail", "Dozmorov", email = "mikhail.dozmorov@vcuhealth.org", role = c("aut")),
+    person("Kellen", "Cresswell", email = "cresswellkg@vcu.edu", role = c("aut")))
 Description: HiCcompare provides functions for joint normalization and difference detection in multiple Hi-C datasets. 
     HiCcompare operates on processed Hi-C data in the form of chromosome-specific chromatin interaction matrices. 
     It accepts three-column tab-separated text files storing chromatin interaction matrices in a sparse matrix format 
