@@ -246,7 +246,7 @@ hic.table <- hic_loess(chr22.table, Plot = TRUE, Plot.smooth = FALSE)
 knitr::kable(head(hic.table))
 ```
 
-```{r, message=FALSE}
+```{r, message=FALSE, eval=FALSE}
 # Multiple hic.tables can be processed in parallel by entering a list of hic.tables
 hic.list <- hic_loess(hic.list, parallel = TRUE)
 ```
