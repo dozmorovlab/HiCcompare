@@ -1,6 +1,6 @@
 Package: HiCcompare
 Title: HiCcompare: Joint normalization and comparative analysis of multiple Hi-C datasets
-Version: 1.6.0
+Version: 1.7.0
 Authors@R: c(person("John", "Stansfield", email = "stansfieldjc@vcu.edu", role = c("aut", "cre")),
     person("Kellen", "Cresswell", email = "cresswellkg@vcu.edu", role = c("aut")),
     person("Mikhail", "Dozmorov", email = "mikhail.dozmorov@vcuhealth.org", role = c("aut")))
