@@ -1,6 +1,6 @@
 Package: HiCcompare
 Title: HiCcompare: Joint normalization and comparative analysis of multiple Hi-C datasets
-Version: 1.7.0
+Version: 1.7.1
 Authors@R: c(person("John", "Stansfield", email = "stansfieldjc@vcu.edu", role = c("aut", "cre")),
     person("Kellen", "Cresswell", email = "cresswellkg@vcu.edu", role = c("aut")),
     person("Mikhail", "Dozmorov", email = "mikhail.dozmorov@vcuhealth.org", role = c("aut")))
@@ -23,7 +23,7 @@ Imports: data.table,
     InteractionSet,
     GenomicRanges,
     IRanges,
-    S4Vectors,
+    S4Vectors (>= 0.23.10),
     BiocParallel,
     QDNAseq,
     KernSmooth,

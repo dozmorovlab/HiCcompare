@@ -38,7 +38,7 @@ importFrom("stats", "loess", "loess.control",
              "density", "optim", "quantile")
 import(InteractionSet)
 importFrom("GenomicRanges", "GRanges")
-importFrom("IRanges", "IRanges", "splitAsList", "width", "pintersect")
+importFrom("IRanges", "IRanges", "width", "pintersect")
 #importFrom("S4Vectors", "values", "split", "List")
 
 importFrom("BiocParallel", "bpmapply", "bplapply", "bpparam", "register", "registered")
