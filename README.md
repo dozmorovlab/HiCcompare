@@ -2,9 +2,9 @@
 
 ## Overview 
 
-`HiCcompare` provides functions for joint normalization and difference detection in multiple Hi-C datasets. `HiCcompare` operates on processed Hi-C data in the form of chromosome-specific chromatin interaction matrices. `HiCcompare` is available as an R package, the major releases can be found on Bioconductor (here)[https://bioconductor.org/packages/HiCcompare/]. 
+`HiCcompare` provides functions for joint normalization and difference detection in multiple Hi-C datasets. `HiCcompare` operates on processed Hi-C data in the form of chromosome-specific chromatin interaction matrices. `HiCcompare` is available as an R package, the major releases can be found on Bioconductor [here](https://bioconductor.org/packages/HiCcompare/). 
 
-If you have more than two Hi-C datasets which you need to normalize or compare please see our other package, `multiHiCcompare`, which is available on Bioconductor (here)[https://bioconductor.org/packages/multiHiCcompare/].
+If you have more than two Hi-C datasets which you need to normalize or compare please see our other package, `multiHiCcompare`, which is available on Bioconductor [here](https://bioconductor.org/packages/multiHiCcompare/).
 
 `HiCcompare` accepts three-column tab-separated text files storing chromatin interaction matrices in a sparse matrix format which are available from several sources such as the [http://aidenlab.org/data.html](http://aidenlab.org/data.html) and [http://cooler.readthedocs.io/en/latest/index.html](http://cooler.readthedocs.io/en/latest/index.html). HiCcompare is designed to give the user the ability to perform a comparative analysis on the 3-Dimensional structure of the genomes of cells in different biological states. `HiCcompare` first can jointly normalize two Hi-C datasets to remove biases between them. Then it can detect signficant differences between the datsets using a genomic distance based permutation test. The novel concept of the MD plot, based on the commonly used MA plot or Bland-Altman plot is the basis for these methods. The log **M**inus is plotted on the y axis while the genomic **D**istance is plotted on the x axis. The MD plot allows for visualization of the differences between the Hi-C datasets. 
 
