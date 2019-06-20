@@ -76,7 +76,7 @@ Create hic.table object from a sparse upper triangular Hi-C matrix
 This function is used to transform two sparse upper triangular Hi-C matrices
    into an object usable in the \code{hic_loess} function.
    Sparse upper triangular Hi-C matrix format is typical of the Hi-C data available
-   from the Aiden Lab \url{http://www.aidenlab.org/}. If you have a full
+   from the Aiden Lab \url{https://www.aidenlab.org/}. If you have a full
    Hi-C contact matrix, first transform it to sparse upper triangular format using
    the \code{full2sparse} function. Sparse matrices should have 3 columns
    in the following order: Start location of region 1, Start location of region 2,
