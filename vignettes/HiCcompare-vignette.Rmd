@@ -64,7 +64,16 @@ From here we can just import the matrix into R as you would normally for any tab
  
 ### Extracting data from `.cool` files
 
-The `cooler` software, [http://cooler.readthedocs.io/en/latest/index.html](http://cooler.readthedocs.io/en/latest/index.html), allows access to a large collection of Hi-C data. The cooler index [ftp://cooler.csail.mit.edu/coolers](ftp://cooler.csail.mit.edu/coolers) contains Hi-C data for `hg19` and `mm9` from many different sources. To use data in the `.cool` format in `HiCcompare` follow these steps:
+The `cooler` software, [http://cooler.readthedocs.io/en/latest/index.html](http://cooler.readthedocs.io/en/latest/index.html), allows access to a large collection of Hi-C data. The cooler index [ftp://cooler.csail.mit.edu/coolers](ftp://cooler.csail.mit.edu/coolers) contains Hi-C data for `hg19` and `mm9` from many different sources. 
+
+`.cool` files can be read directly into R using the `cooler2bedpe` function provided by `HiCcompare`.
+
+```{r, eval=FALSE}
+dat <- cooler2bedpe(path = "Dixon2012-H1hESC-HindIII-allreps-filtered.1000kb.cool")
+```
+
+
+Alternatively, data in the `.cool` format can be import into `HiCcompare` using the following steps:
 
   1. Download and install `cooler` from [http://cooler.readthedocs.io/en/latest/index.html](http://cooler.readthedocs.io/en/latest/index.html)
   2. Download a `.cool` file from the cooler index [ftp://cooler.csail.mit.edu/coolers](ftp://cooler.csail.mit.edu/coolers).

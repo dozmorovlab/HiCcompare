@@ -30,6 +30,7 @@
 #'  dat <- hicpro2bedpe(mat, bed)
 #' }
 #' @export
+#' @importFrom gtools mixedorder
 hicpro2bedpe <- function(mat, bed) {
   # name columns
   colnames(mat) <- c('i', 'j', 'IF')

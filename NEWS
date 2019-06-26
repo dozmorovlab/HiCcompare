@@ -1,4 +1,5 @@
 NEWS for HiCcompare
 ----------------
 
+* New method to read in .cool files, cooler2bedpe()
 * New method for comparison, hic_compare()

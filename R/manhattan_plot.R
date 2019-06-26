@@ -12,6 +12,7 @@
 #'     of hic_compare(). Can be used to display which regions around found
 #'     to be significantly different on the linear genome.
 #' @return A manhattan plot.
+#' @export
 #' @examples 
 #' # Create hic.table object using included Hi-C data in 
 #' # sparse upper triangular matrix format

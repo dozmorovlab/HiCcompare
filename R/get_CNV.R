@@ -1,6 +1,7 @@
 #' Function to get the locations of copy number variations
 
 #' @export
+#' @import QDNAseq
 #' @param path2bam The path to the folder containing the .bam files for the data
 #' @param out.file The prefix for the filename which will be exported.
 #' @param bin.size The bin.size (resolution) of the HiC data you will be using in kbp. e.g. for 1MB

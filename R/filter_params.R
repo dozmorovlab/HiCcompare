@@ -25,7 +25,7 @@
 #'     true positive rate (TPR), and false positive rate (FPR)
 #'     over the A minimum
 #'     value filtered.
-#'     
+#' @export
 #' @examples 
 #' data('HMEC.chr22')
 #' data('NHEK.chr22')

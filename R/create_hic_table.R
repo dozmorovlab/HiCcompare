@@ -1,6 +1,7 @@
 #' Create hic.table object from a sparse upper triangular Hi-C matrix
 #'
 #' @export
+#' @importFrom dplyr %>% left_join right_join inner_join select
 #' @param sparse.mat1 Required, sparse upper triangular Hi-C matrix, 7 column
 #'     BEDPE format of the upper triangle of the matrix, OR InteractionSet
 #'     object with the genomic ranges of the interacting regions for the upper

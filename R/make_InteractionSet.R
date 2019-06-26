@@ -1,6 +1,9 @@
 #' Convert HiCdiff results to InteractionSet object
 #'
 #' @export
+#' @import InteractionSet
+#' @importFrom GenomicRanges GRanges
+#' @importFrom IRanges IRanges width pintersect
 #' @param hic.table A hic.table object.
 #'
 #' @details This function will convert data from HiCdiff results in the

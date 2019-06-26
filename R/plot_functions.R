@@ -3,6 +3,8 @@
 #' Visualize the MD plot before and after loess normalization
 #'
 #' @export
+#' @import KernSmooth
+#' @importFrom pheatmap pheatmap
 #' @param M The M component of the MD plot. Available from the
 #'     hic.table object.
 #' @param D The D component of the MD plot. The unit distance of

@@ -1,6 +1,15 @@
 #' Perform joint loess normalization on two Hi-C datasets
 #'
 #' @export
+#' @importFrom data.table as.data.table data.table := rbindlist setDF setDT setDTthreads setkey is.data.table frank
+#' @import ggplot2
+#' @importFrom gridExtra grid.arrange
+#' @importFrom stats loess loess.control optimize p.adjust predict rnbinom rnorm runif update qnorm t.test approxfun density optim quantile
+#' @import mgcv
+#' @importFrom BiocParallel bpmapply bplapply bpparam register registered
+#' @importFrom graphics abline legend lines par persp points smoothScatter hist
+#' @importFrom methods is
+#' @importFrom utils read.table write.table
 #' @param hic.table hic.table or a list of hic.tables generated from
 #'     the create.hic.table function.
 #'     list of hic.tables generated from the create.hic.table function.
