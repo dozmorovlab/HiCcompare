@@ -96,7 +96,7 @@ hic_compare <- function(hic.table, A.min = NA, adjust.dist = TRUE, p.method = 'f
   if (is.na(A.min)) {
     # get A quantiles 
     A_q10 <- sapply(hic.table, function(x) quantile(x$A, 0.1))
-    A.min <- mean(A_q10) %>% ceiling()
+    A.min <- ceiling(mean(A_q10))
     message("Filtering out interactions with A < ", A.min)
   } else {
     message("Filtering out interactions with A < ", A.min)
