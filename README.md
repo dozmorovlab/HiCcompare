@@ -1,5 +1,7 @@
 # HiCcompare
 
+Stansfield, John C., Kellen G. Cresswell, Vladimir I. Vladimirov, and Mikhail G. Dozmorov. “[HiCcompare: An R-Package for Joint Normalization and Comparison of HI-C Datasets](https://doi.org/10.1186/s12859-018-2288-x).” BMC Bioinformatics 19, no. 1 (December 2018).
+
 ## Overview 
 
 `HiCcompare` provides functions for joint normalization and difference detection in multiple Hi-C datasets. `HiCcompare` operates on processed Hi-C data in the form of chromosome-specific chromatin interaction matrices. `HiCcompare` is available as an R package, the major releases can be found on Bioconductor [here](https://bioconductor.org/packages/HiCcompare/). 
