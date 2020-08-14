@@ -1,5 +1,13 @@
-NEWS for HiCcompare
-----------------
+Changes in version 1.11.1 (2020-08-14)
++ Add CITATION, also to README.md file
++ Update NEWS
++ Update DESCRIPTION
+  o Add Mikhail Dozmorov as Maintainer
+  o Add URL and BugReports fields
++ Revert breaking changes
+  o KRnormalization.R, line 75, Z = rk/v; rho_km1 = t(rk) %*% Z;
+  o hic_compare.R, line 99, A.min <- ceiling(mean(A_q10))
 
-* New method to read in .cool files, cooler2bedpe()
-* New method for comparison, hic_compare()
+Changes in version 1.11.0 (2020-02-11)
++ New method to read in .cool files, cooler2bedpe()
++ New method for comparison, hic_compare()
