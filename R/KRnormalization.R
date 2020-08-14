@@ -72,7 +72,7 @@ KRnorm = function(A) {
       }
       y = ynew;
       rk = rk - c(alpha) * w; rho_km2 = rho_km1;
-      Z = rk/v; rho_km1 = t(rk) %*% Z;
+      Z = rk/v; rho_km1 = t(rk) %*% z;
     }
     x = x*y; v = x*(A %*% x);
     rk = 1 - v; rho_km1 = t(rk) %*% rk; rout = rho_km1;
