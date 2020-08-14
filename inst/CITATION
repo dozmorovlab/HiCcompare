@@ -1,0 +1,19 @@
+citHeader("To cite package 'HiCcompare', please, use:")
+
+citEntry(entry = "Article",
+	title = "HiCcompare: an R-package for joint normalization and comparison of HI-C datasets",
+	author = personList(as.person("John C. Stansfield"),
+		as.person("Kellen G. Cresswell"),
+		as.person("Vladimir I. Vladimirov"),
+		as.person("Mikhail G. Dozmorov")),
+	journal = "BMC Bioinformatics",
+	year = 2018L,
+	volume = 19L,
+	number = 1L,
+	month = "Dec",
+	url = "https://github.com/dozmorovlab/HiCcompare",
+	doi = "10.1186/s12859-018-2288-x",
+	textVersion = "Stansfield, John C.*, Kellen G. Cresswell, Vladimir I. Vladimirov, and Mikhail G. Dozmorov*. HiCcompare: An R-Package for Joint Normalization and Comparison of HI-C Datasets. BMC Bioinformatics 19, no. 1 (December 2018). https://doi.org/10.1186/s12859-018-2288-x"
+)
+
+

@@ -1,6 +1,6 @@
 # HiCcompare
 
-Stansfield, John C., Kellen G. Cresswell, Vladimir I. Vladimirov, and Mikhail G. Dozmorov. “[HiCcompare: An R-Package for Joint Normalization and Comparison of HI-C Datasets](https://doi.org/10.1186/s12859-018-2288-x).” BMC Bioinformatics 19, no. 1 (December 2018).
+Stansfield, John C., Kellen G. Cresswell, Vladimir I. Vladimirov, and Mikhail G. Dozmorov. [HiCcompare: An R-Package for Joint Normalization and Comparison of HI-C Datasets](https://doi.org/10.1186/s12859-018-2288-x).” BMC Bioinformatics 19, no. 1 (December 2018).
 
 ## Overview 
 
