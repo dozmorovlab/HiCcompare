@@ -1,9 +1,10 @@
 Package: HiCcompare
 Title: HiCcompare: Joint normalization and comparative analysis of multiple Hi-C datasets
-Version: 1.11.0
-Authors@R: c(person("John", "Stansfield", email = "stansfieldjc@vcu.edu", role = c("aut", "cre")),
-    person("Kellen", "Cresswell", email = "cresswellkg@vcu.edu", role = c("aut")),
-    person("Mikhail", "Dozmorov", email = "mikhail.dozmorov@vcuhealth.org", role = c("aut")))
+Version: 1.11.1
+Author: John Stansfield <stansfieldjc@vcu.edu>,
+    Kellen Cresswell <cresswellkg@vcu.edu>,
+    Mikhail Dozmorov <mikhail.dozmorov@vcuhealth.org>
+Maintainer: John Stansfield <stansfieldjc@vcu.edu>, Mikhail Dozmorov <mikhail.dozmorov@vcuhealth.org>
 Description: HiCcompare provides functions for joint normalization and difference detection in multiple Hi-C datasets. 
     HiCcompare operates on processed Hi-C data in the form of chromosome-specific chromatin interaction matrices. 
     It accepts three-column tab-separated text files storing chromatin interaction matrices in a sparse matrix format 
@@ -44,3 +45,5 @@ Suggests: knitr,
     testthat,
     multiHiCcompare
 VignetteBuilder: knitr
+BugReports: https://github.com/dozmorovlab/HiCcompare/issues
+URL: https://github.com/dozmorovlab/HiCcompare
