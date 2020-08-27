@@ -2,9 +2,10 @@
 
 Stansfield, John C., Kellen G. Cresswell, Vladimir I. Vladimirov, and Mikhail G. Dozmorov. [HiCcompare: An R-Package for Joint Normalization and Comparison of HI-C Datasets](https://doi.org/10.1186/s12859-018-2288-x). _BMC Bioinformatics_ 19, no. 1 (December 2018).
 
-Stansfield, John C., Duc Tran, Tin Nguyen, and Mikhail G. Dozmorov. “[R Tutorial: Detection of Differentially Interacting Chromatin Regions From Multiple Hi-C Datasets](https://doi.org/10.1002/cpbi.76).” Current Protocols in Bioinformatics, May 2019
+Stansfield, John C., Duc Tran, Tin Nguyen, and Mikhail G. Dozmorov. [R Tutorial: Detection of Differentially Interacting Chromatin Regions From Multiple Hi-C Datasets](https://doi.org/10.1002/cpbi.76). Current Protocols in Bioinformatics, May 2019
 
 [HiCcompareWorkshop](https://github.com/mdozmorov/HiCcompareWorkshop) - "Detection of Differentially Interacting Chromatin Regions From Multiple Hi-C Datasets" workshop presented on Bioconductor 2020 conference
+
 
 ## Overview 
 
@@ -27,7 +28,7 @@ Several demo Hi-C datasets are also included in the package.
 
 First, make sure you have all dependencies installed in R.
 
-```
+``` r
 install.packages(c('dplyr', 'data.table', 'ggplot2', 'gridExtra', 
 				   'mgcv', 'parallel', 'devtools'))
 
@@ -39,7 +40,7 @@ BiocManager::install(c("InteractionSet", "GenomicRanges", "IRanges",
 
 To install `HiCcompare` from Bioconductor, use the following commands.
 
-```
+``` r
 # Bioconductor development version and GitHub Release contain major changes for difference detection
 # it is recommended to use the GitHub release until the next Bioconductor update
 if (!requireNamespace("BiocManager", quietly=TRUE))
@@ -50,11 +51,13 @@ library(HiCcompare)
 
 Or, install the latest version of `HiCcompare` directly from the GitHub.
 
-```
+``` r
 library(devtools)
 install_github('dozmorovlab/HiCcompare', build_vignettes = TRUE)
 library(HiCcompare)
 ```
+
+Refer to the `HiCcompare` vignette for full usage instructions, `vignette("HiCcompare-vignette")`
 
 ## Usage
 
@@ -62,7 +65,7 @@ First, you will need to obtain some Hi-C data. Data is available from the source
 
 Below is an example analysis using `HiCcompare`. The data in 3-column sparse upper triangular matrix format is loaded, and the first step is to create a `hic.table` object using the `create.hic.table()` function. Next, the two Hi-C matrices are jointly normalized using the `hic_loess()` function. Finally, difference detection can be performed using the `hic_compare()` function. The `hic_loess()` and `hic_compare()` functions will also produce an MD plot for visualizing the differences between the datasets. 
 
-```
+``` r
 # load data
 library(HiCcompare)
 data("HMEC.chr22")
@@ -80,10 +83,6 @@ head(hic.table)
 hic.table = hic_compare(hic.table, Plot = TRUE)
 head(hic.table)
 ```
-
-Refer to the `HiCcompare` vignette for full usage instructions as `browseVignettes("HiCcompare")`
-
-
 
 ## Additional Vignettes
 
