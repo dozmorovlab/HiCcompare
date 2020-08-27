@@ -1,3 +1,11 @@
+Changes in version 1.11.2 (not yet deployed to Bioconductor)
++ pkgdown website deployed to gh-pages branch
++ Update README.md to make it compatible with pkgdown
++ Make \url tag in hic_*.R functions to span a single line
++ Rebuild function's help
++ Add new line at the end of DESCRIPTION
++ Match the vignette's title to the VignetteIndexEntry
+
 Changes in version 1.11.1 (2020-08-14)
 + Add CITATION, also to README.md file
 + Update NEWS
