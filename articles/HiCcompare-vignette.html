@@ -766,14 +766,14 @@ Z_i = \frac{M_i - \bar{M}}{\sigma_M}
 
 <span class="kw">sim_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hic_simulate.html">hic_simulate</a></span>(nrow = <span class="kw">number_of_unitdistances</span>, medianIF = <span class="fl">50000</span>, sdIF = <span class="fl">14000</span>, powerlaw.alpha = <span class="fl">1.8</span>, fold.change = <span class="fl">4</span>, i.range = <span class="kw">i.range</span>, j.range = <span class="kw">j.range</span>, Plot = <span class="fl">TRUE</span>, alpha = <span class="fl">0.1</span>)
 </pre></div>
-<pre><code>## Span for loess: 0.212770648399734</code></pre>
-<pre><code>## GCV for loess: 0.000115595383786921</code></pre>
-<pre><code>## AIC for loess: 0.40401939084367</code></pre>
-<pre><code>## Filtering out interactions with A &lt; 99</code></pre>
+<pre><code>## Span for loess: 0.178135370007652</code></pre>
+<pre><code>## GCV for loess: 0.000110247906904958</code></pre>
+<pre><code>## AIC for loess: 0.353097811035226</code></pre>
+<pre><code>## Filtering out interactions with A &lt; 98</code></pre>
 <p><img src="HiCcompare-vignette_files/figure-html/unnamed-chunk-21-1.png" width="672"></p>
-<pre><code>## True Positives: 211 Total added differences: 213 True Negatives: 4470</code></pre>
-<pre><code>## TPR: 0.990610328638498</code></pre>
-<pre><code>## SPC: 0.986972841686907</code></pre>
+<pre><code>## True Positives: 198 Total added differences: 200 True Negatives: 4461</code></pre>
+<pre><code>## TPR: 0.99</code></pre>
+<pre><code>## SPC: 0.986728599867286</code></pre>
 <p><img src="HiCcompare-vignette_files/figure-html/unnamed-chunk-21-2.png" width="672"></p>
 <p>The results of the simulation are saved in a list.</p>
 <div class="sourceCode" id="cb41"><pre class="downlit">

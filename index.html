@@ -88,10 +88,8 @@
   <div class="contents col-md-9">
 <div id="hiccompare" class="section level1">
 <div class="page-header"><h1 class="hasAnchor">
-<a href="#hiccompare" class="anchor"></a>HiCcompare</h1></div>
-<p>Stansfield, John C., Kellen G. Cresswell, Vladimir I. Vladimirov, and Mikhail G. Dozmorov. <a href="https://doi.org/10.1186/s12859-018-2288-x">HiCcompare: An R-Package for Joint Normalization and Comparison of HI-C Datasets</a>. <em>BMC Bioinformatics</em> 19, no. 1 (December 2018).</p>
-<p>Stansfield, John C., Duc Tran, Tin Nguyen, and Mikhail G. Dozmorov. <a href="https://doi.org/10.1002/cpbi.76">R Tutorial: Detection of Differentially Interacting Chromatin Regions From Multiple Hi-C Datasets</a>. Current Protocols in Bioinformatics, May 2019</p>
-<p><a href="https://github.com/mdozmorov/HiCcompareWorkshop">HiCcompareWorkshop</a> - “Detection of Differentially Interacting Chromatin Regions From Multiple Hi-C Datasets” workshop presented on Bioconductor 2020 conference</p>
+<a href="#hiccompare" class="anchor"></a><a href="https://dozmorovlab.github.io/HiCcompare/">HiCcompare</a>
+</h1></div>
 <div id="overview" class="section level2">
 <h2 class="hasAnchor">
 <a href="#overview" class="anchor"></a>Overview</h2>
@@ -106,7 +104,7 @@
 <li>
 <code><a href="reference/hic_compare.html">hic_compare()</a></code> - performs the difference detection process to detect significant changes between Hi-C datasets and assist in comparative analysis</li>
 </ul>
-<p>Several demo Hi-C datasets are also included in the package.</p>
+<p>Several demo Hi-C datasets are also included in the package. Refer to the <code>HiCcompare</code> vignette for full usage instructions, <code><a href="articles/HiCcompare-vignette.html">vignette("HiCcompare-vignette")</a></code></p>
 </div>
 <div id="installation" class="section level2">
 <h2 class="hasAnchor">
@@ -136,7 +134,6 @@
 <span class="fu"><a href="https://devtools.r-lib.org//reference/remote-reexports.html">install_github</a></span>(<span class="st">'dozmorovlab/HiCcompare'</span>, build_vignettes = <span class="fl">TRUE</span>)
 <span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="kw">HiCcompare</span>)
 </pre></div>
-<p>Refer to the <code>HiCcompare</code> vignette for full usage instructions, <code><a href="articles/HiCcompare-vignette.html">vignette("HiCcompare-vignette")</a></code></p>
 </div>
 <div id="usage" class="section level2">
 <h2 class="hasAnchor">
@@ -161,6 +158,13 @@
 <span class="kw">hic.table</span> <span class="op">=</span> <span class="fu"><a href="reference/hic_compare.html">hic_compare</a></span>(<span class="kw">hic.table</span>, Plot = <span class="fl">TRUE</span>)
 <span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span>(<span class="kw">hic.table</span>)
 </pre></div>
+</div>
+<div id="citations" class="section level2">
+<h2 class="hasAnchor">
+<a href="#citations" class="anchor"></a>Citations</h2>
+<p>Stansfield, John C., Kellen G. Cresswell, Vladimir I. Vladimirov, and Mikhail G. Dozmorov. <a href="https://doi.org/10.1186/s12859-018-2288-x">HiCcompare: An R-Package for Joint Normalization and Comparison of HI-C Datasets</a>. <em>BMC Bioinformatics</em> 19, no. 1 (December 2018).</p>
+<p>Stansfield, John C., Duc Tran, Tin Nguyen, and Mikhail G. Dozmorov. <a href="https://doi.org/10.1002/cpbi.76">R Tutorial: Detection of Differentially Interacting Chromatin Regions From Multiple Hi-C Datasets</a>. Current Protocols in Bioinformatics, May 2019</p>
+<p><a href="https://github.com/mdozmorov/HiCcompareWorkshop">HiCcompareWorkshop</a> - “Detection of Differentially Interacting Chromatin Regions From Multiple Hi-C Datasets” workshop presented on Bioconductor 2020 conference</p>
 </div>
 <div id="additional-vignettes" class="section level2">
 <h2 class="hasAnchor">
