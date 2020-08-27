@@ -4,9 +4,16 @@
 \alias{hic_loess}
 \title{Perform joint loess normalization on two Hi-C datasets}
 \usage{
-hic_loess(hic.table, degree = 1, span = NA, loess.criterion = "gcv",
-  Plot = FALSE, Plot.smooth = TRUE, parallel = FALSE,
-  BP_param = bpparam())
+hic_loess(
+  hic.table,
+  degree = 1,
+  span = NA,
+  loess.criterion = "gcv",
+  Plot = FALSE,
+  Plot.smooth = TRUE,
+  parallel = FALSE,
+  BP_param = bpparam()
+)
 }
 \arguments{
 \item{hic.table}{hic.table or a list of hic.tables generated from
@@ -46,8 +53,7 @@ entering a list of hic.tables. Defauts to FALSE.}
 
 \item{BP_param}{Parameters for BiocParallel. Defaults to bpparam(), see help
 for BiocParallel for more information
-\url{http://bioconductor.org/packages/release/bioc/vignettes/BiocParallel/
-inst/doc/Introduction_To_BiocParallel.pdf}}
+\url{http://bioconductor.org/packages/release/bioc/vignettes/BiocParallel/inst/doc/Introduction_To_BiocParallel.pdf}}
 }
 \value{
 An updated hic.table is returned with the additional columns of adj.IF1,

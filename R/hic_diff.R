@@ -24,8 +24,7 @@
 #'     entering a list of hic.tables.
 #' @param BP_param Parameters for BiocParallel. Defaults to bpparam(), see help
 #'     for BiocParallel for more information
-#'     \url{http://bioconductor.org/packages/release/bioc/vignettes/BiocParallel/
-#'     inst/doc/Introduction_To_BiocParallel.pdf}
+#'     \url{http://bioconductor.org/packages/release/bioc/vignettes/BiocParallel/inst/doc/Introduction_To_BiocParallel.pdf}
 #'
 #'
 #' @details  This is the old method for detecting difference. The function is left in for 

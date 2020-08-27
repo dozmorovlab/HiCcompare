@@ -40,8 +40,7 @@
 #'     entering a list of hic.tables. Defauts to FALSE.
 #' @param BP_param Parameters for BiocParallel. Defaults to bpparam(), see help
 #'     for BiocParallel for more information
-#'     \url{http://bioconductor.org/packages/release/bioc/vignettes/BiocParallel/
-#'     inst/doc/Introduction_To_BiocParallel.pdf}
+#'     \url{http://bioconductor.org/packages/release/bioc/vignettes/BiocParallel/inst/doc/Introduction_To_BiocParallel.pdf}
 #'
 #' @details The function takes in a hic.table or a list of hic.table objects created
 #'     with the \code{create.hic.loess} function. If you wish to perform joint
