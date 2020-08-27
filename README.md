@@ -6,7 +6,7 @@
 
 If you have more than two Hi-C datasets, please see our other package, [multiHiCcompare](https://bioconductor.org/packages/multiHiCcompare/).
 
-`HiCcompare` accepts three-column tab-separated text files storing chromatin interaction matrices in a sparse matrix format which are available from several sources such as the [Aiden Lab](http://aidenlab.org/data.html) (`.hic` files) and the [Mirnylab FTP site](http://cooler.readthedocs.io/en/latest/index.html) (`.cool` files). `HiCcompare` performs differential chromatin interaction analysis between two biological conditions. 
+`HiCcompare` accepts three-column tab-separated text files storing chromatin interaction matrices in a sparse matrix format which are available from several sources such as the [Aiden Lab](http://aidenlab.org/data.html) (`.hic` files) and the [Mirnylab FTP site](http://cooler.readthedocs.io/en/latest/index.html) (`.cool` files). `HiCcompare` performs differential chromatin interaction analysis between two biological conditions, one Hi-C matrix per condition. 
 
 First, `HiCcompare` jointly normalizes two Hi-C datasets to remove biases between them. Then, it can detect significant differences between the datasets using a genomic distance-stratified permutation test. The novel concept of the MD plot, based on the commonly used MA plot or Bland-Altman plot, is the basis for these methods. The log **M**inus (difference) between chromatin interaction frequencies is plotted on the Y-axis. The genomic **D**istance is plotted on the X-axis. The MD plot allows for visualization, normalization, and comparing the differences between the Hi-C datasets in a distance-stratified manner.
 
