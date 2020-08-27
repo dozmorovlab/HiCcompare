@@ -1,5 +1,5 @@
 ---
-title: "`HiCcompare` Vignette"
+title: "HiCcompare Usage Vignette"
 author: "John Stansfield, Mikhail Dozmorov"
 date: "`r Sys.Date()`"
 output: 
