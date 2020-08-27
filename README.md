@@ -1,11 +1,4 @@
-# HiCcompare
-
-Stansfield, John C., Kellen G. Cresswell, Vladimir I. Vladimirov, and Mikhail G. Dozmorov. [HiCcompare: An R-Package for Joint Normalization and Comparison of HI-C Datasets](https://doi.org/10.1186/s12859-018-2288-x). _BMC Bioinformatics_ 19, no. 1 (December 2018).
-
-Stansfield, John C., Duc Tran, Tin Nguyen, and Mikhail G. Dozmorov. [R Tutorial: Detection of Differentially Interacting Chromatin Regions From Multiple Hi-C Datasets](https://doi.org/10.1002/cpbi.76). Current Protocols in Bioinformatics, May 2019
-
-[HiCcompareWorkshop](https://github.com/mdozmorov/HiCcompareWorkshop) - "Detection of Differentially Interacting Chromatin Regions From Multiple Hi-C Datasets" workshop presented on Bioconductor 2020 conference
-
+# [HiCcompare](https://dozmorovlab.github.io/HiCcompare/)
 
 ## Overview 
 
@@ -22,7 +15,7 @@ The main functions are:
 + `hic_loess()` - performs joint `loess` normalization, minimizing global and local biases between Hi-C datasets
 + `hic_compare()` - performs the difference detection process to detect significant changes between Hi-C datasets and assist in comparative analysis
 
-Several demo Hi-C datasets are also included in the package.
+Several demo Hi-C datasets are also included in the package. Refer to the `HiCcompare` vignette for full usage instructions, `vignette("HiCcompare-vignette")`
 
 ## Installation
 
@@ -57,8 +50,6 @@ install_github('dozmorovlab/HiCcompare', build_vignettes = TRUE)
 library(HiCcompare)
 ```
 
-Refer to the `HiCcompare` vignette for full usage instructions, `vignette("HiCcompare-vignette")`
-
 ## Usage
 
 First, you will need to obtain some Hi-C data. Data is available from the sources listed in the overview, along with many others. You will need to extract the data and read it into R as either a 3 column sparse upper triangular matrix or a 7-column BEDPE file. For more details on data extraction, see the `HiCcompare`'s vignette.
@@ -83,6 +74,14 @@ head(hic.table)
 hic.table = hic_compare(hic.table, Plot = TRUE)
 head(hic.table)
 ```
+
+## Citations
+
+Stansfield, John C., Kellen G. Cresswell, Vladimir I. Vladimirov, and Mikhail G. Dozmorov. [HiCcompare: An R-Package for Joint Normalization and Comparison of HI-C Datasets](https://doi.org/10.1186/s12859-018-2288-x). _BMC Bioinformatics_ 19, no. 1 (December 2018).
+
+Stansfield, John C., Duc Tran, Tin Nguyen, and Mikhail G. Dozmorov. [R Tutorial: Detection of Differentially Interacting Chromatin Regions From Multiple Hi-C Datasets](https://doi.org/10.1002/cpbi.76). Current Protocols in Bioinformatics, May 2019
+
+[HiCcompareWorkshop](https://github.com/mdozmorov/HiCcompareWorkshop) - "Detection of Differentially Interacting Chromatin Regions From Multiple Hi-C Datasets" workshop presented on Bioconductor 2020 conference
 
 ## Additional Vignettes
 
