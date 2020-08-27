@@ -4,9 +4,17 @@
 \alias{create.hic.table}
 \title{Create hic.table object from a sparse upper triangular Hi-C matrix}
 \usage{
-create.hic.table(sparse.mat1, sparse.mat2, chr = NA, scale = TRUE,
-  include.zeros = FALSE, subset.dist = NA, subset.index = NA,
-  exclude.regions = NA, exclude.overlap = 0.2)
+create.hic.table(
+  sparse.mat1,
+  sparse.mat2,
+  chr = NA,
+  scale = TRUE,
+  include.zeros = FALSE,
+  subset.dist = NA,
+  subset.index = NA,
+  exclude.regions = NA,
+  exclude.overlap = 0.2
+)
 }
 \arguments{
 \item{sparse.mat1}{Required, sparse upper triangular Hi-C matrix, 7 column

@@ -4,12 +4,14 @@
 \name{hg19_blacklist}
 \alias{hg19_blacklist}
 \title{BED file for hg19 blacklisted regions}
-\format{A data.frame with 3 columns and 1649 rows:
+\format{
+A data.frame with 3 columns and 1649 rows:
     \describe{
     \item{chr}{chromosome for the region}
     \item{start}{start location of the region}
     \item{end}{end location of the region}
- }}
+ }
+}
 \source{
 Data from UCSC
     \url{http://genome.ucsc.edu/cgi-bin/hgFileUi?db=hg19&g=wgEncodeMapability}

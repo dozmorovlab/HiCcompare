@@ -4,8 +4,13 @@
 \alias{get_CNV}
 \title{Function to get the locations of copy number variations}
 \usage{
-get_CNV(path2bam, out.file = "CNV_calls", bin.size = 1000,
-  genome = "hg19", CNV.level = 2)
+get_CNV(
+  path2bam,
+  out.file = "CNV_calls",
+  bin.size = 1000,
+  genome = "hg19",
+  CNV.level = 2
+)
 }
 \arguments{
 \item{path2bam}{The path to the folder containing the .bam files for the data}

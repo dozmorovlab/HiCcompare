@@ -4,11 +4,13 @@
 \name{hmec.IS}
 \alias{hmec.IS}
 \title{Hi-C data from HMEC cell line - chromosome 22 at 500kb resolution}
-\format{An InteractionSet with 2490 rows and 1 metadata column:
+\format{
+An InteractionSet with 2490 rows and 1 metadata column:
     \describe{
     \item{IF}{The Interaction Frequency - number of read counts found
          for the interaction between region1 and region2}
- }}
+ }
+}
 \source{
 Data from the Aiden Lab. See their website at
     \url{http://www.aidenlab.org/}

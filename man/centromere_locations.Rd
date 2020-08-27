@@ -4,7 +4,9 @@
 \name{centromere_locations}
 \alias{centromere_locations}
 \title{Locations of the centromeres for hg19}
-\format{A data.frame with 3 columns and 24 rows}
+\format{
+A data.frame with 3 columns and 24 rows
+}
 \usage{
 centromere_locations
 }

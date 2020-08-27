@@ -4,9 +4,16 @@
 \alias{hic_compare}
 \title{Detect differences between two jointly normalized Hi-C datasets.}
 \usage{
-hic_compare(hic.table, A.min = NA, adjust.dist = TRUE,
-  p.method = "fdr", Plot = FALSE, Plot.smooth = TRUE,
-  parallel = FALSE, BP_param = bpparam())
+hic_compare(
+  hic.table,
+  A.min = NA,
+  adjust.dist = TRUE,
+  p.method = "fdr",
+  Plot = FALSE,
+  Plot.smooth = TRUE,
+  parallel = FALSE,
+  BP_param = bpparam()
+)
 }
 \arguments{
 \item{hic.table}{A hic.table or list of hic.tables output from the
@@ -44,8 +51,7 @@ entering a list of hic.tables.}
 
 \item{BP_param}{Parameters for BiocParallel. Defaults to bpparam(), see help
 for BiocParallel for more information
-\url{http://bioconductor.org/packages/release/bioc/vignettes/BiocParallel/
-inst/doc/Introduction_To_BiocParallel.pdf}}
+\url{http://bioconductor.org/packages/release/bioc/vignettes/BiocParallel/inst/doc/Introduction_To_BiocParallel.pdf}}
 }
 \value{
 A hic.table with additional columns containing a p-value for the significance

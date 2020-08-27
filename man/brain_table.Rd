@@ -4,7 +4,9 @@
 \name{brain_table}
 \alias{brain_table}
 \title{Hi-C data from two regions of the brain at 100KB resolution}
-\format{An object of class \code{list} of length 2.}
+\format{
+An object of class \code{list} of length 2.
+}
 \usage{
 brain_table
 }
