@@ -1,5 +1,9 @@
 # [HiCcompare](https://dozmorovlab.github.io/HiCcompare/)
 
+<!-- badges: start -->
+[![BioC status](http://www.bioconductor.org/shields/build/release/bioc/HiCcompare.svg)](https://bioconductor.org/checkResults/release/bioc-LATEST/HiCcompare)
+<!-- badges: end -->
+
 ## Overview 
 
 `HiCcompare` provides functions for joint normalization and difference detection in multiple Hi-C datasets. `HiCcompare` operates on processed Hi-C data in the form of chromosome-specific chromatin interaction matrices. [HiCcompare is available on Bioconductor](https://bioconductor.org/packages/HiCcompare/). 
