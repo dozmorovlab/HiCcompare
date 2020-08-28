@@ -2,6 +2,7 @@
 
 <!-- badges: start -->
 [![BioC status](http://www.bioconductor.org/shields/build/release/bioc/HiCcompare.svg)](https://bioconductor.org/checkResults/release/bioc-LATEST/HiCcompare)
+[![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://www.tidyverse.org/lifecycle/#stable)
 <!-- badges: end -->
 
 ## Overview 
