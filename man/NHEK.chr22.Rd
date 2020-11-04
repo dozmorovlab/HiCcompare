@@ -17,7 +17,7 @@ A matrix with 2508 rows and 3 columns:
 }
 \source{
 Data from the Aiden Lab. See their website at
-    \url{http://www.aidenlab.org/}
+    \url{https://www.aidenlab.org/}
      Or the the GEO link to download the data
     \url{https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE63525}
 }

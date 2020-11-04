@@ -13,7 +13,7 @@ An InteractionSet with 2490 rows and 1 metadata column:
 }
 \source{
 Data from the Aiden Lab. See their website at
-    \url{http://www.aidenlab.org/}
+    \url{https://www.aidenlab.org/}
      Or the the GEO link to download the data
     \url{https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE63525}
 }
