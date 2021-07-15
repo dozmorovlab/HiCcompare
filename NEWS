@@ -1,3 +1,6 @@
+Changes in version 1.15.1 (dev branch, not yet deployed to Bioconductor)
++ Add IF.min parameter, keep default compatible with the previous version
+
 Changes in version 1.11.2 (not yet deployed to Bioconductor)
 + pkgdown website deployed to gh-pages branch
 + Update README.md to make it compatible with pkgdown

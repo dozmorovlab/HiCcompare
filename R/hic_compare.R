@@ -30,7 +30,16 @@
 #' @param BP_param Parameters for BiocParallel. Defaults to bpparam(), see help
 #'     for BiocParallel for more information
 #'     \url{http://bioconductor.org/packages/release/bioc/vignettes/BiocParallel/inst/doc/Introduction_To_BiocParallel.pdf}
-#'
+#' @param IF.min Minimum adjusted interaction frequency in one of the datasets 
+#' to be considered for differential analysis. This is different from A.min, which
+#' represents the average interaction frequency threshold. 1 (the default setting
+#' corresponding to the published algorithm) disables differential analysis 
+#' if the adjusted interaction frequency in either dataset is below 1.
+#' 0 (recommended) relaxes this threshold and allows for more differential 
+#' interactions being detected. Note that differential analysis is performed if
+#' both A.min and IF.min thresholds are satisfied, otherwise, NA is produced. 
+#' That is, average interaction frequency should be larger than A.min 
+#' and individual IFs should be larger than IF.min.
 #'
 #' @details  The function takes in a hic.table or a list of hic.table objects created
 #'     with the \code{hic_loess} function. If you wish to perform difference
@@ -66,7 +75,7 @@
 #'
 hic_compare <- function(hic.table, A.min = NA, adjust.dist = TRUE, p.method = 'fdr',
                         Plot = FALSE, Plot.smooth = TRUE,
-                        parallel = FALSE, BP_param = bpparam()) {
+                        parallel = FALSE, BP_param = bpparam(), IF.min = 1) {
   # check for correct input
   if (is(hic.table, "list")) {
     if ( sapply(hic.table, ncol) %>% min() < 13) {
@@ -113,9 +122,9 @@ hic_compare <- function(hic.table, A.min = NA, adjust.dist = TRUE, p.method = 'f
   
   # calculate z-scores
   if (parallel) {
-    hic.table <- BiocParallel::bplapply(hic.table, .calc_z2, A.min = A.min) 
+    hic.table <- BiocParallel::bplapply(hic.table, .calc_z2, A.min = A.min, IF.min = IF.min) 
   } else {
-    hic.table <- lapply(hic.table, .calc_z2, A.min = A.min) 
+    hic.table <- lapply(hic.table, .calc_z2, A.min = A.min, IF.min = IF.min) 
   }
   
   # adjust p-values
@@ -148,7 +157,7 @@ hic_compare <- function(hic.table, A.min = NA, adjust.dist = TRUE, p.method = 'f
 
 # version where M values with A < thresh removed before z score calculations
 # this version makes M have a lower standard deviation and thus higher z-scores
-.calc_z2 <- function(hic.table, A.min, Plot = TRUE) {
+.calc_z2 <- function(hic.table, A.min, IF.min, Plot = TRUE) {
   # threshold <- quantile((hic.table$A), quant, na.rm = TRUE)
   new_M <- hic.table$adj.M
   # if (is.na(A.min)) {
@@ -156,7 +165,7 @@ hic_compare <- function(hic.table, A.min = NA, adjust.dist = TRUE, p.method = 'f
   #   new_M[hic.table$A < threshold | hic.table$adj.IF1 < 1 | hic.table$adj.IF2 < 1] <- NA
   # } else {
     # set M to be NA to be ignored if A < A.min or IF1 < 1 or IF2 < 1
-    new_M[hic.table$A < A.min | hic.table$adj.IF1 < 1 | hic.table$adj.IF2 < 1] <- NA
+    new_M[hic.table$A < A.min | hic.table$adj.IF1 <= IF.min | hic.table$adj.IF2 <= IF.min] <- NA
   # }
   
   Z1 <- (new_M - mean(new_M, na.rm = TRUE)) / sd(new_M, na.rm = TRUE)

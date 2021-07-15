@@ -12,7 +12,8 @@ hic_compare(
   Plot = FALSE,
   Plot.smooth = TRUE,
   parallel = FALSE,
-  BP_param = bpparam()
+  BP_param = bpparam(),
+  IF.min = 1
 )
 }
 \arguments{
@@ -52,6 +53,17 @@ entering a list of hic.tables.}
 \item{BP_param}{Parameters for BiocParallel. Defaults to bpparam(), see help
 for BiocParallel for more information
 \url{http://bioconductor.org/packages/release/bioc/vignettes/BiocParallel/inst/doc/Introduction_To_BiocParallel.pdf}}
+
+\item{IF.min}{Minimum adjusted interaction frequency in one of the datasets 
+to be considered for differential analysis. This is different from A.min, which
+represents the average interaction frequency threshold. 1 (the default setting
+corresponding to the published algorithm) disables differential analysis 
+if the adjusted interaction frequency in either dataset is below 1.
+0 (recommended) relaxes this threshold and allows for more differential 
+interactions being detected. Note that differential analysis is performed if
+both A.min and IF.min thresholds are satisfied, otherwise, NA is produced. 
+That is, average interaction frequency should be larger than A.min 
+and individual IFs should be larger than IF.min.}
 }
 \value{
 A hic.table with additional columns containing a p-value for the significance
