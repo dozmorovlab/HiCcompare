@@ -1,3 +1,6 @@
+Changes in version 1.20.1 (2022-11-28)
++ Use more secure HTTPS URL for Aiden Lab (PR #12 by @paulmenzel)
+
 Changes in version 1.11.1 (2020-08-14)
 + Add CITATION, also to README.md file
 + Update NEWS

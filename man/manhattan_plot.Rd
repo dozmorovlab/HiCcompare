@@ -4,8 +4,7 @@
 \alias{manhattan_plot}
 \title{Create a Manhattan plot for the results of HiCcompare}
 \usage{
-manhattan_plot(hic.table, adj.p = TRUE, alpha = 0.05,
-  return_df = FALSE)
+manhattan_plot(hic.table, adj.p = TRUE, alpha = 0.05, return_df = FALSE)
 }
 \arguments{
 \item{hic.table}{a hic.table object that has been normalized

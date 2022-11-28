@@ -4,7 +4,9 @@
 \name{cooler}
 \alias{cooler}
 \title{Hi-C data in the cooler format}
-\format{A matrix with 4011620 rows and 7 columns in BEDPE format.}
+\format{
+A matrix with 4011620 rows and 7 columns in BEDPE format.
+}
 \source{
 Data from the Index of Coolers. \url{ftp://cooler.csail.mit.edu/coolers/hg19/Dixon2012-H1hESC-HindIII-allreps-filtered.1000kb.cool}
 }

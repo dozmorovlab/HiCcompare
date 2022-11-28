@@ -4,9 +4,16 @@
 \alias{hic_loess}
 \title{Perform joint loess normalization on two Hi-C datasets}
 \usage{
-hic_loess(hic.table, degree = 1, span = NA, loess.criterion = "gcv",
-  Plot = FALSE, Plot.smooth = TRUE, parallel = FALSE,
-  BP_param = bpparam())
+hic_loess(
+  hic.table,
+  degree = 1,
+  span = NA,
+  loess.criterion = "gcv",
+  Plot = FALSE,
+  Plot.smooth = TRUE,
+  parallel = FALSE,
+  BP_param = bpparam()
+)
 }
 \arguments{
 \item{hic.table}{hic.table or a list of hic.tables generated from

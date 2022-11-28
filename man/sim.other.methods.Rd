@@ -4,8 +4,14 @@
 \alias{sim.other.methods}
 \title{Compare other normalization methods on simulated data}
 \usage{
-sim.other.methods(sim.table, i.range, j.range, Plot = TRUE,
-  alpha = 0.05, diff.thresh = NA)
+sim.other.methods(
+  sim.table,
+  i.range,
+  j.range,
+  Plot = TRUE,
+  alpha = 0.05,
+  diff.thresh = NA
+)
 }
 \arguments{
 \item{sim.table}{the sim.table object output from hic_simulate}

@@ -4,7 +4,8 @@
 \name{HMEC.chr22}
 \alias{HMEC.chr22}
 \title{Hi-C data from HMEC cell line - chromosome 22 at 500kb resolution}
-\format{A matrix with 2490 rows and 3 columns:
+\format{
+A matrix with 2490 rows and 3 columns:
     \describe{
     \item{region1}{The first interacting region - corresponds to the
          row name of a full Hi-C contact matrix}
@@ -12,10 +13,11 @@
          the column name of a full Hi-C contact matrix}
     \item{IF}{The Interaction Frequency - number of read counts
          found for the interaction between region1 and region2}
- }}
+ }
+}
 \source{
 Data from the Aiden Lab. See their website at
-    \url{http://www.aidenlab.org/}
+    \url{https://www.aidenlab.org/}
      Or the the GEO link to download the data
     \url{https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE63525}
 }

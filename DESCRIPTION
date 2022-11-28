@@ -1,10 +1,20 @@
 Package: HiCcompare
 Title: HiCcompare: Joint normalization and comparative analysis of multiple Hi-C datasets
-Version: 1.21.0
-Author: John Stansfield <stansfieldjc@vcu.edu>,
-    Kellen Cresswell <cresswellkg@vcu.edu>,
-    Mikhail Dozmorov <mikhail.dozmorov@vcuhealth.org>
-Maintainer: John Stansfield <stansfieldjc@vcu.edu>, Mikhail Dozmorov <mikhail.dozmorov@vcuhealth.org>
+Version: 1.20.1
+Authors@R: c(
+    person(given = "Mikhail",
+           family = "Dozmorov",
+           role = c("aut", "cre"),
+           email = "mikhail.dozmorov@gmail.com",
+           comment = c(ORCID = "0000-0002-0086-8358")),
+    person(given = "Kellen",
+           family = "Cresswell",
+           role = c("aut"),
+           email = "cresswellkg@vcu.edu"),
+    person(given = "John",
+           family = "Stansfield",
+           role = c("aut"),
+           email = "stansfieldjc@vcu.edu"))
 Description: HiCcompare provides functions for joint normalization and difference detection in multiple Hi-C datasets. 
     HiCcompare operates on processed Hi-C data in the form of chromosome-specific chromatin interaction matrices. 
     It accepts three-column tab-separated text files storing chromatin interaction matrices in a sparse matrix format 
@@ -26,7 +36,6 @@ Imports: data.table,
     IRanges,
     S4Vectors,
     BiocParallel,
-    QDNAseq,
     KernSmooth,
     methods,
     utils,
@@ -34,16 +43,17 @@ Imports: data.table,
     pheatmap,
     gtools,
     rhdf5
+Suggests: knitr,
+    rmarkdown,
+    testthat,
+    multiHiCcompare
 biocViews: Software,
     HiC, Sequencing, Normalization
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 6.1.1
-Suggests: knitr,
-    rmarkdown,
-    testthat,
-    multiHiCcompare
+LazyDataCompression: xz
+RoxygenNote: 7.2.2
 VignetteBuilder: knitr
 BugReports: https://github.com/dozmorovlab/HiCcompare/issues
 URL: https://github.com/dozmorovlab/HiCcompare

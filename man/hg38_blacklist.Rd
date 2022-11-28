@@ -4,12 +4,14 @@
 \name{hg38_blacklist}
 \alias{hg38_blacklist}
 \title{BED file for hg38 blacklisted regions}
-\format{A data.frame with 3 columns and 38 rows:
+\format{
+A data.frame with 3 columns and 38 rows:
     \describe{
     \item{chr}{chromosome for the region}
     \item{start}{start location of the region}
     \item{end}{end location of the region}
- }}
+ }
+}
 \source{
 Data from
     \url{http://mitra.stanford.edu/kundaje/akundaje/release/blacklists/hg38-human/}

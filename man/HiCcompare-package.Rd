@@ -16,13 +16,11 @@ analysis on the 3-Dimensional structure of the genomes of cells in different bio
 To learn more about HiCcompare, start with the vignettes:
 `browseVignettes(package = "HiCcompare")`
 }
-\author{
-\strong{Maintainer}: John Stansfield \email{stansfieldjc@vcu.edu}
-
-Authors:
+\seealso{
+Useful links:
 \itemize{
-  \item Kellen Cresswell \email{cresswellkg@vcu.edu}
-  \item Mikhail Dozmorov \email{mikhail.dozmorov@vcuhealth.org}
+  \item \url{https://github.com/dozmorovlab/HiCcompare}
+  \item Report bugs at \url{https://github.com/dozmorovlab/HiCcompare/issues}
 }
 
 }

@@ -4,8 +4,13 @@
 \alias{MA_norm}
 \title{Perform MA normalization on a hic.table object}
 \usage{
-MA_norm(hic.table, degree = 2, Plot = FALSE, span = NA,
-  loess.criterion = "gcv")
+MA_norm(
+  hic.table,
+  degree = 2,
+  Plot = FALSE,
+  span = NA,
+  loess.criterion = "gcv"
+)
 }
 \arguments{
 \item{hic.table}{A hic.table object}

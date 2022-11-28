@@ -4,11 +4,22 @@
 \alias{sim_matrix}
 \title{Simulate 2 Hi-C matrices with differences}
 \usage{
-sim_matrix(nrow = 100, medianIF = 50000, sdIF = 14000,
-  powerlaw.alpha = 1.8, sd.alpha = 1.9, prop.zero.slope = 0.001,
-  centromere.location = NA, CNV.location = NA, CNV.proportion = 0.8,
-  CNV.multiplier = 0, biasFunc = .normal.bias, fold.change = NA,
-  i.range = NA, j.range = NA)
+sim_matrix(
+  nrow = 100,
+  medianIF = 50000,
+  sdIF = 14000,
+  powerlaw.alpha = 1.8,
+  sd.alpha = 1.9,
+  prop.zero.slope = 0.001,
+  centromere.location = NA,
+  CNV.location = NA,
+  CNV.proportion = 0.8,
+  CNV.multiplier = 0,
+  biasFunc = .normal.bias,
+  fold.change = NA,
+  i.range = NA,
+  j.range = NA
+)
 }
 \arguments{
 \item{nrow}{Number of rows and columns of the full matrix}
