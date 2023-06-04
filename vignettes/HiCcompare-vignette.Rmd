@@ -76,13 +76,13 @@ dat <- cooler2bedpe(path = "Dixon2012-H1hESC-HindIII-allreps-filtered.1000kb.coo
 Alternatively, data in the `.cool` format can be import into `HiCcompare` using the following steps:
 
   1. Download and install `cooler` from [http://cooler.readthedocs.io/en/latest/index.html](http://cooler.readthedocs.io/en/latest/index.html)
-  2. Download a `.cool` file from the cooler index [ftp://cooler.csail.mit.edu/coolers](ftp://cooler.csail.mit.edu/coolers).
-  3. Say we downloaded the `Dixon2012-H1hESC-HindIII-allreps-filtered.1000kb.cool` file. See `cooler dump --help` for data extraction options. To extract the contact matrix we use the following commands in the terminal:  
-  `cooler dump --join Dixon2012-H1hESC-HindIII-allreps-filtered.1000kb.cool > dixon.hESC.1000kb.txt`
+  2. Download the `GSM5981806_HiC_UT242.cool` file from GEO [GSE199695](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE199695).
+  3. See `cooler dump --help` for data extraction options. To extract the contact matrix we use the following commands in the terminal:  
+  `cooler dump --join GSM5981806_HiC_UT242.cool > GSM5981806_HiC_UT242.txt`
   4. Read in the text file as you would any tab-delimited file in R  
-  `hesc1000kb <- read.table("dixon.hESC.1000kb.txt", header = FALSE)`
+  `UT242 <- read.table(fileNameIn1, header = FALSE)`. Subset for speed, `UT242 <- UT242[UT242$V1 == "chr2" & UT242$V4 == "chr2", ]`
   5. Convert to a sparse upper triangular matrix using the `HiCcompare::cooler2sparse` function.  
-  `sparse <- cooler2sparse(hesc1000kb) `
+  `sparse <- cooler2sparse(UT242)`
   6. Repeat the steps for another Hi-C dataset that you wish to compare to the first dataset then proceed to [Creating the `hic.table` object](#hic_table).
 
 
