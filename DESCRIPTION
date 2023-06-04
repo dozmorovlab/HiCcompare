@@ -1,6 +1,6 @@
 Package: HiCcompare
 Title: HiCcompare: Joint normalization and comparative analysis of multiple Hi-C datasets
-Version: 1.20.1
+Version: 1.23.1
 Authors@R: c(
     person(given = "Mikhail",
            family = "Dozmorov",
@@ -53,7 +53,7 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 LazyDataCompression: xz
-RoxygenNote: 7.2.2
+RoxygenNote: 7.2.3
 VignetteBuilder: knitr
 BugReports: https://github.com/dozmorovlab/HiCcompare/issues
 URL: https://github.com/dozmorovlab/HiCcompare
