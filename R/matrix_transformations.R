@@ -15,6 +15,7 @@
 #'     hic.table = TRUE. You will then need to specify the column name that you
 #'     wish to be entered as the values for the cells in the full matrix using
 #'     the column.name option.
+#' @import data.table
 #' @return A full Hi-C contact Matrix.
 #' @examples
 #' data('NHEK.chr22')
@@ -182,7 +183,8 @@ cooler2sparse <- function(cooler) {
     names(sparse.list) <- chroms
     return(sparse.list)
   } else {
-    temp <- temp[, c("start1", "start2", "IF"), with = FALSE]
+    cooler <- data.table::as.data.table(cooler)
+    temp <- cooler[, c("start1", "start2", "IF"), with = FALSE]
     colnames(temp) <- c("region1", "region2", "IF")
     temp <- subset(temp, IF != 0)
     return(temp)
