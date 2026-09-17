@@ -36,6 +36,20 @@ test_that('create.hic.table produces same result for sparse matrix and BEDPE inp
   expect_equal(s.subset.dist, b.subset.dist)
 })
 
+test_that('create.hic.table produces same result for sparse matrix and InteractionSet inputs', {
+  library(testthat)
+  library(HiCcompare)
+  data("HMEC.chr22")
+  data("NHEK.chr22")
+  data("hmec.IS")
+  data("nhek.IS")
+
+  sparse.table <- HiCcompare::create.hic.table(HMEC.chr22, NHEK.chr22, chr = "chr22")
+  interactionset.table <- HiCcompare::create.hic.table(hmec.IS, nhek.IS)
+
+  expect_equal(sparse.table, interactionset.table)
+})
+
 
 test_that('subsetting works', {
   library(HiCcompare)

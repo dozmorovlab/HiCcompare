@@ -80,6 +80,19 @@
 create.hic.table <- function(sparse.mat1, sparse.mat2, chr = NA, scale = TRUE,
                              include.zeros = FALSE, subset.dist = NA, subset.index = NA,
                              exclude.regions = NA, exclude.overlap = 0.2) {
+  interactionset_to_sparse <- function(interaction.set, arg.name) {
+    interaction.table <- data.table::as.data.table(interaction.set)
+    required.cols <- c("seqnames1", "start1", "start2", "IF")
+    missing.cols <- setdiff(required.cols, colnames(interaction.table))
+    if (length(missing.cols) > 0) {
+      stop(arg.name, " must contain columns ",
+           paste(required.cols, collapse = ", "))
+    }
+    list(
+      chr = as.character(interaction.table$seqnames1[1]),
+      sparse = interaction.table[, .(start1, start2, IF)]
+    )
+  }
   if (!is.na(subset.dist) & !is.na(subset.index[1])) {
     stop("Enter a value for only one of the subsetting options")
   }
@@ -89,11 +102,11 @@ create.hic.table <- function(sparse.mat1, sparse.mat2, chr = NA, scale = TRUE,
     stop("Make sure the classes of the sparse matrices match")
   }
   if (is(sparse.mat1, "GInteractions") & is(sparse.mat2, "GInteractions")) {
-    sparse.mat1 <- as.data.table(sparse.mat1)
-    sparse.mat2 <- as.data.table(sparse.mat2)
-    chr <- sparse.mat1$seqnames1[1]
-    sparse.mat1 <- sparse.mat1[, c(2, 7, 11), with = FALSE]
-    sparse.mat2 <- sparse.mat2[, c(2, 7, 11), with = FALSE]
+    sparse1 <- interactionset_to_sparse(sparse.mat1, "sparse.mat1")
+    sparse2 <- interactionset_to_sparse(sparse.mat2, "sparse.mat2")
+    chr <- sparse1$chr
+    sparse.mat1 <- sparse1$sparse
+    sparse.mat2 <- sparse2$sparse
   }
   if (!is(exclude.regions, "logical")) {
     if (!is(exclude.regions, "data.frame") & !is(exclude.regions, "GenomicRanges")) {
@@ -234,4 +247,3 @@ create.hic.table <- function(sparse.mat1, sparse.mat2, chr = NA, scale = TRUE,
 
   return(new.hic.table)
 }
-
