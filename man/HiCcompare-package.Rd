@@ -24,3 +24,13 @@ Useful links:
 }
 
 }
+\author{
+\strong{Maintainer}: Mikhail Dozmorov \email{mikhail.dozmorov@gmail.com} (\href{https://orcid.org/0000-0002-0086-8358}{ORCID})
+
+Authors:
+\itemize{
+  \item Kellen Cresswell \email{cresswellkg@vcu.edu}
+  \item John Stansfield \email{stansfieldjc@vcu.edu}
+}
+
+}

@@ -498,3 +498,9 @@ qsub 01_launch_HiCcompare.sh dat1.1000000.pixels.tsv dat2.1000000.pixels.tsv hic
 ```
 
 Credit to Ilya Flyamer (@Phlya on GitHub) for this example of using `HiCcompare` on a cluster.
+
+# Session Info
+
+```{r, echo=FALSE}
+sessionInfo()
+```
